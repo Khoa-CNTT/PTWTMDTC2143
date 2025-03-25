@@ -1,20 +1,20 @@
-import { useState } from "react";
-
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./App.css";
+import Header from "./components/Header";
+import Home from "./pages/Home";
 
 function App() {
-  // const [count, setCount] = useState(0);
+
 
   return (
     <>
-      <div className="flex min-h-screen items-center justify-center bg-gray-100">
-        <div className="rounded-lg bg-white p-8 shadow-md">
-          <h1 className="text-3xl font-bold text-red-600">
-            Vite + React + Tailwind CSS
-          </h1>
-          <p className="mt-2 text-gray-600">Your setup is working!</p>
-        </div>
-      </div>
+    <BrowserRouter>
+      <Header />
+      <Routes>
+        <Route path="/" element={<Home />} />
+      </Routes>
+    </BrowserRouter>
+
     </>
   );
 }
