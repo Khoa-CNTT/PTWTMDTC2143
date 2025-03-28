@@ -1,0 +1,4 @@
+.link {
+    word-wrap: break-word;  /* Cho phép ngắt dòng tự động */
+    white-space: normal;    /* Đảm bảo không bị ngăn cản việc xuống dòng */
+}

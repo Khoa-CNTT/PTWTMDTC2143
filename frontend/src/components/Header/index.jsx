@@ -9,6 +9,7 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { styled } from "@mui/material/styles";
 import Badge from "@mui/material/Badge";
 import { FaUserCheck } from "react-icons/fa";
+import Navigation from '../../components/Header/Navigation';
 const Header = () => {
   const StyledBadge = styled(Badge)(({ theme }) => ({
     "& .MuiBadge-badge": {
@@ -19,7 +20,7 @@ const Header = () => {
     },
   }));
   return (
-    <header>
+    <header className="bg-white">
       <div className="top-strip lg:block py-2 border-t-[1px] border-gray-250  border-b-[1px]">
         <div className="container">
           <div className="flex items-center justify-between">
@@ -102,6 +103,7 @@ const Header = () => {
           </div>
         </div>
       </div>
+      <Navigation />
     </header>
   );
 };

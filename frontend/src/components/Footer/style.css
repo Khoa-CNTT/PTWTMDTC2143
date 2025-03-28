@@ -1,0 +1,16 @@
+.container {
+    position: relative; /* Cần phải có để icon có thể được căn chỉnh ở vị trí tương đối với container */
+    border: 2px solid black;
+    padding: 20px;
+    width: 200px;
+    text-align: center;
+  }
+  
+  .icon {
+    position: absolute; /* Đặt vị trí của icon lên trên phần tử */
+    top: -10px; /* Điều chỉnh icon nằm trên border */
+    left: 50%;
+    transform: translateX(-50%); /* Để căn giữa icon theo chiều ngang */
+    font-size: 24px;
+    color: red; /* Thay đổi màu sắc của icon */
+  }
