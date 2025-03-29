@@ -5,6 +5,9 @@
 body {
   font-family: "Roboto", sans-serif;
   font-optical-sizing: auto;
+  background: #f5f0f0;
+  color: rgba(0,0,0,0.9);
+  overflow-x: hidden;
 }
 .container {
   width: 95%;
@@ -23,3 +26,11 @@ header .top-strip {
   background-color: #fe624c !important;
   color: white;
 }
+nav ul button{text-transform: capitalize !important;}
+
+.sliderHome{overflow: inherit !important;}
+
+/* .card{
+  width: 600px;
+  height: 200px;
+} */
