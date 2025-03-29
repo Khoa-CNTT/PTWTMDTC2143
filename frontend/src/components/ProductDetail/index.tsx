@@ -33,7 +33,7 @@ const product = {
     sizes: ["14-Inch", "24-Inch", "32-Inch", "60-Inch"],
 };
 
-const ProductDetail = () => {
+const ProductDetail: React.FC = () => {
     const [selectedSize, setSelectedSize] = useState(product.sizes[1]);
     const [quantity, setQuantity] = useState(1);
     const [selectedImage, setSelectedImage] = useState(product.images[0]);

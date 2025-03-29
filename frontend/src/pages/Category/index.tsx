@@ -4,7 +4,7 @@ import HotSale from '../../components/HotSale';
 import { FaFireAlt } from "react-icons/fa";
 import RecentlyViewed from '../../components/RecentlyViewed';
 
-const Category = () => {
+const Category: React.FC = () => {
   return (
     <>
       <Cate />

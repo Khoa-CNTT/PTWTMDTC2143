@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Rating from '@mui/material/Rating';
 // import "../BestDeal/style.css"
 
-const BestDeal = () => {
+const BestDeal: React.FC = () => {
     return (
         <>
             <div className="bestDeal rounded-[20px] mt-5">

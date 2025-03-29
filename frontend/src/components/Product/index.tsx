@@ -4,7 +4,7 @@ import { Slider, Checkbox, FormControlLabel, FormGroup, Select, MenuItem } from 
 import { Link } from "react-router-dom";
 import Rating from '@mui/material/Rating';
 
-const Product = () => {
+const Product: React.FC = () => {
     const [priceRange, setPriceRange] = useState([1500, 90500]);
     const [filters, setFilters] = useState({ white: false, black: false, blue: false, red: false });
 

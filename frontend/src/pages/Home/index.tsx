@@ -1,4 +1,3 @@
-import React from 'react'
 
 import HomeSlider from '../../components/HomeSlider';
 import BestDeal from '../../components/BestDeal';
@@ -10,7 +9,7 @@ import { FaFireAlt } from "react-icons/fa";
 
 import RecentlyViewed from '../../components/RecentlyViewed';
 
-const Home = () => {
+const Home: React.FC = () => {
   return (
     <>
       <HomeSlider />
@@ -51,9 +50,7 @@ const Home = () => {
         </div>
       </div>
     </>
-
-
-  )
+  );
 }
 
 export default Home;

@@ -4,7 +4,7 @@ import { FaStar } from "react-icons/fa";
 import { GiBackwardTime } from "react-icons/gi";
 import { VscFeedback } from "react-icons/vsc";
 import { MdPayment } from "react-icons/md";
-const Footer = () => {
+const Footer: React.FC = () => {
 
     return (
         <>

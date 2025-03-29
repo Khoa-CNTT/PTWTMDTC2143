@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { TextField, Checkbox, Button, FormControlLabel } from "@mui/material";
 
 
-const Shipping = () => {
+const Shipping: React.FC = () => {
     const [paymentMethod, setPaymentMethod] = useState("bank");
 
     return (

@@ -1,14 +1,11 @@
 import React from 'react'
-import Shopping from '../../components/Shopping';
+import ProductDetail from '../../components/ProductDetail';
 import RecentlyViewed from '../../components/RecentlyViewed';
 
-
-
-
-const ShoppingCart = () => {
+const ProductDetailPage: React.FC = () => {
   return (
     <>
-      <Shopping/>
+      <ProductDetail/>
       <div className="p-6">
         <div className='bg-gray-200 pb-3 rounded shadow-md'>
           <div className='container'><h3 className="mt-20 text-[30px] font-[500] flex items-center">Recently Viewed</h3>
@@ -17,9 +14,7 @@ const ShoppingCart = () => {
         </div>
       </div>
     </>
-
-
   )
 }
 
-export default ShoppingCart;
+export default ProductDetailPage;
