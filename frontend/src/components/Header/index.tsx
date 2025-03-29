@@ -31,19 +31,19 @@ const Header: React.FC = () => {
             </div>
             <div className="col2 flex items-center justify-between w-full lg:w-[50%] lg:justify-end">
               <ul className="flex items-center gap-3 w-full justify-between lg:w-[200px]">
-                <li class="list-none">
+                <li className="list-none">
                   <Link
-                    class="text-[11px] lg:text-[13px] link font-[500] transition"
-                    href="/help-center"
+                    className="text-[11px] lg:text-[13px] link font-[500] transition"
+                    to="/help-center"
                     data-discover="true"
                   >
                     Help Center{" "}
                   </Link>
                 </li>
-                <li class="list-none">
+                <li className="list-none">
                   <Link
-                    class="text-[11px] lg:text-[13px] link font-[500] transition"
-                    href="/order-tracking"
+                    className="text-[11px] lg:text-[13px] link font-[500] transition"
+                    to="/order-tracking"
                     data-discover="true"
                   >
                     Order Tracking
@@ -78,7 +78,7 @@ const Header: React.FC = () => {
                     <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
                       Cart
                     </h4>
-                    <span class="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
+                    <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
                       $150.000
                     </span>
                   </div>
@@ -93,7 +93,7 @@ const Header: React.FC = () => {
                     <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
                       User
                     </h4>
-                    <span class="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
+                    <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
                       Messiu
                     </span>
                   </div>

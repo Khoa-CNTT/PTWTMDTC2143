@@ -3,10 +3,12 @@ import { Card, CardContent, CardMedia, Typography, Button } from "@mui/material"
 import { Slider, Checkbox, FormControlLabel, FormGroup, Select, MenuItem } from "@mui/material";
 import { Link } from "react-router-dom";
 import Rating from '@mui/material/Rating';
-
+type FilterType = {
+    [key: string]: boolean;
+};
 const Product: React.FC = () => {
-    const [priceRange, setPriceRange] = useState([1500, 90500]);
-    const [filters, setFilters] = useState({ white: false, black: false, blue: false, red: false });
+    const [priceRange, setPriceRange] = useState<number | number[]>([1500, 90500]);
+    const [filters, setFilters] = useState<FilterType>({ white: false, black: false, blue: false, red: false });
 
     return (
         <>
