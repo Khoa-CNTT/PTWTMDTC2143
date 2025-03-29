@@ -24,7 +24,7 @@ const Cate = () => {
                 </ul>
             </aside>
 
-            <div className="flex-1 p-6  ">
+            <main className="flex-1 p-6  ">
                 <div className="w-full h-64 bg-white shadow rounded-lg p-6 flex items-center">
                     <div>
                         <h1 className="text-3xl font-bold">Laptop & Computers Category</h1>
@@ -70,15 +70,7 @@ const Cate = () => {
                 </div>
                 {/* Best Offers */}
                 <h2 className="text-xl font-semibold mt-8">Best Offer in Laptops</h2>
-                {/* <div className="grid grid-cols-4 gap-4 mt-4">
-                    {["Fitness Tracker", "Xbox Joystick", "Super Boost Headphones", "Super Boost Headphones"].map((product, idx) => (
-                        <div key={idx} className="bg-white p-4 shadow rounded-lg">
-                            <p className="text-sm text-gray-700">{product}</p>
-                            <p className="text-orange-500 font-bold text-lg">${(33 + idx * 10).toFixed(2)}</p>
-                            <p className="text-yellow-500 text-xs">⭐⭐⭐⭐ (12)</p>
-                        </div>
-                    ))}
-                </div> */}
+               
                 <Swiper
                     slidesPerView={4}
                     spaceBetween={20}
@@ -92,11 +84,11 @@ const Cate = () => {
                             <div className="grid grid-cols-1 gap-4 ">
                                 <div className="grid grid-cols-2 border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg">
                                     <div className="imgWrapper w-[150px] h-[150px] overflow-hidden rounded-[20px]   ">
-                                        <img className="w-full" src="https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/p/o/poco-m6_1_.png" alt="" />
+                                        <img className="w-full" src="https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png" alt="" />
                                     </div>
-                                    <div className="info w-[60%] ms-6">
+                                    <div className="info ms-6">
                                         <h3 className="text-[16px] font-[500] text-[rgba(0,0,0,0.9)]">
-                                            <Link to='/' className="link transition-all ">Xiaomi POCO M6</Link>
+                                            <Link to='/' className="link transition-all ">Headphone Bluetooth Sony</Link>
                                         </h3>
                                         <h3 className="mt-12 text-primary font-[500]">$150</h3>
                                         <Rating name="size-small" defaultValue={4} size="small" readOnly />
@@ -106,9 +98,50 @@ const Cate = () => {
                             </div>
                         </div>
                     </SwiperSlide>
+                   
+                    <SwiperSlide>
+                        <div className="recentlyViewed rounded-[20px] mt-5">
+                            <div className="grid grid-cols-1 gap-4 ">
+                                <div className="grid grid-cols-2 border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg">
+                                    <div className="imgWrapper w-[150px] h-[150px] overflow-hidden rounded-[20px]   ">
+                                        <img className="w-full" src="https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/1/_/1.4_5.png" alt="" />
+                                    </div>
+                                    <div className="info ms-6">
+                                        <h3 className="text-[16px] font-[500] text-[rgba(0,0,0,0.9)]">
+                                            <Link to='/' className="link transition-all ">Mouse Rapoo VT200</Link>
+                                        </h3>
+                                        <h3 className="mt-12 text-primary font-[500]">$150</h3>
+                                        <Rating name="size-small" defaultValue={4} size="small" readOnly />
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </SwiperSlide>
+                    <SwiperSlide>
+                        <div className="recentlyViewed rounded-[20px] mt-5">
+                            <div className="grid grid-cols-1 gap-4 ">
+                                <div className="grid grid-cols-2 border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg">
+                                    <div className="imgWrapper w-[150px] h-[150px] overflow-hidden rounded-[20px]   ">
+                                        <img className="w-full" src="https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/t/a/tai-nghe-chup-tai-alpha-works-aw-lite-600-thumb_1.png" alt="" />
+                                    </div>
+                                    <div className="info ms-6">
+                                        <h3 className="text-[16px] font-[500] text-[rgba(0,0,0,0.9)]">
+                                            <Link to='/' className="link transition-all ">Headphone Alpha Works</Link>
+                                        </h3>
+                                        <h3 className="mt-12 text-primary font-[500]">$150</h3>
+                                        <Rating name="size-small" defaultValue={4} size="small" readOnly />
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </SwiperSlide>
+ 
                 </Swiper>
 
-            </div>
+
+            </main>
         </div>
     );
 };
