@@ -8,7 +8,7 @@ import { Navigation, Pagination, Mousewheel, Keyboard } from "swiper/modules";
 import { Link } from "react-router-dom";
 import Rating from '@mui/material/Rating';
 
-const Cate = () => {
+const Cate: React.FC = () => {
     return (
         <div className="flex min-h-screen bg-gray-100">
             <aside className="mt-6 ms-5 h-[300px] bg-white shadow p-4 overflow-y-auto rounded-[20px]">

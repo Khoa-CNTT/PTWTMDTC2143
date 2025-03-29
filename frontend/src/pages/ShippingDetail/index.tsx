@@ -5,7 +5,7 @@ import RecentlyViewed from '../../components/RecentlyViewed';
 
 
 
-const ShippingDetail = () => {
+const ShippingDetail: React.FC = () => {
   return (
     <>
     <Shipping/>

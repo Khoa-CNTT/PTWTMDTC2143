@@ -2,7 +2,7 @@ import React from 'react'
 import { IoSearchSharp } from "react-icons/io5";
 import Button from '@mui/material/Button';
 import "./index.css";
-const SearchBox = () => {
+const SearchBox: React.FC = () => {
   return (
     <div className='searchBox w-[50%] h-[50px] bg-[#e5e5e5] rounded-[5px] relative p-2 ml-auto'>
       <input type='text' placeholder='Search for products...' className='w-full h-full bg-transparent outline-none border-none ml-2' />

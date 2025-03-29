@@ -10,7 +10,7 @@ import { styled } from "@mui/material/styles";
 import Badge from "@mui/material/Badge";
 import { FaUserCheck } from "react-icons/fa";
 import Navigation from '../../components/Header/Navigation';
-const Header = () => {
+const Header: React.FC = () => {
   const StyledBadge = styled(Badge)(({ theme }) => ({
     "& .MuiBadge-badge": {
       right: -3,

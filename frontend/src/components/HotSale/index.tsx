@@ -7,7 +7,7 @@ import { Navigation, Pagination, Mousewheel, Keyboard } from "swiper/modules";
 import { Link } from "react-router-dom";
 import Button from '@mui/material/Button';
 
-const HotSale = () => {
+const HotSale: React.FC = () => {
     return (
         <>
             <Swiper

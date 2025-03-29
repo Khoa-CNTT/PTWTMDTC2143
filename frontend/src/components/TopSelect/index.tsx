@@ -7,7 +7,7 @@ import { Navigation, Pagination, Mousewheel, Keyboard } from "swiper/modules";
 import { Link } from "react-router-dom";
 import Rating from '@mui/material/Rating';
 
-const TopSelect = () => {
+const TopSelect: React.FC = () => {
     return (
         <>
             <div className="topSelect mt-5">

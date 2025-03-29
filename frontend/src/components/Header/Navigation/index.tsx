@@ -6,7 +6,7 @@ import { RiMenu2Fill } from "react-icons/ri";
 import { FaAngleDown } from "react-icons/fa";
 import CategoryPanel from "./CategoryPanel";
 
-const Navigation = () => {
+const Navigation: React.FC = () => {
     const [isOpenCatPanel, setIsOpenCatPanel] = useState(false);
     const openCategoryPanel=()=>{
         setIsOpenCatPanel(true)

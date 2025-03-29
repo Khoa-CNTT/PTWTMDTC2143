@@ -4,7 +4,7 @@ import Track from '../../components/Track/index.jsx';
 
 
 
-const TrackOrder = () => {
+const TrackOrder: React.FC = () => {
   return (
     <>
     <Track/>

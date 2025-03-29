@@ -8,7 +8,7 @@ import "swiper/css/pagination";
 import { Navigation, Pagination, Mousewheel, Keyboard } from "swiper/modules";
 import Button from '@mui/material/Button';
 
-const RecentlyViewed = () => {
+const RecentlyViewed: React.FC = () => {
     return (
         <>
             <Swiper

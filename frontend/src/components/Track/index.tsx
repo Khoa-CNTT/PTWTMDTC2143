@@ -3,7 +3,7 @@ import { TextField, Button, InputAdornment, IconButton } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 
-const Track = () => {
+const Track: React.FC = () => {
   return (
     <div className="flex flex-col items-center bg-gray-100 min-h-screen p-6">
       <div className="bg-gray-800 text-white text-center py-12 w-full">

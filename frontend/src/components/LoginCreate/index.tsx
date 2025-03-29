@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { TextField, Checkbox, Button, FormControlLabel, InputAdornment  } from "@mui/material";
 import { AccountCircle, Lock } from "@mui/icons-material";
-const LoginCreate = () => {
+const LoginCreate: React.FC = () => {
     const [rememberMe, setRememberMe] = useState(false);
 
     return (
