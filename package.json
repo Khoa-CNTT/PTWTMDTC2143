@@ -1,6 +1,38 @@
 {
+  "name": "GraduationProject---DATN",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "install": "yarn install",
+    "start": "yarn concurrently \"yarn start:backend\" \"yarn start:frontend\"",
+    "start:backend": "cd backend && yarn start",
+    "start:frontend": "cd frontend && yarn start",
+    "build:backend": "cd backend && yarn build",
+    "build:frontend": "cd frontend && yarn build",
+    "build": "yarn build:frontend && yarn build:backend"
+  },
   "dependencies": {
+    "@angular-devkit/schematics-cli": "latest",
+    "@nestjs/common": "^11.0.12",
     "lucide-react": "^0.485.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
     "swiper": "^11.2.6"
-  }
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.5",
+    "@nestjs/core": "^11.0.12",
+    "@swc/core": "^1.11.13",
+    "@types/node": "18",
+    "concurrently": "^8.2.0",
+    "esbuild": "^0.25.1",
+    "typescript": "latest",
+    "webpack": "^5.98.0"
+  },
+  "packageManager": "yarn@3.6.1"
 }
