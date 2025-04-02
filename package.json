@@ -12,7 +12,8 @@
     "start:frontend": "cd frontend && yarn start",
     "build:backend": "cd backend && yarn build",
     "build:frontend": "cd frontend && yarn build",
-    "build": "yarn build:frontend && yarn build:backend"
+    "build": "yarn build:frontend && yarn build:backend",
+    "prepare": "husky"
   },
   "dependencies": {
     "@angular-devkit/schematics-cli": "latest",
@@ -25,12 +26,15 @@
     "swiper": "^11.2.6"
   },
   "devDependencies": {
+    "@commitlint/config-conventional": "^19.8.0",
     "@nestjs/cli": "^11.0.5",
     "@nestjs/core": "^11.0.12",
     "@swc/core": "^1.11.13",
     "@types/node": "18",
     "concurrently": "^8.2.0",
     "esbuild": "^0.25.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.0",
     "typescript": "latest",
     "webpack": "^5.98.0"
   },
