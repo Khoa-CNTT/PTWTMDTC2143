@@ -1,0 +1,569 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum DiscountStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum ApplyType {
+  CATEGORY
+  PRODUCT
+  ALL
+}
+
+enum InventoryStatus {
+  IN_STOCK
+  OUT_OF_STOCK
+  PRE_ORDER
+  DAMAGED
+  RETURNED
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  BANK_TRANSFER
+  PAYPAL
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum RefundStatus {
+  NONE
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum ProductVariantStatus {
+  AVAILABLE
+  OUT_OF_STOCK
+  DISCONTINUED
+}
+
+enum RoleEnum {
+  ADMIN
+  USER
+  MANAGER
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum TransactionType {
+  PAYMENT
+  REFUND
+}
+
+enum VoucherStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+enum VoucherType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum WarehouseStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model User {
+  id                 String         @id @default(uuid())
+  email              String         @unique
+  password           String
+  phone              String
+  name               String
+  isVerified         Boolean        @default(false)
+  roles              UserRole[]        
+  emailVerifications Verification[]
+  addresses          Address[]
+  cart               Cart?
+  orders             Order[]
+  payments           Payment[]
+  transactions       Transaction[]
+  refreshToken       RefreshToken?
+  returns            Return[]
+  wishlist           Wishlist?
+  vouchersUsed       VoucherUsage[]
+  Invoice            Invoice[]
+  Review             Review[]
+  @@map("users")
+}
+
+model Role {
+  id    String   @id @default(uuid())
+  name  RoleEnum
+  users UserRole[] 
+
+  @@map("roles")
+}
+
+model UserRole {
+  user User @relation(fields: [user_id], references: [id])
+  user_id  String
+  role Role @relation(fields: [role_id], references: [id])
+  role_id  String
+
+  @@id([user_id, role_id])  
+  @@map("user_roles")       
+}
+
+model Address {
+  id            String @id @default(uuid())
+  fullName      String
+  phone         String
+  streetAddress String
+  ward          String
+  district      String
+  city          String
+  country       String
+  user          User   @relation(fields: [userId], references: [id])
+  userId        String
+
+  @@map("shipping_addresses")
+}
+
+model Brand {
+  id       String    @id @default(uuid())
+  name     String
+  logo     String?
+  products Product[]
+
+  @@map("brands")
+}
+
+model Cart {
+  id          String     @id @default(uuid())
+  totalAmount Int        @default(0)
+  user        User       @relation(fields: [userId], references: [id])
+  userId      String     @unique @map("user_id")
+  items       CartItem[]
+
+  @@map("cart")
+}
+
+model CartItem {
+  id         String         @id @default(uuid())
+  cart       Cart           @relation(fields: [cartId], references: [id])
+  cartId     String
+  variant    ProductVariant @relation(fields: [variantId], references: [id])
+  variantId  String
+  quantity   Int
+  totalPrice Int
+  discount   Int
+
+  @@map("cart_items")
+}
+
+model Category {
+  id            String     @id @default(uuid())
+  name          String
+  logo          String?
+  image         String?
+  parent        Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  parentId      String?
+  subCategories Category[] @relation("CategoryToCategory")
+  discount      CategoryDiscount[]
+  products      Product[]
+
+  @@map("categories")
+}
+
+model Discount {
+  id         String         @id @default(uuid())
+  discount   Int
+  type       DiscountType
+  startDate  DateTime
+  endDate    DateTime
+  status     DiscountStatus
+  applyType  ApplyType
+  categories CategoryDiscount[]
+  products   ProductDiscount[]
+
+  @@map("discounts")
+}
+
+model CategoryDiscount{
+  category Category @relation(fields: [categoryId], references: [id])
+  categoryId String @map("category_id")
+
+  discount Discount @relation(fields: [discountId], references: [id])
+  discountId String @map("discount_id")
+
+  @@id([categoryId, discountId])
+  @@map("category_discounts")
+}
+
+model ProductDiscount{
+  product Product @relation(fields: [productId], references: [id])
+  productId String @map("product_id")
+
+  discount Discount @relation(fields: [discountId], references: [id])
+  discountId String @map("discount_id")
+
+  @@id([productId, discountId])
+  @@map("product_discounts")
+}
+
+model Image {
+  id          String          @id @default(uuid())
+  imageUrl    String
+  product     Product?        @relation(fields: [productId], references: [id])
+  productId   String?
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+  variantId   String?
+  isThumbnail Boolean         @default(false)
+
+  @@map("images")
+}
+
+model Inventory {
+  id          String          @id @default(uuid())
+  variant     ProductVariant  @relation(fields: [variantId], references: [id])
+  variantId   String          @unique
+  warehouse   Warehouse       @relation(fields: [warehouseId], references: [id])
+  warehouseId String
+  quantity    Int
+  reserved    Int
+  status      InventoryStatus
+
+  @@map("inventory")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  user          User          @relation(fields: [userId], references: [id])
+  userId        String
+  transaction   Transaction   @relation(fields: [transactionId], references: [id])
+  transactionId String        @unique
+  invoiceNumber String        @unique
+  totalAmount   Int
+  status        InvoiceStatus
+  items         InvoiceItem[]
+
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String    @id @default(uuid())
+  invoice     Invoice   @relation(fields: [invoiceId], references: [id])
+  invoiceId   String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  orderItemId String    @unique
+
+  @@map("invoice_items")
+}
+
+
+model Order {
+  id              String         @id @default(uuid())
+  user            User           @relation(fields: [userId], references: [id])
+  userId          String
+  total           Int
+  status          OrderStatus
+  voucher         Voucher?       @relation(fields: [voucherId], references: [id])
+  voucherId       String?
+  voucherDiscount Int            @default(0)
+  fullName        String
+  phone           String
+  streetAddress   String
+  ward            String
+  district        String
+  city            String
+  province        String
+  country         String
+  items           OrderItem[]    @relation("OrderToOrderItems") // Explicit relation name
+  payments        Payment[]
+  returns         Return[]
+  VoucherUsage    VoucherUsage[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String         @id @default(uuid())
+  order       Order          @relation("OrderToOrderItems", fields: [orderId], references: [id])
+  orderId     String
+  variant     ProductVariant @relation(fields: [variantId], references: [id])
+  variantId   String
+  quantity    Int
+  price       Int
+  discount    Int
+  invoiceItem InvoiceItem?
+  returnItems ReturnItem[]
+
+  @@map("order_item")
+}
+
+model Payment {
+  id           String        @id @default(uuid())
+  order        Order         @relation(fields: [orderId], references: [id])
+  orderId      String
+  user         User          @relation(fields: [userId], references: [id])
+  userId       String
+  totalAmount  Int
+  method       PaymentMethod
+  status       PaymentStatus
+  refundStatus RefundStatus
+  transactions Transaction[]
+
+  @@map("payments")
+}
+
+model Product {
+  id          String           @id @default(uuid())
+  name        String
+  price       Int?
+  description String?
+  rating      Int?
+  category    Category?        @relation(fields: [categoryId], references: [id])
+  categoryId  String?
+  brand       Brand?           @relation(fields: [brandId], references: [id])
+  brandId     String?
+  images      Image[]
+  discounts   ProductDiscount[]
+  variants    ProductVariant[]
+  options     Option[]
+  reviews     Review[]
+  wishlists   WishlistProduct[]
+
+  @@map("products")
+}
+
+model Wishlist {
+  id       String    @id @default(uuid())
+  user     User      @relation(fields: [userId], references: [id])
+  userId   String    @unique
+  products WishlistProduct[]
+
+  @@map("wishlist")
+}
+
+model WishlistProduct {
+  id       String   @id @default(uuid())
+  wishlist  Wishlist @relation(fields: [wishlistId], references: [id])
+  wishlistId String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+
+  @@unique([wishlistId, productId])
+  @@map("wishlist_products")
+}
+
+model ProductVariant {
+  id           String               @id @default(uuid())
+  title        String
+  sku          String               @unique
+  price        Int?
+  description  String?
+  optionValues ProductVariantOptionValue[]
+  product      Product              @relation(fields: [productId], references: [id])
+  productId    String
+  status       ProductVariantStatus @default(AVAILABLE)
+  images       Image[]
+  inventory    Inventory?
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
+
+  @@map("product_variants")
+}
+
+model Option {
+  id        String        @id @default(uuid())
+  name      String
+  product   Product       @relation(fields: [productId], references: [id])
+  productId String
+  values    OptionValue[]
+
+  @@map("options")
+}
+
+model OptionValue {
+  id       String           @id @default(uuid())
+  value    String
+  option   Option           @relation(fields: [optionId], references: [id])
+  optionId String
+  variants ProductVariantOptionValue[]
+
+  @@map("option_values")
+}
+
+model ProductVariantOptionValue {
+  id           String           @id @default(uuid())
+  variant      ProductVariant   @relation(fields: [variantId], references: [id])
+  variantId    String
+  optionValue  OptionValue      @relation(fields: [optionValueId], references: [id])
+  optionValueId String
+
+  @@unique([variantId, optionValueId])
+  @@map("product_variant_option_values")
+}
+
+model RefreshToken {
+  id     String @id @default(uuid())
+  token  String
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique
+
+  @@map("refresh_token")
+}
+
+model Return {
+  id      String       @id @default(uuid())
+  order   Order        @relation(fields: [orderId], references: [id])
+  orderId String
+  user    User         @relation(fields: [userId], references: [id])
+  userId  String
+  status  ReturnStatus
+  reason  String?
+  items   ReturnItem[]
+
+  @@map("returns")
+}
+
+model ReturnItem {
+  id          String    @id @default(uuid())
+  return      Return    @relation(fields: [returnId], references: [id])
+  returnId    String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  orderItemId String
+  quantity    Int
+
+  @@map("return_items")
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+  rating    Int
+  content   String?
+  images    String?
+  parent    Review?  @relation("ReviewToReview", fields: [parentId], references: [id])
+  parentId  String?
+  replies   Review[] @relation("ReviewToReview")
+
+  @@map("reviews")
+}
+
+model Transaction {
+  id              String            @id @default(uuid())
+  payment         Payment           @relation(fields: [paymentId], references: [id])
+  paymentId       String
+  user            User              @relation(fields: [userId], references: [id])
+  userId          String
+  amount          Int
+  type            TransactionType
+  status          TransactionStatus
+  transactionCode String?           @unique
+  invoice         Invoice?
+
+  @@map("transactions")
+}
+
+model Verification {
+  id        String   @id @default(uuid())
+  otp       String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @unique
+  expiredAt DateTime
+
+  @@map("email_verifications")
+}
+
+model Voucher {
+  id         String         @id @default(uuid())
+  code       String         @unique
+  discount   Int
+  type       VoucherType
+  startDate  DateTime
+  endDate    DateTime
+  status     VoucherStatus
+  minPrice   Int?
+  usageLimit Int
+  usedCount  Int            @default(0)
+  orders     Order[]
+  usages     VoucherUsage[]
+
+  @@map("vouchers")
+}
+
+model VoucherUsage {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  voucher   Voucher  @relation(fields: [voucherId], references: [id])
+  voucherId String
+  order     Order?   @relation(fields: [orderId], references: [id])
+  orderId   String?
+  usedAt    DateTime
+
+  @@map("voucher_usages")
+}
+
+model Warehouse {
+  id          String          @id @default(uuid())
+  name        String          @unique
+  location    String?
+  status      WarehouseStatus
+  inventories Inventory[]
+
+  @@map("warehouse")
+}
