@@ -13,6 +13,7 @@
     "build:backend": "cd backend && yarn build",
     "build:frontend": "cd frontend && yarn build",
     "build": "yarn build:frontend && yarn build:backend",
+    "lint": "yarn concurrently \"cd backend && yarn run lint\" \"cd frontend && yarn run lint\"",
     "prepare": "husky"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
     "swiper": "^11.2.6"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.0",
     "@commitlint/config-conventional": "^19.8.0",
     "@nestjs/cli": "^11.0.5",
     "@nestjs/core": "^11.0.12",
@@ -35,8 +37,15 @@
     "esbuild": "^0.25.1",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
+    "prettier": "^3.5.3",
     "typescript": "latest",
     "webpack": "^5.98.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,md,json}": [
+      "prettier --write",
+      "yarn run lint"
+    ]
   },
   "packageManager": "yarn@3.6.1"
 }
