@@ -1,12 +1,11 @@
 {
-  "name": "GraduationProject---DATN",
+  "name": "graduation-project",
   "private": true,
   "workspaces": [
     "backend",
     "frontend"
   ],
   "scripts": {
-    "install": "yarn install",
     "start": "yarn concurrently \"yarn start:backend\" \"yarn start:frontend\"",
     "start:backend": "cd backend && yarn start",
     "start:frontend": "cd frontend && yarn start",

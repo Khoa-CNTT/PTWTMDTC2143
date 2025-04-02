@@ -1,22 +1,21 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import Logo from "../../assets/images/MESSIU-logo2.png";
-import SearchBox from "../SearchBox";
-import { TfiShoppingCartFull } from "react-icons/tfi";
-import { Button } from "@mui/material";
-import IconButton from "@mui/material/IconButton";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import { styled } from "@mui/material/styles";
-import Badge from "@mui/material/Badge";
-import { FaUserCheck } from "react-icons/fa";
+import React from 'react';
+import { Link } from 'react-router-dom';
+import Logo from '../../assets/images/MESSIU-logo2.png';
+import SearchBox from '../SearchBox';
+import { Button } from '@mui/material';
+import IconButton from '@mui/material/IconButton';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import { styled } from '@mui/material/styles';
+import Badge from '@mui/material/Badge';
+import { FaUserCheck } from 'react-icons/fa';
 import Navigation from '../../components/Header/Navigation';
 const Header: React.FC = () => {
   const StyledBadge = styled(Badge)(({ theme }) => ({
-    "& .MuiBadge-badge": {
+    '& .MuiBadge-badge': {
       right: -3,
       top: 3,
       border: `2px solid ${theme.palette.background.paper}`,
-      padding: "0 4px",
+      padding: '0 4px',
     },
   }));
   return (
@@ -37,7 +36,7 @@ const Header: React.FC = () => {
                     to="/help-center"
                     data-discover="true"
                   >
-                    Help Center{" "}
+                    Help Center{' '}
                   </Link>
                 </li>
                 <li className="list-none">
@@ -58,7 +57,7 @@ const Header: React.FC = () => {
       <div className="header py-2 lg:py-4 border-b-[1px] border-gray-250">
         <div className="container flex items-center justify-between">
           <div className="col1 w-[40%] lg:w-[25%]">
-            <Link to={"/"}>
+            <Link to={'/'}>
               <img src={Logo} />
             </Link>
           </div>
