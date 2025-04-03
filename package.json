@@ -14,7 +14,7 @@
     "build:frontend": "cd frontend && yarn build",
     "build": "yarn build:frontend && yarn build:backend",
     "lint": "yarn concurrently \"cd backend && yarn run lint\" \"cd frontend && yarn run lint\"",
-    "prepare": "husky install"
+    "husky": "husky install"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",
