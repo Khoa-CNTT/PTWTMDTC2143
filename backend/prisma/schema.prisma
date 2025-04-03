@@ -456,9 +456,11 @@ model ProductVariantOptionValue {
 
 model RefreshToken {
   id     String @id @default(uuid())
-  token  String
+  token  String @db.Text
   user   User   @relation(fields: [userId], references: [id])
   userId String @unique
+  createdAt DateTime @default(now())
+  expiredAt DateTime
 
   @@map("refresh_token")
 }
