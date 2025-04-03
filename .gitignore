@@ -42,3 +42,5 @@ cypress/screenshots/
 cypress/videos/
 cypress/downloads/
 .yarn
+
+node_modules
