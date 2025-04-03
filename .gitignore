@@ -48,3 +48,4 @@ coverage/
 cypress/screenshots/
 cypress/videos/
 cypress/downloads/
+.yarn

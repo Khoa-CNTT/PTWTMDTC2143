@@ -7,6 +7,7 @@
   ],
   "scripts": {
     "start": "yarn concurrently \"yarn start:backend\" \"yarn start:frontend\"",
+    "prisma": "cd backend && yarn run prisma",
     "start:backend": "cd backend && yarn start",
     "start:frontend": "cd frontend && yarn start",
     "build:backend": "cd backend && yarn build",
@@ -15,21 +16,9 @@
     "lint": "yarn concurrently \"cd backend && yarn run lint\" \"cd frontend && yarn run lint\"",
     "prepare": "husky"
   },
-  "dependencies": {
-    "@angular-devkit/schematics-cli": "latest",
-    "@nestjs/common": "^11.0.12",
-    "lucide-react": "^0.485.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2",
-    "swiper": "^11.2.6"
-  },
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",
     "@commitlint/config-conventional": "^19.8.0",
-    "@nestjs/cli": "^11.0.5",
-    "@nestjs/core": "^11.0.12",
     "@swc/core": "^1.11.13",
     "@types/node": "18",
     "concurrently": "^8.2.0",
@@ -37,7 +26,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
     "prettier": "^3.5.3",
-    "typescript": "latest",
+    "typescript-eslint": "^8.29.0",
     "webpack": "^5.98.0"
   },
   "lint-staged": {
