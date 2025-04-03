@@ -41,7 +41,7 @@ coverage/
 cypress/screenshots/
 cypress/videos/
 cypress/downloads/
-.yarn/*
+**/.yarn/*
 !.yarn/releases
 !.yarn/plugins
 !.yarn/sdks
