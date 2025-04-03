@@ -14,7 +14,7 @@
     "build:frontend": "cd frontend && yarn build",
     "build": "yarn build:frontend && yarn build:backend",
     "lint": "yarn concurrently \"cd backend && yarn run lint\" \"cd frontend && yarn run lint\"",
-    "prepare": "husky"
+    "prepare": "husky && husky install"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",
@@ -23,10 +23,9 @@
     "@types/node": "18",
     "concurrently": "^8.2.0",
     "esbuild": "^0.25.1",
-    "husky": "^9.1.7",
+    "husky": "^8.0.0",
     "lint-staged": "^15.5.0",
     "prettier": "^3.5.3",
-    "typescript-eslint": "^8.29.0",
     "webpack": "^5.98.0"
   },
   "lint-staged": {

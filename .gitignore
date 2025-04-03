@@ -16,13 +16,6 @@ build/
 .next/
 .vite/
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
 # Logs
 logs
 *.log
@@ -48,4 +41,11 @@ coverage/
 cypress/screenshots/
 cypress/videos/
 cypress/downloads/
-.yarn
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+
+
+node_modules
