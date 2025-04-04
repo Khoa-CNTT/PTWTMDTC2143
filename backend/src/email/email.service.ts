@@ -1,5 +1,5 @@
 import { MailerService } from '@nestjs-modules/mailer';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { randomInt } from 'crypto';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -10,24 +10,20 @@ export class EmailService {
     private prisma: PrismaService
   ) {}
 
-  async sendOtpEmail(userId: string, email: string): Promise<void> {
-    const otp = randomInt(100000, 999999).toString();
+  private generateOtp(): string {
+    return randomInt(100000, 999999).toString();
+  }
 
-    // Save OTP to the database with expiration time
+  private async saveOtp(userId: string, otp: string): Promise<void> {
+    const expiredAt = new Date(Date.now() + 5 * 60 * 1000);
     await this.prisma.verification.upsert({
       where: { userId },
-      update: {
-        otp,
-        expiredAt: new Date(Date.now() + 5 * 60 * 1000), // OTP valid for 5 minutes
-      },
-      create: {
-        userId,
-        otp,
-        expiredAt: new Date(Date.now() + 5 * 60 * 1000),
-      },
+      update: { otp, expiredAt },
+      create: { userId, otp, expiredAt },
     });
+  }
 
-    // Send OTP email
+  private async sendOtp(email: string, otp: string): Promise<void> {
     await this.mailerService.sendMail({
       to: email,
       subject: 'Your OTP Code',
@@ -35,27 +31,27 @@ export class EmailService {
     });
   }
 
-  async verifyOtp(userId: string, otp: string): Promise<boolean> {
+  async sendOtpEmail(userId: string, email: string): Promise<void> {
+    const otp = this.generateOtp();
+    await this.saveOtp(userId, otp);
+    await this.sendOtp(email, otp);
+  }
+
+  async verifyOtp(userId: string, otp: string): Promise<void> {
     const record = await this.prisma.verification.findUnique({
       where: { userId },
     });
 
-    if (!record || record.otp !== otp || record.expiredAt < new Date()) {
-      return false; // OTP is invalid or expired
-    }
+    if (!record) throw new BadRequestException('OTP not found');
+    if (record.otp !== otp) throw new BadRequestException('OTP is incorrect');
+    if (new Date() > record.expiredAt)
+      throw new BadRequestException('OTP has expired');
 
-    // Delete OTP after successful verification
-    await this.prisma.verification.delete({
-      where: { userId },
-    });
-
-    // Set user as verified
+    await this.prisma.verification.delete({ where: { userId } });
     await this.prisma.user.update({
       where: { id: userId },
       data: { isVerified: true },
     });
-
-    return true;
   }
 
   async resendOtpEmail(userId: string, email: string): Promise<void> {
@@ -63,35 +59,12 @@ export class EmailService {
       where: { userId },
     });
 
-    if (existingRecord && existingRecord.expiredAt > new Date()) {
-      // If the OTP is still valid, resend the same OTP
-      await this.mailerService.sendMail({
-        to: email,
-        subject: 'Your OTP Code (Resent)',
-        text: `Your OTP code is ${existingRecord.otp}. It will expire in 5 minutes.`,
-      });
-    } else {
-      // If the OTP is expired or doesn't exist, generate a new one
-      const otp = randomInt(100000, 999999).toString();
+    const otp =
+      existingRecord && existingRecord.expiredAt > new Date()
+        ? existingRecord.otp
+        : this.generateOtp();
 
-      await this.prisma.verification.upsert({
-        where: { userId },
-        update: {
-          otp,
-          expiredAt: new Date(Date.now() + 5 * 60 * 1000), // OTP valid for 5 minutes
-        },
-        create: {
-          userId,
-          otp,
-          expiredAt: new Date(Date.now() + 5 * 60 * 1000),
-        },
-      });
-
-      await this.mailerService.sendMail({
-        to: email,
-        subject: 'Your OTP Code',
-        text: `Your OTP code is ${otp}. It will expire in 5 minutes.`,
-      });
-    }
+    await this.saveOtp(userId, otp);
+    await this.sendOtpEmail(email, otp);
   }
 }

@@ -18,9 +18,9 @@ export class EmailController {
   async verifyOtp(
     @Body('userId') userId: string,
     @Body('otp') otp: string
-  ): Promise<{ verified: boolean }> {
-    const verified = await this.emailService.verifyOtp(userId, otp);
-    return { verified };
+  ): Promise<{ code: number; message: string }> {
+    await this.emailService.verifyOtp(userId, otp);
+    return { code: 200, message: 'OTP verified successfully' };
   }
 
   @Post('resend-otp')
