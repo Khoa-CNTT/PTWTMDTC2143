@@ -36,7 +36,7 @@ export class UserController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.USER) // Use dot notation for TypeScript enums
+  @Roles(RoleEnum.USER)
   async findOne(@Param('id') id: string): Promise<UserResponseDto> {
     return this.UserService.findOne(id);
   }
@@ -49,6 +49,6 @@ export class UserController {
   @Delete(':id')
   async deleteUser(@Param('id') id: string): Promise<{ message: string }> {
     await this.UserService.deleteUser(id);
-    return { message: 'Xoá người dùng thành công' };
+    return { message: 'User deleted successfully' };
   }
 }
