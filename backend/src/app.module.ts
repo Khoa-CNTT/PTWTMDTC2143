@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { EmailModule } from './email/email.module';
 import { CategoryModule } from './category/category.module';
+import { BrandModule } from './brand/brand.module';
 import jwtConfig from './auth/config/jwt.config';
 
 @Module({
@@ -36,6 +37,7 @@ import jwtConfig from './auth/config/jwt.config';
     UserModule,
     EmailModule,
     CategoryModule,
+    BrandModule,
   ],
   controllers: [AppController],
   providers: [AppService],
