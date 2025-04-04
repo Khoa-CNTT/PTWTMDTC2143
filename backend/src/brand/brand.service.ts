@@ -5,9 +5,9 @@ import {
 } from '@nestjs/common';
 import { CreateBranDTO } from './dto/create-brand.dto';
 import { BrandResponseDTO } from './dto/brand-response.dto';
-import { Brand } from './interfaces/brand.interface';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateBranDTO } from './dto/update-brand.dto';
+import { Brand } from '@prisma/client';
 
 @Injectable()
 export class BrandService {
