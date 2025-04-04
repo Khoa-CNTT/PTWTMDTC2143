@@ -6,6 +6,9 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { EmailModule } from './email/email.module';
+import { CategoryModule } from './category/category.module';
+import { BrandModule } from './brand/brand.module';
+import { WarehouseModule } from './warehouse/warehouse.module';
 import jwtConfig from './auth/config/jwt.config';
 
 @Module({
@@ -34,6 +37,9 @@ import jwtConfig from './auth/config/jwt.config';
     AuthModule,
     UserModule,
     EmailModule,
+    CategoryModule,
+    BrandModule,
+    WarehouseModule,
   ],
   controllers: [AppController],
   providers: [AppService],

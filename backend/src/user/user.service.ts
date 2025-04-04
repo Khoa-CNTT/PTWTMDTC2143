@@ -1,5 +1,5 @@
 import {
-  ConflictException,
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -21,6 +21,7 @@ export class UserService {
 
   async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
     await this.checkEmailExitsts(createUserDto.email);
+
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
     const user = await this.prisma.user.create({
@@ -29,6 +30,7 @@ export class UserService {
         password: hashedPassword,
         name: createUserDto.name,
         phone: createUserDto.phone,
+        isVerified: false,
         roles: {
           create: {
             role: {
@@ -52,7 +54,6 @@ export class UserService {
       },
     });
 
-    // Send OTP email after user creation
     await this.emailService.sendOtpEmail(user.id, createUserDto.email);
 
     const mappedUser: User = {
@@ -148,24 +149,15 @@ export class UserService {
     return this.mapToUserResponseDto(mappedUser);
   }
 
-  async verifyUserOtp(userId: string, otp: string): Promise<boolean> {
-    const verified = await this.emailService.verifyOtp(userId, otp);
-    if (verified) {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { isVerified: true },
-      });
-    }
-    return verified;
-  }
-
   private async checkEmailExitsts(email: string): Promise<void> {
     const exitstingUser = await this.prisma.user.findUnique({
       where: { email },
     });
     if (exitstingUser) {
-      throw new ConflictException('Email này đã được đăng ký');
+      await this.emailService.sendOtpEmail(exitstingUser.id, email);
+      throw new BadRequestException('Email not verified. OTP resent!');
     }
+    throw new BadRequestException('Email already in use!');
   }
 
   private mapToUserResponseDto(user: User): UserResponseDto {
