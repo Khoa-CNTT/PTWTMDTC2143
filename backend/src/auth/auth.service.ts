@@ -67,8 +67,6 @@ export class AuthService {
     return { code: 1000, message: 'Đăng xuất thành công' };
   }
 
-  // ========== PRIVATE HELPERS ========== //
-
   private async getUserByEmail(email: string): Promise<
     Prisma.UserGetPayload<{
       include: { roles: { select: { role: { select: { name: true } } } } };
@@ -151,9 +149,7 @@ export class AuthService {
     });
 
     if (!refreshTokenRecord || refreshTokenRecord.expiredAt < new Date()) {
-      throw new UnauthorizedException(
-        'Refresh token không hợp lệ hoặc đã hết hạn'
-      );
+      throw new UnauthorizedException('Refresh token is invalid or expired');
     }
 
     return decoded;
