@@ -10,6 +10,7 @@ import {
 import { BrandService } from './brand.service';
 import { BrandResponseDTO } from './dto/brand-response.dto';
 import { CreateBranDTO } from './dto/create-brand.dto';
+import { UpdateBranDTO } from './dto/update-brand.dto';
 
 @Controller('brand')
 export class BrandController {
@@ -24,7 +25,7 @@ export class BrandController {
   @Put(':id')
   async updateBrand(
     @Param('id') id: string,
-    @Body() updateBrandDTO: CreateBranDTO
+    @Body() updateBrandDTO: UpdateBranDTO
   ): Promise<BrandResponseDTO> {
     return this.brandService.updateBrand(id, updateBrandDTO);
   }
