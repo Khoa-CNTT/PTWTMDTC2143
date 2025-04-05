@@ -89,8 +89,6 @@ export class ProductService {
       optionValueId: val.optionValueId,
     }));
 
-    console.log(variantOptionValues);
-
     await this.prisma.productVariantOptionValue.createMany({
       data: variantOptionValues,
     });
@@ -155,14 +153,17 @@ export class ProductService {
   private async mapProductVariantToResponse(
     variant: ProductVariant
   ): Promise<ProductVariantResponseDTO> {
-    const optionValues = await this.prisma.optionValue.findMany({
-      where: { id: { in: variant.optionValues.map((ov) => ov.id) } },
-      include: {
-        option: true,
-      },
-    });
-
-    console.log(optionValues);
+    const variantOptionValues =
+      await this.prisma.productVariantOptionValue.findMany({
+        where: { variantId: variant.id },
+        include: {
+          optionValue: {
+            include: {
+              option: true,
+            },
+          },
+        },
+      });
 
     return {
       id: variant.id,
@@ -173,11 +174,11 @@ export class ProductService {
       weightUnit: variant.weightUnit,
       description: variant.description,
       status: variant.status,
-      optionValues: optionValues.map((value) => ({
-        id: value.id,
-        value: value.value,
-        optionId: value.optionId,
-        optionName: value.option.name,
+      optionValues: variantOptionValues.map((vov) => ({
+        id: vov.optionValue.id,
+        value: vov.optionValue.value,
+        optionId: vov.optionValue.optionId,
+        optionName: vov.optionValue.option.name,
       })),
     };
   }
