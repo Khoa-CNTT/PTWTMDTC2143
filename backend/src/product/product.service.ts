@@ -6,6 +6,8 @@ import { Variant } from './interfaces/variant.interface';
 import { ProductCreateDTO } from './dto/product-create.dto';
 import { VariantCreateDTO } from './dto/variant-create.dto';
 import { VariantResponseDTO } from './dto/variant-response.dto';
+import { ProductUpdateDTO } from './dto/product-update.dto';
+import { VariantUpdateDTO } from './dto/variant-update.dto';
 
 @Injectable()
 export class ProductService {
@@ -61,6 +63,102 @@ export class ProductService {
     return this.mapProductToResponse(product);
   }
 
+  async updateProduct(
+    productId: string,
+    productUpdateDTO: ProductUpdateDTO
+  ): Promise<ProductResponseDTO> {
+    await this.prisma.product.update({
+      where: { id: productId },
+      data: {
+        title: productUpdateDTO.title,
+        description: productUpdateDTO.description,
+        categoryId: productUpdateDTO.categoryId,
+        brandId: productUpdateDTO.brandId,
+      },
+    });
+
+    // Cập nhật hình ảnh
+    if (productUpdateDTO.images?.length) {
+      await this.prisma.image.deleteMany({ where: { productId } });
+      await this.prisma.image.createMany({
+        data: productUpdateDTO.images.map((img) => ({
+          imageUrl: img.imageUrl,
+          isThumbnail: img.isThumbnail ?? false,
+          productId,
+        })),
+      });
+    }
+
+    // Lấy danh sách options hiện có
+    const existingOptions = await this.prisma.option.findMany({
+      where: { productId },
+      include: { values: true },
+    });
+
+    // Cập nhật options và values
+    for (const option of productUpdateDTO.options) {
+      await this.upsertProductOption(productId, option, existingOptions);
+    }
+
+    // Trả về product đã cập nhật
+    const updatedProduct = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        images: true,
+        brand: true,
+        category: true,
+        options: {
+          include: { values: true },
+        },
+      },
+    });
+
+    return this.mapProductToResponse(updatedProduct);
+  }
+
+  private async upsertProductOption(
+    productId: string,
+    optionDTO: { name: string; values: string[] },
+    existingOptions: {
+      id: string;
+      name: string;
+      values: { id: string; value: string }[];
+    }[]
+  ): Promise<void> {
+    const existingOption = existingOptions.find(
+      (opt) => opt.name.toLowerCase() === optionDTO.name.toLowerCase()
+    );
+
+    if (!existingOption) {
+      // Option chưa tồn tại => tạo mới
+      await this.prisma.option.create({
+        data: {
+          name: optionDTO.name,
+          productId,
+          values: {
+            create: optionDTO.values.map((val) => ({ value: val })),
+          },
+        },
+      });
+      return;
+    }
+
+    const existingValueSet = new Set(
+      existingOption.values.map((val) => val.value.toLowerCase())
+    );
+
+    for (const value of optionDTO.values) {
+      if (!existingValueSet.has(value.toLowerCase())) {
+        await this.prisma.optionValue.create({
+          data: {
+            value,
+            optionId: existingOption.id,
+          },
+        });
+      }
+    }
+  }
+
   async createProductVariant(
     productId: string,
     variantCreateDTO: VariantCreateDTO
@@ -91,6 +189,72 @@ export class ProductService {
 
     await this.prisma.variantOptionValue.createMany({
       data: variantOptionValues,
+    });
+
+    return this.mapProductVariantToResponse(variant);
+  }
+
+  async updateVarriant(
+    variantId: string,
+    variantUpdateDTO: VariantUpdateDTO
+  ): Promise<VariantResponseDTO> {
+    await this.prisma.variant.update({
+      where: { id: variantId },
+      data: {
+        price: variantUpdateDTO.price,
+        compareAtPrice: variantUpdateDTO.compareAtPrice,
+        weight: variantUpdateDTO.weight,
+        weightUnit: variantUpdateDTO.weightUnit,
+        description: variantUpdateDTO.description,
+        status: variantUpdateDTO.status,
+      },
+    });
+
+    if (variantUpdateDTO.optionValues?.length) {
+      await this.prisma.variantOptionValue.deleteMany({
+        where: { variantId },
+      });
+
+      await this.prisma.variantOptionValue.createMany({
+        data: variantUpdateDTO.optionValues.map((val) => ({
+          variantId,
+          optionValueId: val.optionValueId,
+        })),
+      });
+
+      const productId = (
+        await this.prisma.variant.findUnique({
+          where: { id: variantId },
+          select: { productId: true },
+        })
+      )?.productId;
+
+      if (productId) {
+        const sku = await this.generateSku(
+          productId,
+          variantUpdateDTO.optionValues.map((v) => v.optionValueId)
+        );
+
+        await this.prisma.variant.update({
+          where: { id: variantId },
+          data: { sku },
+        });
+      }
+    }
+
+    const variant = await this.prisma.variant.findUnique({
+      where: { id: variantId },
+      include: {
+        optionValues: {
+          include: {
+            optionValue: {
+              include: {
+                option: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     return this.mapProductVariantToResponse(variant);

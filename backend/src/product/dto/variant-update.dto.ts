@@ -1,6 +1,11 @@
+import { VariantOptionValue, VariantStatus, WeightUnit } from '@prisma/client';
+
 export class VariantUpdateDTO {
-  title?: string;
-  price?: number;
-  description?: string;
-  optionValues?: string[];
+  price: number;
+  compareAtPrice: number;
+  weight: number;
+  weightUnit: WeightUnit;
+  description: string;
+  status: VariantStatus;
+  optionValues?: VariantOptionValue[];
 }
