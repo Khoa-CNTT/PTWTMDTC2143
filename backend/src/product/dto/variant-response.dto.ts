@@ -8,6 +8,7 @@ export class VariantResponseDTO {
   compareAtPrice: number;
   weight: number;
   weightUnit: WeightUnit;
+  dimensions: string;
   description: string;
   status: VariantStatus;
   optionValues: OptionValueResponseDTO[];

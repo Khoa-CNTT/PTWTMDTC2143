@@ -30,10 +30,7 @@ export class ProductController {
     @Param('productId') productId: string,
     @Body() variantCreateDTO: VariantCreateDTO
   ): Promise<VariantResponseDTO> {
-    return this.productService.createProductVariant(
-      productId,
-      variantCreateDTO
-    );
+    return this.productService.createVariant(productId, variantCreateDTO);
   }
 
   @Put(':productId')
@@ -49,6 +46,6 @@ export class ProductController {
     @Param('variantId', ParseUUIDPipe) variantId: string,
     @Body() variantUpdateDTO: VariantUpdateDTO
   ) {
-    return this.productService.updateVarriant(variantId, variantUpdateDTO);
+    return this.productService.updateVariant(variantId, variantUpdateDTO);
   }
 }
