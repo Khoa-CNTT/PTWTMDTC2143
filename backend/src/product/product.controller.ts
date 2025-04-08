@@ -1,9 +1,9 @@
 import { Body, Controller, Param, Post } from '@nestjs/common';
-import { CreateProductDTO } from './dto/create-product.dto';
+import { ProductCreateDTO } from './dto/product-create.dto';
 import { ProductResponseDTO } from './dto/product-response.dto';
 import { ProductService } from './product.service';
-import { CreateProductVariantDto } from './dto/create-product-variant.dto';
-import { ProductVariantResponseDTO } from './dto/product-variant-response.dto';
+import { VariantResponseDTO } from './dto/variant-response.dto';
+import { VariantCreateDTO } from './dto/variant-create.dto';
 
 @Controller('product')
 export class ProductController {
@@ -11,19 +11,19 @@ export class ProductController {
 
   @Post()
   async create(
-    @Body() createProductDTO: CreateProductDTO
+    @Body() productCreateDTO: ProductCreateDTO
   ): Promise<ProductResponseDTO> {
-    return this.productService.createProduct(createProductDTO);
+    return this.productService.createProduct(productCreateDTO);
   }
 
   @Post(':productId/variants')
   async createVariant(
     @Param('productId') productId: string,
-    @Body() createProductVariantDTO: CreateProductVariantDto
-  ): Promise<ProductVariantResponseDTO> {
+    @Body() variantCreateDTO: VariantCreateDTO
+  ): Promise<VariantResponseDTO> {
     return this.productService.createProductVariant(
       productId,
-      createProductVariantDTO
+      variantCreateDTO
     );
   }
 }

@@ -8,10 +8,10 @@ import {
   Delete,
 } from '@nestjs/common';
 import { WarehouseService } from './warehouse.service';
-import { CreateWarehouseDTO } from './create-warehouse.dto';
 import { WarehouseResponseDTO } from './warehouse-response.dto';
-import { UpdateWarehouseDTO } from './update-warehouse.dto';
 import { WarehouseStatus } from '@prisma/client';
+import { WarehouseCreateDTO } from './warehouse-create.dto';
+import { WarehouseUpdateDTO } from './warehouse-update.dto';
 
 @Controller('warehouses')
 export class WarehouseController {
@@ -19,9 +19,9 @@ export class WarehouseController {
 
   @Post()
   async createWarehouse(
-    @Body() createWarehouseDTO: CreateWarehouseDTO
+    @Body() warehouseCreateDTO: WarehouseCreateDTO
   ): Promise<WarehouseResponseDTO> {
-    return this.warehouseService.createWarehouse(createWarehouseDTO);
+    return this.warehouseService.createWarehouse(warehouseCreateDTO);
   }
 
   @Get()
@@ -46,9 +46,9 @@ export class WarehouseController {
   @Put(':id')
   async updateWarehouse(
     @Param('id') id: string,
-    @Body() updateWarehouseDTO: UpdateWarehouseDTO
+    @Body() warehouseUpdateDTO: WarehouseUpdateDTO
   ): Promise<WarehouseResponseDTO> {
-    return this.warehouseService.updateWarehouse(id, updateWarehouseDTO);
+    return this.warehouseService.updateWarehouse(id, warehouseUpdateDTO);
   }
 
   @Put(':id/status')

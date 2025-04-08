@@ -1,4 +1,4 @@
-export class UpdateOptionDto {
+export class OptionUpdateDTO {
   name?: string;
   values?: string[];
 }
