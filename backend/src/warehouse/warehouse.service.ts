@@ -4,21 +4,21 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateWarehouseDTO } from './create-warehouse.dto';
 import { WarehouseResponseDTO } from './warehouse-response.dto';
 import { Warehouse, WarehouseStatus } from '@prisma/client';
-import { UpdateWarehouseDTO } from './update-warehouse.dto';
+import { WarehouseCreateDTO } from './warehouse-create.dto';
+import { WarehouseUpdateDTO } from './warehouse-update.dto';
 
 @Injectable()
 export class WarehouseService {
   constructor(private prisma: PrismaService) {}
 
   async createWarehouse(
-    createWarehouseDTO: CreateWarehouseDTO
+    warehouseCreateDTO: WarehouseCreateDTO
   ): Promise<WarehouseResponseDTO> {
-    await this.checkWarehouseExists(createWarehouseDTO.name);
+    await this.checkWarehouseExists(warehouseCreateDTO.name);
     const newWarehouse = await this.prisma.warehouse.create({
-      data: createWarehouseDTO,
+      data: warehouseCreateDTO,
     });
     return this.toWarehouseResponseDTO(newWarehouse);
   }
@@ -43,12 +43,12 @@ export class WarehouseService {
 
   async updateWarehouse(
     id: string,
-    updateWarehouseDTO: UpdateWarehouseDTO
+    warehouseUpdateDTP: WarehouseUpdateDTO
   ): Promise<WarehouseResponseDTO> {
     const warehouse = await this.findWarehouseById(id);
     const updatedWarehouse = await this.prisma.warehouse.update({
       where: { id },
-      data: { ...warehouse, ...updateWarehouseDTO },
+      data: { ...warehouse, ...warehouseUpdateDTP },
     });
     return this.toWarehouseResponseDTO(updatedWarehouse);
   }

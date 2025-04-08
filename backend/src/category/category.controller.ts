@@ -7,27 +7,27 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { CreateCategoryDto } from './dto/create-category.dto';
 import { CategoryResponseDto } from './dto/category-response.dto';
 import { CategoryService } from './category.service';
-import { UpdateCategoryDto } from './dto/update-category.dto';
+import { CategoryCreateDTO } from './dto/category-create.dto';
+import { CategoryUpdateDTO } from './dto/category-update.dto';
 
 @Controller('category')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
   @Post()
   async create(
-    @Body() createCategoryDto: CreateCategoryDto
+    @Body() categoryCreateDTO: CategoryCreateDTO
   ): Promise<CategoryResponseDto> {
-    return this.categoryService.createCategory(createCategoryDto);
+    return this.categoryService.createCategory(categoryCreateDTO);
   }
 
   @Put(':id')
   async update(
     @Param('id') id: string,
-    @Body() updateCategoryDto: UpdateCategoryDto
+    @Body() categoryUpdateDTO: CategoryUpdateDTO
   ): Promise<CategoryResponseDto> {
-    return this.categoryService.updateCategory(id, updateCategoryDto);
+    return this.categoryService.updateCategory(id, categoryUpdateDTO);
   }
 
   @Get()
