@@ -48,6 +48,6 @@ cypress/downloads/
 !.yarn/sdks
 !.yarn/versions
 
-.env
+/backend/.env
 
 node_modules
