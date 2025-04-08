@@ -1,7 +1,7 @@
-import { ProductVariantStatus, WeightUnit } from '@prisma/client';
+import { VariantStatus, WeightUnit } from '@prisma/client';
 import { OptionValueResponseDTO } from './option-value-response.dto';
 
-export class ProductVariantResponseDTO {
+export class VariantResponseDTO {
   id: string;
   sku: string;
   price: number;
@@ -9,6 +9,6 @@ export class ProductVariantResponseDTO {
   weight: number;
   weightUnit: WeightUnit;
   description: string;
-  status: ProductVariantStatus;
+  status: VariantStatus;
   optionValues: OptionValueResponseDTO[];
 }

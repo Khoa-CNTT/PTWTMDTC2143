@@ -1,4 +1,4 @@
-export class UpdateProductDto {
+export class ProductUpdateDTO {
   name?: string;
   price?: number;
   description?: string;

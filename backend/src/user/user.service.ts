@@ -3,11 +3,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
+import { UserCreateDTO } from './dto/user-create.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { User } from 'src/auth/interfaces/user.interface';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UserUpdateDTO } from './dto/user-update.dto';
 import { RoleEnum } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { EmailService } from 'src/email/email.service';
@@ -19,17 +19,17 @@ export class UserService {
     private emailService: EmailService
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
-    await this.checkEmailExitsts(createUserDto.email);
+  async create(userCreateDTO: UserCreateDTO): Promise<UserResponseDto> {
+    await this.checkEmailExitsts(userCreateDTO.email);
 
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const hashedPassword = await bcrypt.hash(userCreateDTO.password, 10);
 
     const user = await this.prisma.user.create({
       data: {
-        email: createUserDto.email,
+        email: userCreateDTO.email,
         password: hashedPassword,
-        name: createUserDto.name,
-        phone: createUserDto.phone,
+        name: userCreateDTO.name,
+        phone: userCreateDTO.phone,
         isVerified: false,
         roles: {
           create: {
@@ -54,7 +54,7 @@ export class UserService {
       },
     });
 
-    await this.emailService.sendOtpEmail(user.id, createUserDto.email);
+    await this.emailService.sendOtpEmail(user.id, userCreateDTO.email);
 
     const mappedUser: User = {
       ...user,
@@ -68,11 +68,11 @@ export class UserService {
 
   async update(
     id: string,
-    updateUserDto: UpdateUserDto
+    userUpdateDTO: UserUpdateDTO
   ): Promise<UserResponseDto> {
     const user = await this.prisma.user.update({
       where: { id },
-      data: updateUserDto,
+      data: userUpdateDTO,
       include: {
         roles: {
           select: {

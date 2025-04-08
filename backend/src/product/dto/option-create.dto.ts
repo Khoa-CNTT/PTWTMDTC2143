@@ -1,4 +1,4 @@
-export class CreateOptionDTO {
+export class OptionCreateDTO {
   name: string;
   values: string[];
 }
