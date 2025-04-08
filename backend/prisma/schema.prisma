@@ -381,6 +381,7 @@ model Product {
   options     Option[]
   reviews     Review[]
   wishlists   WishlistProduct[]
+  createdAt DateTime @default(now())
 
   @@map("products")
 }

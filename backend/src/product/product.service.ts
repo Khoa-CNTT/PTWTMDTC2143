@@ -257,6 +257,82 @@ export class ProductService {
     return this.mapProductVariantToResponse(variant);
   }
 
+  async getProductsByCategory(
+    categoryId: string,
+    limit: number,
+    cursor?: string
+  ): Promise<{ data: ProductResponseDTO[]; nextCursor: string | null }> {
+    const products = await this.prisma.product.findMany({
+      where: { categoryId },
+      take: limit + 1,
+      ...(cursor && {
+        skip: 1,
+        cursor: { id: cursor },
+      }),
+      orderBy: { id: 'asc' },
+      include: {
+        images: true,
+        brand: true,
+        category: true,
+        options: {
+          include: { values: true },
+        },
+      },
+    });
+
+    let nextCursor: string | null = null;
+    if (products.length > limit) {
+      const nextItem = products.pop();
+      nextCursor = nextItem?.id || null;
+    }
+
+    const formatted = await Promise.all(
+      products.map((product) => this.mapProductToResponse(product))
+    );
+
+    return { data: formatted, nextCursor };
+  }
+
+  async searchProductsByName(
+    keyword: string,
+    limit: number,
+    cursor?: string
+  ): Promise<{ data: ProductResponseDTO[]; nextCursor: string | null }> {
+    const products = await this.prisma.product.findMany({
+      where: {
+        title: {
+          contains: keyword,
+        },
+      },
+      take: limit + 1,
+      ...(cursor && {
+        skip: 1,
+        cursor: { id: cursor },
+      }),
+      orderBy: { id: 'asc' },
+      include: {
+        images: true,
+        brand: true,
+        category: true,
+        options: {
+          include: { values: true },
+        },
+      },
+    });
+
+    let nextCursor: string | null = null;
+    if (products.length > limit) {
+      const nextItem = products.pop();
+      nextCursor = nextItem?.id || null;
+    }
+
+    const formatted = await Promise.all(
+      products.map((product) => this.mapProductToResponse(product))
+    );
+
+    return { data: formatted, nextCursor };
+  }
+
   private async mapProductToResponse(
     product: Product
   ): Promise<ProductResponseDTO> {
