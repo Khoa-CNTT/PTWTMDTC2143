@@ -1,26 +1,26 @@
 import { Injectable } from '@nestjs/common';
-import { CreateProductDTO } from './dto/create-product.dto';
 import { ProductResponseDTO } from './dto/product-response.dto';
 import { Product } from './interfaces/product.interface';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { ProductVariantResponseDTO } from './dto/product-variant-response.dto';
-import { ProductVariant } from './interfaces/product-variant.interface';
-import { CreateProductVariantDto } from './dto/create-product-variant.dto';
+import { Variant } from './interfaces/variant.interface';
+import { ProductCreateDTO } from './dto/product-create.dto';
+import { VariantCreateDTO } from './dto/variant-create.dto';
+import { VariantResponseDTO } from './dto/variant-response.dto';
 
 @Injectable()
 export class ProductService {
   constructor(private prisma: PrismaService) {}
 
   async createProduct(
-    createProductDTO: CreateProductDTO
+    productCreateDTO: ProductCreateDTO
   ): Promise<ProductResponseDTO> {
     const product = await this.prisma.product.create({
       data: {
-        title: createProductDTO.title,
-        description: createProductDTO.description,
+        title: productCreateDTO.title,
+        description: productCreateDTO.description,
         rating: 0.0,
-        categoryId: createProductDTO.categoryId,
-        brandId: createProductDTO.brandId,
+        categoryId: productCreateDTO.categoryId,
+        brandId: productCreateDTO.brandId,
       },
       include: {
         images: true,
@@ -30,9 +30,9 @@ export class ProductService {
       },
     });
 
-    if (createProductDTO.images?.length) {
+    if (productCreateDTO.images?.length) {
       await this.prisma.image.createMany({
-        data: createProductDTO.images.map((img) => ({
+        data: productCreateDTO.images.map((img) => ({
           imageUrl: img.imageUrl,
           isThumbnail: img.isThumbnail ?? false,
           productId: product.id,
@@ -40,7 +40,7 @@ export class ProductService {
       });
     }
 
-    for (const option of createProductDTO.options) {
+    for (const option of productCreateDTO.options) {
       const createdOption = await this.prisma.option.create({
         data: {
           name: option.name,
@@ -63,20 +63,20 @@ export class ProductService {
 
   async createProductVariant(
     productId: string,
-    variantDto: CreateProductVariantDto
-  ): Promise<ProductVariantResponseDTO> {
-    const variant = await this.prisma.productVariant.create({
+    variantCreateDTO: VariantCreateDTO
+  ): Promise<VariantResponseDTO> {
+    const variant = await this.prisma.variant.create({
       data: {
         sku: await this.generateSku(
           productId,
-          variantDto.optionValues.map((val) => val.optionValueId)
+          variantCreateDTO.optionValues.map((val) => val.optionValueId)
         ),
-        price: variantDto.price,
-        compareAtPrice: variantDto.compareAtPrice,
-        weight: variantDto.weight,
-        weightUnit: variantDto.weightUnit,
-        description: variantDto.description,
-        status: variantDto.status,
+        price: variantCreateDTO.price,
+        compareAtPrice: variantCreateDTO.compareAtPrice,
+        weight: variantCreateDTO.weight,
+        weightUnit: variantCreateDTO.weightUnit,
+        description: variantCreateDTO.description,
+        status: variantCreateDTO.status,
         productId,
       },
       include: {
@@ -84,12 +84,12 @@ export class ProductService {
       },
     });
 
-    const variantOptionValues = variantDto.optionValues.map((val) => ({
+    const variantOptionValues = variantCreateDTO.optionValues.map((val) => ({
       variantId: variant.id,
       optionValueId: val.optionValueId,
     }));
 
-    await this.prisma.productVariantOptionValue.createMany({
+    await this.prisma.variantOptionValue.createMany({
       data: variantOptionValues,
     });
 
@@ -151,19 +151,18 @@ export class ProductService {
   }
 
   private async mapProductVariantToResponse(
-    variant: ProductVariant
-  ): Promise<ProductVariantResponseDTO> {
-    const variantOptionValues =
-      await this.prisma.productVariantOptionValue.findMany({
-        where: { variantId: variant.id },
-        include: {
-          optionValue: {
-            include: {
-              option: true,
-            },
+    variant: Variant
+  ): Promise<VariantResponseDTO> {
+    const variantOptionValues = await this.prisma.variantOptionValue.findMany({
+      where: { variantId: variant.id },
+      include: {
+        optionValue: {
+          include: {
+            option: true,
           },
         },
-      });
+      },
+    });
 
     return {
       id: variant.id,

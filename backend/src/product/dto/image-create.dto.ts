@@ -1,4 +1,4 @@
-export class CreateImageDTO {
+export class ImageCreateDTO {
   imageUrl: string;
   isThumbnail?: boolean;
 }
