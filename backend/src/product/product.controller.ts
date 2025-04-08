@@ -1,10 +1,14 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
+  Get,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { ProductCreateDTO } from './dto/product-create.dto';
 import { ProductResponseDTO } from './dto/product-response.dto';
@@ -47,5 +51,27 @@ export class ProductController {
     @Body() variantUpdateDTO: VariantUpdateDTO
   ) {
     return this.productService.updateVariant(variantId, variantUpdateDTO);
+  }
+
+  @Get('by-category')
+  async getProductsByCategory(
+    @Query('categoryId') categoryId: string,
+    @Query('limit') limit = 10,
+    @Query('cursor') cursor?: string
+  ) {
+    return this.productService.getProductsByCategory(
+      categoryId,
+      +limit,
+      cursor
+    );
+  }
+
+  @Get('search')
+  async searchProducts(
+    @Query('keyword') keyword: string,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('cursor') cursor?: string
+  ) {
+    return this.productService.searchProductsByName(keyword, limit, cursor);
   }
 }
