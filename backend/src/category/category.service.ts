@@ -1,19 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateCategoryDto } from './dto/create-category.dto';
 import { CategoryResponseDto } from './dto/category-response.dto';
 import { Category } from './interfaces/category.interface';
 import { Prisma } from '@prisma/client';
-import { UpdateCategoryDto } from './dto/update-category.dto';
+import { CategoryCreateDTO } from './dto/category-create.dto';
+import { CategoryUpdateDTO } from './dto/category-update.dto';
 
 @Injectable()
 export class CategoryService {
   constructor(private prisma: PrismaService) {}
 
   async createCategory(
-    createCategoryDto: CreateCategoryDto
+    categoryCreateDTO: CategoryCreateDTO
   ): Promise<CategoryResponseDto> {
-    const { parentId, subCategories, ...categoryData } = createCategoryDto;
+    const { parentId, subCategories, ...categoryData } = categoryCreateDTO;
 
     const data: Prisma.CategoryCreateInput = {
       ...categoryData,
@@ -31,11 +31,11 @@ export class CategoryService {
 
   async updateCategory(
     id: string,
-    updateCategoryDto: UpdateCategoryDto
+    categoryUpdateDTO: CategoryUpdateDTO
   ): Promise<CategoryResponseDto> {
     const updatedCategory = await this.prisma.category.update({
       where: { id },
-      data: updateCategoryDto,
+      data: categoryUpdateDTO,
     });
     return this.toCategoryResponseDto(updatedCategory);
   }
@@ -133,7 +133,7 @@ export class CategoryService {
   }
 
   private async createSubCategories(
-    subCategories: CreateCategoryDto[],
+    subCategories: CategoryCreateDTO[],
     parentId: string
   ): Promise<void> {
     for (const subCategory of subCategories) {

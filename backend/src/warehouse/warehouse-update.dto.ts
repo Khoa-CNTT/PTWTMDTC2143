@@ -1,6 +1,6 @@
 import { WarehouseStatus } from '@prisma/client';
 
-export class UpdateWarehouseDTO {
+export class WarehouseUpdateDTO {
   name?: string;
   location?: string;
   status?: WarehouseStatus;

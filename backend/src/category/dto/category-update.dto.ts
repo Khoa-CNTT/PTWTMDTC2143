@@ -1,4 +1,4 @@
-export class UpdateCategoryDto {
+export class CategoryUpdateDTO {
   name?: string;
   logo?: string;
   image?: string;
