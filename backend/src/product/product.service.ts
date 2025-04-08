@@ -77,7 +77,6 @@ export class ProductService {
       },
     });
 
-    // Cập nhật hình ảnh
     if (productUpdateDTO.images?.length) {
       await this.prisma.image.deleteMany({ where: { productId } });
       await this.prisma.image.createMany({
@@ -89,18 +88,15 @@ export class ProductService {
       });
     }
 
-    // Lấy danh sách options hiện có
     const existingOptions = await this.prisma.option.findMany({
       where: { productId },
       include: { values: true },
     });
 
-    // Cập nhật options và values
     for (const option of productUpdateDTO.options) {
       await this.upsertProductOption(productId, option, existingOptions);
     }
 
-    // Trả về product đã cập nhật
     const updatedProduct = await this.prisma.product.findUnique({
       where: { id: productId },
       include: {
@@ -130,7 +126,6 @@ export class ProductService {
     );
 
     if (!existingOption) {
-      // Option chưa tồn tại => tạo mới
       await this.prisma.option.create({
         data: {
           name: optionDTO.name,
@@ -159,7 +154,7 @@ export class ProductService {
     }
   }
 
-  async createProductVariant(
+  async createVariant(
     productId: string,
     variantCreateDTO: VariantCreateDTO
   ): Promise<VariantResponseDTO> {
@@ -173,6 +168,7 @@ export class ProductService {
         compareAtPrice: variantCreateDTO.compareAtPrice,
         weight: variantCreateDTO.weight,
         weightUnit: variantCreateDTO.weightUnit,
+        dimensions: variantCreateDTO.dimensions,
         description: variantCreateDTO.description,
         status: variantCreateDTO.status,
         productId,
@@ -194,7 +190,7 @@ export class ProductService {
     return this.mapProductVariantToResponse(variant);
   }
 
-  async updateVarriant(
+  async updateVariant(
     variantId: string,
     variantUpdateDTO: VariantUpdateDTO
   ): Promise<VariantResponseDTO> {
@@ -205,6 +201,7 @@ export class ProductService {
         compareAtPrice: variantUpdateDTO.compareAtPrice,
         weight: variantUpdateDTO.weight,
         weightUnit: variantUpdateDTO.weightUnit,
+        dimensions: variantUpdateDTO.dimensions,
         description: variantUpdateDTO.description,
         status: variantUpdateDTO.status,
       },
@@ -335,6 +332,7 @@ export class ProductService {
       compareAtPrice: variant.compareAtPrice,
       weight: variant.weight,
       weightUnit: variant.weightUnit,
+      dimensions: variant.dimensions,
       description: variant.description,
       status: variant.status,
       optionValues: variantOptionValues.map((vov) => ({
