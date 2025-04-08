@@ -158,6 +158,15 @@ export class ProductService {
     productId: string,
     variantCreateDTO: VariantCreateDTO
   ): Promise<VariantResponseDTO> {
+    const optionValueIds = variantCreateDTO.optionValues.map(
+      (val) => val.optionValueId
+    );
+    const uniqueOptionValueIds = [...new Set(optionValueIds)];
+
+    if (optionValueIds.length !== uniqueOptionValueIds.length) {
+      throw new Error('Option values cannot be duplicated.');
+    }
+
     const variant = await this.prisma.variant.create({
       data: {
         sku: await this.generateSku(
