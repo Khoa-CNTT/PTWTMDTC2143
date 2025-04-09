@@ -13,7 +13,7 @@ export class InventoryService {
     const { variantId, warehouseId, quantity, status } = inventoryCreateDTO;
 
     const existingInventory = await this.prisma.inventory.findUnique({
-      where: { variantId, warehouseId },
+      where: { variantId_warehouseId: { variantId, warehouseId } },
     });
 
     if (existingInventory) {
@@ -41,7 +41,7 @@ export class InventoryService {
     const { variantId, warehouseId, quantityChange } = inventoryUpdateDTO;
 
     const inventory = await this.prisma.inventory.findUnique({
-      where: { variantId, warehouseId },
+      where: { variantId_warehouseId: { variantId, warehouseId } },
     });
 
     if (!inventory) {
@@ -60,7 +60,7 @@ export class InventoryService {
     const { variantId, warehouseId, requiredQuantity } = checkStockDto;
 
     const inventory = await this.prisma.inventory.findUnique({
-      where: { variantId, warehouseId },
+      where: { variantId_warehouseId: { variantId, warehouseId } },
     });
 
     if (!inventory || inventory.quantity < requiredQuantity) {

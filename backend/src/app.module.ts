@@ -11,6 +11,7 @@ import { BrandModule } from './brand/brand.module';
 import { WarehouseModule } from './warehouse/warehouse.module';
 import { ProductModule } from './product/product.module';
 import { InventoryModule } from './inventory/inventory.module';
+import { CartModule } from './cart/cart.module';
 import jwtConfig from './auth/config/jwt.config';
 
 @Module({
@@ -44,6 +45,7 @@ import jwtConfig from './auth/config/jwt.config';
     WarehouseModule,
     ProductModule,
     InventoryModule,
+    CartModule,
   ],
   controllers: [AppController],
   providers: [AppService],

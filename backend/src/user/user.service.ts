@@ -150,14 +150,17 @@ export class UserService {
   }
 
   private async checkEmailExitsts(email: string): Promise<void> {
-    const exitstingUser = await this.prisma.user.findUnique({
+    const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
-    if (exitstingUser) {
-      await this.emailService.sendOtpEmail(exitstingUser.id, email);
-      throw new BadRequestException('Email not verified. OTP resent!');
+
+    if (existingUser) {
+      if (!existingUser.isVerified) {
+        await this.emailService.sendOtpEmail(existingUser.id, email);
+        throw new BadRequestException('Email not verified. OTP resent!');
+      }
+      throw new BadRequestException('Email already in use!');
     }
-    throw new BadRequestException('Email already in use!');
   }
 
   private mapToUserResponseDto(user: User): UserResponseDto {
