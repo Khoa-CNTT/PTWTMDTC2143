@@ -207,7 +207,7 @@ model CartItem {
   variantId  String
   quantity   Int
   totalPrice Int
-  isSelected Boolean  @default(false)
+  isSelected Boolean @default(false)
 
   @@map("cart_items")
 }
@@ -344,7 +344,7 @@ model OrderItem {
   variant     Variant      @relation(fields: [variantId], references: [id])
   variantId   String
   quantity    Int
-  unitPrice Int 
+  unitPrice   Int
   price       Int
   discount    Int
   invoiceItem InvoiceItem?
@@ -539,18 +539,20 @@ model Verification {
 }
 
 model Voucher {
-  id         String         @id @default(uuid())
-  code       String         @unique
-  discount   Int
-  type       VoucherType
-  startDate  DateTime
-  endDate    DateTime
-  status     VoucherStatus
-  minPrice   Int?
-  usageLimit Int
-  usedCount  Int            @default(0)
-  orders     Order[]
-  usages     VoucherUsage[]
+  id            String         @id @default(uuid())
+  code          String         @unique
+  discountValue Int
+  maxDiscount   Int?
+  type          VoucherType
+  startDate     DateTime
+  endDate       DateTime
+  status        VoucherStatus
+  minPrice      Int?
+  usageLimit    Int
+  usedCount     Int            @default(0)
+  isPublic      Boolean        @default(true)
+  orders        Order[]
+  usages        VoucherUsage[]
 
   @@map("vouchers")
 }
@@ -563,7 +565,7 @@ model VoucherUsage {
   voucherId String
   order     Order?   @relation(fields: [orderId], references: [id])
   orderId   String?
-  usedAt    DateTime
+  usedAt    DateTime @default(now())
 
   @@map("voucher_usages")
 }

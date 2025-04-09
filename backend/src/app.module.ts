@@ -13,6 +13,7 @@ import { ProductModule } from './product/product.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { CartModule } from './cart/cart.module';
 import { OrderModule } from './order/order.module';
+import { VoucherModule } from './voucher/voucher.module';
 import jwtConfig from './auth/config/jwt.config';
 
 @Module({
@@ -48,6 +49,7 @@ import jwtConfig from './auth/config/jwt.config';
     InventoryModule,
     CartModule,
     OrderModule,
+    VoucherModule,
   ],
   controllers: [AppController],
   providers: [AppService],
