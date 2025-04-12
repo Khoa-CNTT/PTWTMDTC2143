@@ -100,7 +100,6 @@
 
 // export default App;
 
-import "./index.css";
 import Header from "./components/Header/Header";
 import Dashboard from "./pages/Dashboard";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -110,6 +109,7 @@ import SignUp from "./pages/SignUp/signup";
 import ProductDetails from "./pages/ProductDetails/index";
 import Products from "./pages/Products/products";
 import { MyContextProvider } from "./context/MyContext"; // Import Provider mới
+import "./index.css";
 
 function App() {
   return (

@@ -50,4 +50,6 @@ cypress/downloads/
 
 /backend/.env
 
+/backend/dist/
+
 node_modules
