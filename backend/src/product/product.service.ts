@@ -342,6 +342,29 @@ export class ProductService {
     return { data: formatted, nextCursor };
   }
 
+  async getProductVariant(variantId: string): Promise<VariantResponseDTO> {
+    const variant = await this.prisma.variant.findUnique({
+      where: { id: variantId },
+      include: {
+        optionValues: {
+          include: {
+            optionValue: {
+              include: {
+                option: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!variant) {
+      throw new Error(`Variant with id ${variantId} not found`);
+    }
+
+    return this.mapProductVariantToResponse(variant);
+  }
+
   private async mapProductToResponse(
     product: Product
   ): Promise<ProductResponseDTO> {
@@ -399,6 +422,7 @@ export class ProductService {
   private async mapProductVariantToResponse(
     variant: Variant
   ): Promise<VariantResponseDTO> {
+    // Lấy thông tin variantOptionValues (đã có trong mã của bạn)
     const variantOptionValues = await this.prisma.variantOptionValue.findMany({
       where: { variantId: variant.id },
       include: {
@@ -410,10 +434,59 @@ export class ProductService {
       },
     });
 
+    // Lấy thông tin về product và category
+    const product = await this.prisma.product.findUnique({
+      where: { id: variant.productId },
+      include: {
+        category: true,
+      },
+    });
+
+    // Lấy các discount áp dụng cho product và category
+    const productDiscounts = await this.prisma.productDiscount.findMany({
+      where: { productId: product.id },
+      include: { discount: true },
+    });
+
+    const categoryDiscounts = await this.prisma.categoryDiscount.findMany({
+      where: { categoryId: product.categoryId },
+      include: { discount: true },
+    });
+
+    // Kết hợp discount từ product và category
+    const discounts = [
+      ...productDiscounts.map((pd) => pd.discount),
+      ...categoryDiscounts.map((cd) => cd.discount),
+    ];
+
+    console.log(discounts);
+
+    // Tính giá giảm cho variant
+    let discountedPrice = variant.price;
+    const finalPrice = variant.price; // Giá gốc
+
+    for (const discount of discounts) {
+      if (
+        discount.status === 'ACTIVE' &&
+        new Date() >= discount.startDate &&
+        new Date() <= discount.endDate
+      ) {
+        if (discount.applyType === 'PRODUCT' || discount.applyType === 'ALL') {
+          // Áp dụng discount cho variant (tùy vào DiscountType)
+          if (discount.type === 'PERCENTAGE') {
+            discountedPrice -= (discountedPrice * discount.discount) / 100;
+          } else if (discount.type === 'FIXED_AMOUNT') {
+            discountedPrice -= discount.discount;
+          }
+        }
+      }
+    }
+
     return {
       id: variant.id,
       sku: variant.sku,
-      price: variant.price,
+      price: finalPrice, // Giá gốc
+      discountedPrice: discountedPrice, // Giá giảm
       compareAtPrice: variant.compareAtPrice,
       weight: variant.weight,
       weightUnit: variant.weightUnit,

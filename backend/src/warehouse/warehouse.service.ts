@@ -35,7 +35,6 @@ export class WarehouseService {
     return this.toWarehouseResponseDTO(warehouse);
   }
 
-  // New method to get warehouse by name
   async getWarehouseByName(name: string): Promise<WarehouseResponseDTO> {
     const warehouse = await this.findWarehouseByName(name);
     return this.toWarehouseResponseDTO(warehouse);
