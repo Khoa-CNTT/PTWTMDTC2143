@@ -5,6 +5,7 @@ export class VariantResponseDTO {
   id: string;
   sku: string;
   price: number;
+  discountedPrice: number;
   compareAtPrice: number;
   weight: number;
   weightUnit: WeightUnit;

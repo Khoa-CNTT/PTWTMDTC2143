@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateOrderDTO } from './dto/order-create.dto';
 import { OrderResponseDTO } from './dto/order-response.dto';
 import { OrderMapper } from './order.mapper';
 import { UpdateOrderStatusDTO } from './dto/order-update-status.dto';
+import { VoucherStatus, VoucherType } from '@prisma/client';
 
 @Injectable()
 export class OrderService {
@@ -11,29 +16,147 @@ export class OrderService {
 
   async create(userId: string, dto: CreateOrderDTO): Promise<OrderResponseDTO> {
     const variantIds = dto.items.map((item) => item.variantId);
+
+    // Lấy thông tin variants từ database
     const variants = await this.prisma.variant.findMany({
       where: { id: { in: variantIds } },
     });
 
+    // Kiểm tra xem các variant có tồn tại không
     if (variants.length !== dto.items.length) {
       throw new NotFoundException('Some variants not found');
     }
 
-    const orderItems = dto.items.map((item) => {
-      const variant = variants.find((v) => v.id === item.variantId);
-      const unitPrice = variant.price;
-      const price = unitPrice * item.quantity;
-      return {
-        variantId: item.variantId,
-        quantity: item.quantity,
-        unitPrice,
-        price,
-        discount: 0,
-      };
-    });
+    // Tạo các order items
+    const orderItems = await Promise.all(
+      dto.items.map(async (item) => {
+        const variant = variants.find((v) => v.id === item.variantId);
+        const product = await this.prisma.product.findUnique({
+          where: { id: variant.productId },
+          include: { category: true },
+        });
 
-    const total = orderItems.reduce((sum, item) => sum + item.price, 0);
+        if (!product) throw new NotFoundException('Product not found');
+        const category = product.category;
 
+        // Lấy các discount áp dụng cho product và category
+        const productDiscounts = await this.prisma.productDiscount.findMany({
+          where: { productId: product.id },
+          include: { discount: true },
+        });
+
+        const categoryDiscounts = await this.prisma.categoryDiscount.findMany({
+          where: { categoryId: category.id },
+          include: { discount: true },
+        });
+
+        const discounts = [
+          ...productDiscounts.map((pd) => pd.discount),
+          ...categoryDiscounts.map((cd) => cd.discount),
+        ];
+
+        // Tính toán giá gốc và giảm giá cho từng item
+        let discountedPrice = variant.price;
+        const originalPrice = variant.price; // Giá gốc
+
+        let isDiscountApplied = false;
+
+        for (const discount of discounts) {
+          // Kiểm tra xem discount có còn hiệu lực không
+          if (
+            discount.status === 'ACTIVE' &&
+            new Date() >= discount.startDate &&
+            new Date() <= discount.endDate
+          ) {
+            if (
+              discount.applyType === 'PRODUCT' ||
+              discount.applyType === 'ALL' // Giảm giá cho tất cả sản phẩm
+            ) {
+              isDiscountApplied = true;
+              // Áp dụng discount cho variant
+              if (discount.type === 'PERCENTAGE') {
+                discountedPrice -= (discountedPrice * discount.discount) / 100;
+              } else if (discount.type === 'FIXED_AMOUNT') {
+                discountedPrice -= discount.discount;
+              }
+            }
+          }
+        }
+
+        // Nếu không có discount hợp lệ, sử dụng giá gốc
+        if (!isDiscountApplied) {
+          discountedPrice = originalPrice;
+        }
+
+        // Tính tổng tiền cho item (quantity * discountedPrice)
+        const price = discountedPrice * item.quantity;
+        return {
+          variantId: item.variantId,
+          quantity: item.quantity,
+          unitPrice: originalPrice,
+          price,
+          discount: originalPrice - discountedPrice, // Chênh lệch giá trị giảm
+        };
+      })
+    );
+
+    // Tính tổng tiền cho đơn hàng (cộng dồn tất cả các order items)
+    let total = orderItems.reduce((sum, item) => sum + item.price, 0);
+    let voucherDiscount = 0;
+
+    // Kiểm tra voucher và áp dụng
+    if (dto.voucherId) {
+      const voucher = await this.prisma.voucher.findUnique({
+        where: { id: dto.voucherId },
+      });
+
+      if (!voucher || voucher.status !== VoucherStatus.ACTIVE) {
+        throw new NotFoundException('Voucher is not valid or inactive');
+      }
+
+      const now = new Date();
+      if (voucher.startDate > now || voucher.endDate < now) {
+        throw new BadRequestException('Voucher is not in valid date range');
+      }
+
+      if (voucher.minPrice && total < voucher.minPrice) {
+        throw new BadRequestException(
+          `Order total must be at least ${voucher.minPrice}`
+        );
+      }
+
+      if (voucher.usageLimit > 0 && voucher.usedCount >= voucher.usageLimit) {
+        throw new BadRequestException('Voucher has reached its usage limit');
+      }
+
+      const hasUsed = await this.prisma.voucherUsage.findFirst({
+        where: {
+          userId,
+          voucherId: voucher.id,
+        },
+      });
+
+      if (hasUsed) {
+        throw new BadRequestException('You have already used this voucher');
+      }
+
+      // Tính toán voucher discount
+      voucherDiscount = this.calculateVoucherDiscount(
+        voucher.type,
+        voucher.discountValue,
+        total,
+        voucher.maxDiscount
+      );
+
+      // Voucher không thể giảm quá tổng giá trị của đơn hàng
+      if (voucherDiscount > total) {
+        voucherDiscount = total;
+      }
+
+      total -= voucherDiscount; // Cập nhật tổng tiền sau khi áp dụng voucher
+    }
+
+    // Thực hiện tạo đơn hàng, cập nhật giỏ hàng, và cập nhật voucher nếu có
     const [order] = await this.prisma.$transaction([
       this.prisma.order.create({
         data: {
@@ -49,14 +172,12 @@ export class OrderService {
           status: 'PENDING',
           total,
           voucherId: dto.voucherId,
-          voucherDiscount: 0,
+          voucherDiscount,
           items: {
             create: orderItems,
           },
         },
-        include: {
-          items: true,
-        },
+        include: { items: true },
       }),
 
       this.prisma.cartItem.deleteMany({
@@ -70,9 +191,42 @@ export class OrderService {
         where: { userId },
         data: { totalAmount: 0 },
       }),
+
+      ...(dto.voucherId
+        ? [
+            this.prisma.voucher.update({
+              where: { id: dto.voucherId },
+              data: {
+                usedCount: { increment: 1 },
+              },
+            }),
+            this.prisma.voucherUsage.create({
+              data: {
+                userId,
+                voucherId: dto.voucherId,
+              },
+            }),
+          ]
+        : []),
     ]);
 
     return OrderMapper.toOrderDTO(order);
+  }
+
+  private calculateVoucherDiscount(
+    type: VoucherType,
+    value: number,
+    total: number,
+    maxDiscount?: number | null
+  ): number {
+    if (type === VoucherType.PERCENTAGE) {
+      const discount = (value / 100) * total;
+      return maxDiscount ? Math.min(discount, maxDiscount) : discount;
+    }
+    if (type === VoucherType.FIXED_AMOUNT) {
+      return value;
+    }
+    return 0;
   }
 
   async getAll(userId: string): Promise<OrderResponseDTO[]> {
