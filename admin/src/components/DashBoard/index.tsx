@@ -67,10 +67,6 @@ const Dashboard: React.FC = () => {
   return (
     <>
       <div className="p-4 bg-gray-100 ">
-        <div className="bg-white rounded shadow p-4 mb-4">
-          <h1 className="text-2xl font-semibold">Product List</h1>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           <div className="col-span-1 lg:col-span-2 xl:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
             {stats.map((card, index) => (
@@ -146,7 +142,7 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="overflow-auto">
-            <table className="min-w-full text-sm">
+            <table className="min-w-full text-sm border border-gray-300">
               <thead>
                 <tr className="bg-blue-600 text-white">
                   {[
@@ -155,12 +151,14 @@ const Dashboard: React.FC = () => {
                     'CATEGORY',
                     'BRAND',
                     'PRICE',
+                    'RAM',
+                    'COLOR',
                     'RATING',
                     'ACTION',
                   ].map((head, i) => (
                     <th
                       key={i}
-                      className="px-4 py-2 text-left whitespace-nowrap"
+                      className="px-4 py-2 text-left whitespace-nowrap border border-gray-300"
                     >
                       {head}
                     </th>
@@ -168,14 +166,20 @@ const Dashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b">
-                  <td className="px-4 py-2">1</td>
-                  <td className="px-4 py-2">Product A</td>
-                  <td className="px-4 py-2">Category A</td>
-                  <td className="px-4 py-2">Brand X</td>
-                  <td className="px-4 py-2">$199</td>
-                  <td className="px-4 py-2">⭐⭐⭐⭐</td>
-                  <td className="px-4 py-2 text-blue-600 font-semibold cursor-pointer">
+                <tr className="border border-gray-300">
+                  <td className="px-4 py-2 border border-gray-300">1</td>
+                  <td className="px-4 py-2 border border-gray-300">
+                    Product A
+                  </td>
+                  <td className="px-4 py-2 border border-gray-300">
+                    Category A
+                  </td>
+                  <td className="px-4 py-2 border border-gray-300">Brand X</td>
+                  <td className="px-4 py-2 border border-gray-300">$199</td>
+                  <td className="px-4 py-2 border border-gray-300">RAM</td>
+                  <td className="px-4 py-2 border border-gray-300">COLOR</td>
+                  <td className="px-4 py-2 border border-gray-300">⭐⭐⭐⭐</td>
+                  <td className="px-4 py-2 text-blue-600 font-semibold cursor-pointer border border-gray-300">
                     Edit
                   </td>
                 </tr>
