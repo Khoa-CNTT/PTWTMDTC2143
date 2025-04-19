@@ -88,16 +88,7 @@ const ProductView = () => {
             <div className="text-sm">
               Brand: <strong>Ecstasy</strong>
             </div>
-            <div className="flex flex-wrap gap-2 text-xs">
-              {['SUITE', 'PARTY', 'DRESS', 'SMART', 'MAN'].map((tag) => (
-                <span
-                  key={tag}
-                  className="bg-gray-200 text-gray-800 px-2 py-1 rounded-full"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
+
             <div className="text-sm">Color: Red, Blue, White</div>
             <div className="text-sm">Size: 6 Pieces</div>
             <div className="text-sm">Review: (03) Reviews</div>

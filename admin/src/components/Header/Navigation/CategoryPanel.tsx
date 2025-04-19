@@ -59,13 +59,13 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
           {isProductOpen && (
             <div className="ml-10 mt-1 mb-2 space-y-1 text-sm text-gray-600">
               <div className="cursor-pointer hover:text-black">
-                Product List
+                <a href="/product-list">Product List</a>
               </div>
               <div className="cursor-pointer hover:text-black">
-                Product View
+                <a href="/product-view">Product View</a>
               </div>
               <div className="cursor-pointer hover:text-black">
-                Product Upload
+                <a href="/product-upload">Product Upload</a>
               </div>
             </div>
           )}
