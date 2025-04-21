@@ -12,6 +12,7 @@ import ProductDetailPage from './pages/ProductDetailPage';
 import FAQPage from './pages/FAQPage';
 import ForgotPassword from './pages/ForgotPassword';
 import LoginAccount from './pages/LoginAccount';
+import ProfilePage from './pages/ProfilePage';
 function App() {
   return (
     <>
@@ -28,6 +29,7 @@ function App() {
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/forgotpassword" element={<ForgotPassword />} />
           <Route path="/login" element={<LoginAccount />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Routes>
         <Footer />
       </BrowserRouter>
