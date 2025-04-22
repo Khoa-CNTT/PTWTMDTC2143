@@ -6,7 +6,7 @@ import SignInPage from './pages/SignInPage';
 import OrderListPage from './pages/OrderListPage';
 import ProductUploadPage from './pages/ProductUploadPage';
 import ProductListPage from './pages/ProductListPage';
-import ProductViewPage from './pages/ProductViewPage';
+import OrderDetailsPage from './pages/OrderDetailsPage';
 
 function App() {
   return (
@@ -16,10 +16,10 @@ function App() {
         <Routes>
           <Route path="/" element={<DashBoard />} />
           <Route path="/signin" element={<SignInPage />} />
-          <Route path="/product-view" element={<ProductViewPage />} />
           <Route path="/product-list" element={<ProductListPage />} />
           <Route path="/product-upload" element={<ProductUploadPage />} />
           <Route path="/order-list" element={<OrderListPage />} />
+          <Route path="/order-details" element={<OrderDetailsPage />} />
         </Routes>
       </BrowserRouter>
     </>
