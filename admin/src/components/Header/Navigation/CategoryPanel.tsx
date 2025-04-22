@@ -21,9 +21,6 @@ interface CategoryPanelProps {
 
 const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
   const [isProductOpen, setIsProductOpen] = useState(false);
-  const [isOrderOpen, setIsOrderOpen] = useState(false);
-  const [isUserOpen, setIsUserOpen] = useState(false);
-  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
 
   const toggleDrawer = (newOpen: boolean) => () => {
     props.setIsOpenCatPanel(newOpen);
@@ -31,17 +28,6 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
 
   const toggleProductDropdown = () => {
     setIsProductOpen(!isProductOpen);
-  };
-
-  const toggleOrderDropdown = () => {
-    setIsOrderOpen(!isOrderOpen);
-  };
-
-  const toggleUserDropdown = () => {
-    setIsUserOpen(!isUserOpen);
-  };
-  const toggleInvoiceDropdown = () => {
-    setIsInvoiceOpen(!isInvoiceOpen);
   };
 
   const DrawerList = (
@@ -80,54 +66,7 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
                 <a href="/product-list">Product List</a>
               </div>
               <div className="cursor-pointer hover:text-black">
-                <a href="/product-upload">Product Upload</a>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="rounded-lg hover:bg-gray-100">
-          <div
-            className="flex items-center justify-between text-gray-800 p-2 cursor-pointer"
-            onClick={toggleOrderDropdown}
-          >
-            <div className="flex items-center gap-3 font-medium">
-              <FaClipboardList className="text-green-500" />
-              <span>Orders</span>
-            </div>
-            <FaChevronDown
-              className={`transform ${isOrderOpen ? 'rotate-180' : 'rotate-0'}`}
-            />
-          </div>
-          {isOrderOpen && (
-            <div className="ml-10 mt-1 mb-2 space-y-1 text-sm text-gray-600">
-              <div className="cursor-pointer hover:text-black">
-                <a href="/order-list">Order List</a>
-              </div>
-              <div className="cursor-pointer hover:text-black">
-                <a href="/order-details">Order Details</a>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="rounded-lg hover:bg-gray-100">
-          <div
-            className="flex items-center justify-between text-gray-800 p-2 cursor-pointer"
-            onClick={toggleUserDropdown}
-          >
-            <div className="flex items-center gap-3 font-medium">
-              <FaUsers className="text-purple-500" />
-              <span>Users</span>
-            </div>
-            <FaChevronDown
-              className={`transform ${isUserOpen ? 'rotate-180' : 'rotate-0'}`}
-            />
-          </div>
-          {isUserOpen && (
-            <div className="ml-10 mt-1 mb-2 space-y-1 text-sm text-gray-600">
-              <div className="cursor-pointer hover:text-black">
-                <a href="/user-list">User List</a>
+                <a href="/product-view">Product View</a>
               </div>
               <div className="cursor-pointer hover:text-black">
                 <a href="/user-details">User Details</a>
@@ -136,29 +75,22 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
           )}
         </div>
 
-        <div className="rounded-lg hover:bg-gray-100">
-          <div
-            className="flex items-center justify-between text-gray-800 p-2 cursor-pointer"
-            onClick={toggleInvoiceDropdown}
-          >
-            <div className="flex items-center gap-3 font-medium">
-              <LiaFileInvoiceDollarSolid />
-              <span>Invoice</span>
-            </div>
-            <FaChevronDown
-              className={`transform ${isInvoiceOpen ? 'rotate-180' : 'rotate-0'}`}
-            />
+        <div className="flex items-center justify-between text-gray-700 cursor-pointer p-2 rounded-lg hover:bg-gray-100">
+          <div className="flex items-center gap-3">
+            <MdCategory />
+            <span>Category</span>
           </div>
-          {isInvoiceOpen && (
-            <div className="ml-10 mt-1 mb-2 space-y-1 text-sm text-gray-600">
-              <div className="cursor-pointer hover:text-black">
-                <a href="/invoice-list">Invoice List</a>
-              </div>
-              <div className="cursor-pointer hover:text-black">
-                <a href="/invoice-details">Invoice Details</a>
-              </div>
-            </div>
-          )}
+          <FaChevronDown />
+        </div>
+
+        <div className="flex items-center gap-3 text-gray-700 cursor-pointer p-2 rounded-lg hover:bg-gray-100">
+          <FaUsers />
+          <span>Users</span>
+        </div>
+
+        <div className="flex items-center gap-3 text-gray-700 cursor-pointer p-2 rounded-lg hover:bg-gray-100">
+          <FaClipboardList />
+          <span>Orders</span>
         </div>
       </div>
 

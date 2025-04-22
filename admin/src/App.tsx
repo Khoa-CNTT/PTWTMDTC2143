@@ -3,9 +3,10 @@ import './App.css';
 import Header from './components/Header';
 import DashBoard from './components/DashBoard';
 import SignInPage from './pages/SignInPage';
-import ProductView from './components/ProductView';
-import ProductList from './components/ProductList';
-import ProductUpload from './components/ProductUpload';
+import OrderListPage from './pages/OrderListPage';
+import ProductUploadPage from './pages/ProductUploadPage';
+import ProductListPage from './pages/ProductListPage';
+import ProductViewPage from './pages/ProductViewPage';
 
 function App() {
   return (
@@ -15,9 +16,10 @@ function App() {
         <Routes>
           <Route path="/" element={<DashBoard />} />
           <Route path="/signin" element={<SignInPage />} />
-          <Route path="/product-view" element={<ProductView />} />
-          <Route path="/product-list" element={<ProductList />} />
-          <Route path="/product-upload" element={<ProductUpload />} />
+          <Route path="/product-view" element={<ProductViewPage />} />
+          <Route path="/product-list" element={<ProductListPage />} />
+          <Route path="/product-upload" element={<ProductUploadPage />} />
+          <Route path="/order-list" element={<OrderListPage />} />
         </Routes>
       </BrowserRouter>
     </>
