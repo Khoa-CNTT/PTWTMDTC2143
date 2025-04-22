@@ -13,6 +13,7 @@ import ProductDetailPage from './pages/ProductDetailPage';
 import FAQPage from './pages/FAQPage';
 import ForgotPassword from './pages/ForgotPassword';
 import LoginAccount from './pages/LoginAccount';
+import ChatbotPage from './components/ChatBox/chatBoxPage';
 function App() {
   return (
     <>
@@ -30,6 +31,7 @@ function App() {
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/forgotpassword" element={<ForgotPassword />} />
           <Route path="/login" element={<LoginAccount />} />
+          <Route path="/electric-ai" element={<ChatbotPage />} />
         </Routes>
         <Footer />
       </BrowserRouter>
