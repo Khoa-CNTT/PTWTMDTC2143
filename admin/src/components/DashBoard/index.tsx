@@ -14,7 +14,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  PieLabelRenderProps,
 } from 'recharts';
 
 const Dashboard: React.FC = () => {
