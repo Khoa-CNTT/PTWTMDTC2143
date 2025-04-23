@@ -7,6 +7,8 @@ import OrderListPage from './pages/OrderListPage';
 import ProductUploadPage from './pages/ProductUploadPage';
 import ProductListPage from './pages/ProductListPage';
 import OrderDetailsPage from './pages/OrderDetailsPage';
+import UserListPage from './pages/UserListPage';
+import UserDetailsPage from './pages/UserDetailsPage';
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
           <Route path="/product-upload" element={<ProductUploadPage />} />
           <Route path="/order-list" element={<OrderListPage />} />
           <Route path="/order-details" element={<OrderDetailsPage />} />
+          <Route path="/user-list" element={<UserListPage />} />
+          <Route path="/user-details" element={<UserDetailsPage />} />
         </Routes>
       </BrowserRouter>
     </>
