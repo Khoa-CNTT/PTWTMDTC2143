@@ -23,6 +23,7 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
   const [isProductOpen, setIsProductOpen] = useState(false);
   const [isOrderOpen, setIsOrderOpen] = useState(false);
   const [isUserOpen, setIsUserOpen] = useState(false);
+  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
 
   const toggleDrawer = (newOpen: boolean) => () => {
     props.setIsOpenCatPanel(newOpen);
@@ -38,6 +39,9 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
 
   const toggleUserDropdown = () => {
     setIsUserOpen(!isUserOpen);
+  };
+  const toggleInvoiceDropdown = () => {
+    setIsInvoiceOpen(!isInvoiceOpen);
   };
 
   const DrawerList = (
@@ -132,11 +136,29 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
           )}
         </div>
 
-        <div className="flex items-center justify-between text-gray-700 cursor-pointer p-2 rounded-lg hover:bg-gray-100">
-          <div className="flex items-center gap-3 font-medium">
-            <LiaFileInvoiceDollarSolid />
-            <a href="/invoice">Invoice</a>
+        <div className="rounded-lg hover:bg-gray-100">
+          <div
+            className="flex items-center justify-between text-gray-800 p-2 cursor-pointer"
+            onClick={toggleInvoiceDropdown}
+          >
+            <div className="flex items-center gap-3 font-medium">
+              <LiaFileInvoiceDollarSolid />
+              <span>Invoice</span>
+            </div>
+            <FaChevronDown
+              className={`transform ${isInvoiceOpen ? 'rotate-180' : 'rotate-0'}`}
+            />
           </div>
+          {isInvoiceOpen && (
+            <div className="ml-10 mt-1 mb-2 space-y-1 text-sm text-gray-600">
+              <div className="cursor-pointer hover:text-black">
+                <a href="/invoice-list">Invoice List</a>
+              </div>
+              <div className="cursor-pointer hover:text-black">
+                <a href="/invoice-details">Invoice Details</a>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
