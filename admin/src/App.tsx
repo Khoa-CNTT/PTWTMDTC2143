@@ -9,6 +9,8 @@ import ProductListPage from './pages/ProductListPage';
 import OrderDetailsPage from './pages/OrderDetailsPage';
 import UserListPage from './pages/UserListPage';
 import UserDetailsPage from './pages/UserDetailsPage';
+import InvoiceListPage from './pages/InvoiceListPage';
+import InvoiceDetailsPage from './pages/InvoiceDetailsPage';
 
 function App() {
   return (
@@ -24,6 +26,8 @@ function App() {
           <Route path="/order-details" element={<OrderDetailsPage />} />
           <Route path="/user-list" element={<UserListPage />} />
           <Route path="/user-details" element={<UserDetailsPage />} />
+          <Route path="/invoice-list" element={<InvoiceListPage />} />
+          <Route path="/invoice-details" element={<InvoiceDetailsPage />} />
         </Routes>
       </BrowserRouter>
     </>
