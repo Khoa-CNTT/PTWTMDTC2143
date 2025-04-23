@@ -21,6 +21,8 @@ interface CategoryPanelProps {
 
 const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
   const [isProductOpen, setIsProductOpen] = useState(false);
+  const [isOrderOpen, setIsOrderOpen] = useState(false);
+  const [isUserOpen, setIsUserOpen] = useState(false);
 
   const toggleDrawer = (newOpen: boolean) => () => {
     props.setIsOpenCatPanel(newOpen);
@@ -28,6 +30,14 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
 
   const toggleProductDropdown = () => {
     setIsProductOpen(!isProductOpen);
+  };
+
+  const toggleOrderDropdown = () => {
+    setIsOrderOpen(!isOrderOpen);
+  };
+
+  const toggleUserDropdown = () => {
+    setIsUserOpen(!isUserOpen);
   };
 
   const DrawerList = (
@@ -76,21 +86,10 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
         </div>
 
         <div className="flex items-center justify-between text-gray-700 cursor-pointer p-2 rounded-lg hover:bg-gray-100">
-          <div className="flex items-center gap-3">
-            <MdCategory />
-            <span>Category</span>
+          <div className="flex items-center gap-3 font-medium">
+            <LiaFileInvoiceDollarSolid />
+            <a href="/invoice">Invoice</a>
           </div>
-          <FaChevronDown />
-        </div>
-
-        <div className="flex items-center gap-3 text-gray-700 cursor-pointer p-2 rounded-lg hover:bg-gray-100">
-          <FaUsers />
-          <span>Users</span>
-        </div>
-
-        <div className="flex items-center gap-3 text-gray-700 cursor-pointer p-2 rounded-lg hover:bg-gray-100">
-          <FaClipboardList />
-          <span>Orders</span>
         </div>
       </div>
 
