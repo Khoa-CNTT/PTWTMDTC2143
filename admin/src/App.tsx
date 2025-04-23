@@ -20,7 +20,6 @@ function App() {
         <Header />
         <Routes>
           <Route path="/" element={<DashBoard />} />
-          <Route path="/product-view" element={<ProductListPage />} />
           <Route path="/product-list" element={<ProductListPage />} />
           <Route path="/product-upload" element={<ProductUploadPage />} />
           <Route path="/order-list" element={<OrderListPage />} />
