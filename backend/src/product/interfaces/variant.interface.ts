@@ -11,4 +11,5 @@ export interface Variant {
   description: string;
   status: VariantStatus;
   optionValues: VariantOptionValue[];
+  productId: string;
 }

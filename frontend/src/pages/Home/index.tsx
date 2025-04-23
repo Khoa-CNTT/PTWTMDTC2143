@@ -7,6 +7,7 @@ import { FaFireAlt } from 'react-icons/fa';
 import Category from '../../components/Category';
 
 import RecentlyViewed from '../../components/RecentlyViewed';
+import ChatbotFloating from '../../components/ChatBox/chatBoxFloating';
 
 const Home: React.FC = () => {
   return (
@@ -61,6 +62,8 @@ const Home: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <ChatbotFloating />
     </>
   );
 };

@@ -221,6 +221,17 @@ const Navigation: React.FC = () => {
                   </li>
                 </ul>
               </li>
+
+              <li className="list-none">
+                <Link
+                  to="/electric-ai"
+                  className="link transition text-[14px] font-[500] "
+                >
+                  <Button className="link transition !font-[500] !text-[rgba(0,0,0,0.8)] hover:!text-[#ff5252]">
+                    AI ELECTRIC
+                  </Button>
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

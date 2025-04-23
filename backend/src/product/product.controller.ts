@@ -66,6 +66,13 @@ export class ProductController {
     );
   }
 
+  @Get('variants/:variantId')
+  async getProductVariant(
+    @Param('variantId', ParseUUIDPipe) variantId: string
+  ): Promise<VariantResponseDTO> {
+    return this.productService.getProductVariant(variantId);
+  }
+
   @Get('search')
   async searchProducts(
     @Query('keyword') keyword: string,
