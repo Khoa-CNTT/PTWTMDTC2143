@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Checkbox, Button, FormControlLabel} from "@mui/material";
+import React, { useState } from 'react';
+import { Checkbox, Button, FormControlLabel } from '@mui/material';
 
 const Login: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
@@ -24,23 +24,44 @@ const Login: React.FC = () => {
 
         <div className="flex justify-between items-center mb-5">
           <FormControlLabel
-            control={<Checkbox checked={rememberMe} onChange={() => setRememberMe(!rememberMe)} />}
+            control={
+              <Checkbox
+                checked={rememberMe}
+                onChange={() => setRememberMe(!rememberMe)}
+              />
+            }
             label="Remember Me"
           />
-          <p className="text-orange-500 cursor-pointer font-semibold">Forgot Password?</p>
+          <a
+            href="/forgotpassword"
+            className="text-orange-500 hover:underline font-semibold"
+          >
+            Forgot Password
+          </a>
         </div>
 
         <div className="mt-auto">
-          <Button variant="contained" fullWidth sx={{ backgroundColor: "orange", fontSize: "16px", padding: "12px" }}>
+          <Button
+            variant="contained"
+            fullWidth
+            sx={{
+              backgroundColor: 'orange',
+              fontSize: '16px',
+              padding: '12px',
+            }}
+          >
             SIGN IN
           </Button>
         </div>
         <div className="text-center mt-4">
           <label className="me-2">Don't have an Account?</label>
-              <a href="/login" className="text-orange-500 hover:underline font-semibold">
-                Sign up now
-              </a>
-            </div>
+          <a
+            href="/register"
+            className="text-orange-500 hover:underline font-semibold"
+          >
+            Sign up now
+          </a>
+        </div>
       </div>
     </div>
   );

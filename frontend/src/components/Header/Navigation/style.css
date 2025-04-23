@@ -1,1 +1,12 @@
 .categoryPanel button{text-transform: capitalize !important;}
+nav {
+  position: relative;
+  z-index: 50;
+}
+nav ul {
+  position: relative;
+  z-index: 50;
+}
+nav ul li ul {
+  z-index: 100; 
+}

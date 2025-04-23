@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../../assets/images/MESSIU-logo2.png';
 import SearchBox from '../SearchBox';
 import { Button } from '@mui/material';
@@ -10,6 +10,14 @@ import Badge from '@mui/material/Badge';
 import { FaUserCheck } from 'react-icons/fa';
 import Navigation from '../../components/Header/Navigation';
 const Header: React.FC = () => {
+  const navigate = useNavigate();
+  const handleCartClick = () => {
+    navigate('/shopping-cart');
+  };
+  const handleUserClick = () => {
+    navigate('/profile');
+  };
+
   const StyledBadge = styled(Badge)(({ theme }) => ({
     '& .MuiBadge-badge': {
       right: -3,
@@ -33,7 +41,7 @@ const Header: React.FC = () => {
                 <li className="list-none">
                   <Link
                     className="text-[11px] lg:text-[13px] link font-[500] transition"
-                    to="/help-center"
+                    to="/faq"
                     data-discover="true"
                   >
                     Help Center{' '}
@@ -42,7 +50,7 @@ const Header: React.FC = () => {
                 <li className="list-none">
                   <Link
                     className="text-[11px] lg:text-[13px] link font-[500] transition"
-                    to="/order-tracking"
+                    to="/track-order"
                     data-discover="true"
                   >
                     Order Tracking
@@ -67,7 +75,10 @@ const Header: React.FC = () => {
           <div className="col3 w-[10%] lg:w-[30%] flex items-center pl-7">
             <ul className="flex items-center justify-end gap-0 lg:gap-3 w-full">
               <li>
-                <Button className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer">
+                <Button
+                  onClick={handleCartClick}
+                  className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
+                >
                   <IconButton aria-label="cart">
                     <StyledBadge badgeContent={4} color="secondary">
                       <ShoppingCartIcon />
@@ -86,7 +97,10 @@ const Header: React.FC = () => {
 
               <div className="h-6 w-[1px] bg-gray-300"></div>
               <li>
-                <Button className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer">
+                <Button
+                  onClick={handleUserClick}
+                  className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
+                >
                   <FaUserCheck className="text-2xl text-gray-700" />
                   <div className="info flex flex-col">
                     <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">

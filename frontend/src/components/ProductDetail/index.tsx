@@ -11,7 +11,26 @@ import {
   BsLink,
 } from 'react-icons/bs';
 
-const product = {
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  features: string[];
+  price: number;
+  oldPrice: number;
+  discount: number;
+  rating: number;
+  reviews: number;
+  sold: number;
+  viewed: string;
+  store: string;
+  colors: {
+    [key: string]: string[];
+  };
+  sizes: string[];
+}
+
+const product: Product = {
   id: 1,
   name: 'LED Monitor With High Quality In The World',
   description:
@@ -30,35 +49,44 @@ const product = {
   sold: 4320,
   viewed: '1.4k',
   store: 'manthul Official Store',
-  images: [
-    'https://m.media-amazon.com/images/I/71KH4jIuyCL._AC_SX466_.jpg',
-    'https://m.media-amazon.com/images/I/71eYPFqm9ZL._AC_SX466_.jpg',
-    'https://m.media-amazon.com/images/I/818QLOWC7IL._AC_SX466_.jpg',
-    'https://m.media-amazon.com/images/I/712mhY6t5zL._AC_SL1500_.jpg',
-  ],
+  colors: {
+    Blue: [
+      'https://m.media-amazon.com/images/I/71eYPFqm9ZL._AC_SX466_.jpg',
+      'https://m.media-amazon.com/images/I/71KH4jIuyCL._AC_SX466_.jpg',
+      'https://m.media-amazon.com/images/I/818QLOWC7IL._AC_SX466_.jpg',
+    ],
+    Red: [
+      'https://m.media-amazon.com/images/I/818QLOWC7IL._AC_SX466_.jpg',
+      'https://m.media-amazon.com/images/I/71eYPFqm9ZL._AC_SX466_.jpg',
+      'https://m.media-amazon.com/images/I/712mhY6t5zL._AC_SL1500_.jpg',
+    ],
+  },
   sizes: ['14-Inch', '24-Inch', '32-Inch', '60-Inch'],
 };
 
 const ProductDetail: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState(product.sizes[1]);
   const [quantity, setQuantity] = useState(1);
-  const [selectedImage, setSelectedImage] = useState(product.images[0]);
+  const [selectedColor, setSelectedColor] = useState('Blue');
+  const [selectedImage, setSelectedImage] = useState(product.colors['Blue'][0]);
   const [activeTab, setActiveTab] = useState('Description');
+
   return (
     <>
       <div className="container mx-auto p-6 flex gap-10 border-1 rounded-[30px] bg-gray-200">
         <div className="flex flex-col">
           <img
             src={selectedImage}
-            alt="Product"
+            alt="Product Thumbnail"
             className="w-[400px] h-[300px] object-cover rounded-lg"
           />
+
           <div className="flex mt-3 space-x-2">
-            {product.images.map((img, index) => (
+            {product.colors[selectedColor].map((img, index) => (
               <img
                 key={index}
                 src={img}
-                alt="Thumbnail"
+                alt={`Thumbnail ${index}`}
                 className={`w-16 h-16 object-cover rounded-lg cursor-pointer border-2 ${
                   selectedImage === img
                     ? 'border-orange-500'
@@ -69,7 +97,6 @@ const ProductDetail: React.FC = () => {
             ))}
           </div>
         </div>
-
         <div className="flex-1">
           <span className="text-gray-500 text-sm">SKU 12314124124</span>
           <h2 className="text-2xl font-bold mt-2">{product.name}</h2>
@@ -130,6 +157,28 @@ const ProductDetail: React.FC = () => {
             </div>
           </div>
 
+          <div className="mt-4">
+            <span className="text-lg font-semibold">Color</span>
+            <div className="flex gap-3 mt-2">
+              {Object.keys(product.colors).map((color) => (
+                <button
+                  key={color}
+                  onClick={() => {
+                    setSelectedColor(color);
+                    setSelectedImage(product.colors[color][0]);
+                  }}
+                  className={`px-4 py-2 border rounded-lg transition-all ${
+                    selectedColor === color
+                      ? 'bg-orange-200 text-orange-700 border-orange-400'
+                      : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'
+                  }`}
+                >
+                  {color}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="mt-4 flex items-center">
             <Button
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -147,11 +196,11 @@ const ProductDetail: React.FC = () => {
           </div>
 
           <div className="mt-4 flex gap-3 ">
-            <button className="border-2 border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white  py-2 px-4 rounded">
+            <button className="border-2 border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white py-2 px-4 rounded">
               BUY
             </button>
 
-            <button className="bg-orange-500 hover:bg-orange-600 text-white  py-2 px-4 rounded">
+            <button className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded">
               ADD TO CART
             </button>
           </div>
