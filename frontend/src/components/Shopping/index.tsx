@@ -90,9 +90,15 @@ const Shopping: React.FC = () => {
             >
               CHECKOUT
             </Button>
-            <p className="text-center mt-2 text-sm text-gray-500">
-              Back to Shopping
-            </p>
+
+            <div className="text-center mt-2">
+              <a
+                href="/"
+                className="text-center mt-2 text-sm text-gray-500 hover:text-red-500"
+              >
+                Back to Shopping
+              </a>
+            </div>
           </div>
         </div>
       </div>
