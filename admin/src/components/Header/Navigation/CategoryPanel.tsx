@@ -24,7 +24,6 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
   const [isOrderOpen, setIsOrderOpen] = useState(false);
   const [isUserOpen, setIsUserOpen] = useState(false);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
-  const [isPromotionOpen, setIsPromotionOpen] = useState(false);
 
   const toggleDrawer = (newOpen: boolean) => () => {
     props.setIsOpenCatPanel(newOpen);
@@ -44,9 +43,7 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
   const toggleInvoiceDropdown = () => {
     setIsInvoiceOpen(!isInvoiceOpen);
   };
-  const togglePromotionDropdown = () => {
-    setIsPromotionOpen(!isPromotionOpen);
-  };
+
   const DrawerList = (
     <div className="w-64 min-h-screen bg-white p-4 shadow-md flex flex-col justify-between">
       <div className="space-y-2">
@@ -88,7 +85,6 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
             </div>
           )}
         </div>
-
         <div className="rounded-lg hover:bg-gray-100">
           <div
             className="flex items-center justify-between text-gray-800 p-2 cursor-pointer"
@@ -113,7 +109,6 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
             </div>
           )}
         </div>
-
         <div className="rounded-lg hover:bg-gray-100">
           <div
             className="flex items-center justify-between text-gray-800 p-2 cursor-pointer"
@@ -169,6 +164,24 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
           >
             <MdCategory className="text-red-500" />
             <span>Promotion</span>
+          </a>
+        </div>
+        <div className="rounded-lg hover:bg-gray-100">
+          <a
+            href="/review"
+            className="flex items-center gap-3 text-gray-800 p-2 font-medium cursor-pointer"
+          >
+            <FaClipboardList className="text-yellow-500" />
+            <span>Review</span>
+          </a>
+        </div>
+        <div className="rounded-lg hover:bg-gray-100">
+          <a
+            href="/category"
+            className="flex items-center gap-3 text-gray-800 p-2 font-medium cursor-pointer"
+          >
+            <FaThLarge className="text-blue-500" />
+            <span>Category Management</span>
           </a>
         </div>
       </div>

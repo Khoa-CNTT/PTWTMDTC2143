@@ -13,6 +13,7 @@ import UserDetailsPage from './pages/UserDetailsPage';
 import InvoiceDetailsPage from './pages/InvoiceDetailsPage';
 import InvoiceListPage from './pages/InvoiceListPage';
 import PromoManagerPage from './pages/PromoManagerPage';
+import ReviewManagerPage from './pages/ReviewManagerPage';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/invoice-list" element={<InvoiceListPage />} />
           <Route path="/invoice-details" element={<InvoiceDetailsPage />} />
           <Route path="/promotion" element={<PromoManagerPage />} />
+          <Route path="/review" element={<ReviewManagerPage />} />
         </Routes>
       </BrowserRouter>
     </>
