@@ -12,6 +12,7 @@ import UserListPage from './pages/UserListPage';
 import UserDetailsPage from './pages/UserDetailsPage';
 import InvoiceDetailsPage from './pages/InvoiceDetailsPage';
 import InvoiceListPage from './pages/InvoiceListPage';
+import PromoManagerPage from './pages/PromoManagerPage';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/user-details" element={<UserDetailsPage />} />
           <Route path="/invoice-list" element={<InvoiceListPage />} />
           <Route path="/invoice-details" element={<InvoiceDetailsPage />} />
+          <Route path="/promotion" element={<PromoManagerPage />} />
         </Routes>
       </BrowserRouter>
     </>
