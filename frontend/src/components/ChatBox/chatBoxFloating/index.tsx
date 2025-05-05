@@ -16,17 +16,48 @@ export default function ChatbotFloating() {
   const [input, setInput] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
-  const sendMessage = () => {
+  // const sendMessage = () => {
+  //   if (!input.trim()) return;
+
+  //   const newMessages: Message[] = [
+  //     ...messages,
+  //     { role: 'user', content: input },
+  //     { role: 'assistant', content: 'This is a response from Grok-like AI.' },
+  //   ];
+
+  //   setMessages(newMessages);
+  //   setInput('');
+  // };
+
+  const sendMessage = async () => {
     if (!input.trim()) return;
 
-    const newMessages: Message[] = [
-      ...messages,
-      { role: 'user', content: input },
-      { role: 'assistant', content: 'This is a response from Grok-like AI.' },
-    ];
-
-    setMessages(newMessages);
+    const userMessage: Message = { role: 'user', content: input };
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
+
+    try {
+      const res = await fetch('http://localhost:3000/openai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: input }),
+      });
+
+      const data = await res.json();
+
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: data.response || 'No response from AI.',
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Failed to fetch AI response:', error);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: '⚠️ Error contacting AI service.' },
+      ]);
+    }
   };
 
   return (
