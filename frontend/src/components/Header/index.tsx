@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../../assets/images/MESSIU-logo2.png';
 import SearchBox from '../SearchBox';
 import { Button } from '@mui/material';
-import IconButton from '@mui/material/IconButton';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { styled } from '@mui/material/styles';
 import Badge from '@mui/material/Badge';
@@ -74,7 +73,7 @@ const Header: React.FC = () => {
           </div>
           <div className="col3 w-[10%] lg:w-[30%] flex items-center pl-7">
             <ul className="flex items-center justify-end gap-0 lg:gap-3 w-full">
-              <li>
+              {/* <li>
                 <Button
                   onClick={handleCartClick}
                   className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
@@ -84,6 +83,26 @@ const Header: React.FC = () => {
                       <ShoppingCartIcon />
                     </StyledBadge>
                   </IconButton>
+                  <div className="info flex flex-col">
+                    <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
+                      Cart
+                    </h4>
+                    <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
+                      $150.000
+                    </span>
+                  </div>
+                </Button>
+              </li> */}
+              <li>
+                <Button
+                  onClick={handleCartClick}
+                  className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
+                  startIcon={
+                    <StyledBadge badgeContent={4} color="secondary">
+                      <ShoppingCartIcon />
+                    </StyledBadge>
+                  }
+                >
                   <div className="info flex flex-col">
                     <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
                       Cart
