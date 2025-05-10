@@ -22,17 +22,29 @@
     "@commitlint/config-conventional": "^19.8.0",
     "@swc/core": "^1.11.13",
     "@types/node": "18",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
     "concurrently": "^8.2.0",
     "esbuild": "^0.25.1",
+    "eslint": "^8.56.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "husky": "^8.0.0",
-    "lint-staged": "^15.5.0",
+    "lint-staged": "^15.5.2",
     "prettier": "^3.5.3",
     "webpack": "^5.98.0"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,md,json}": [
+    "*.{ts,tsx}": [
       "prettier --write",
-      "yarn run lint"
+      "eslint --fix"
+    ],
+    "*.{js,jsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
     ]
   },
   "packageManager": "yarn@3.6.1"
