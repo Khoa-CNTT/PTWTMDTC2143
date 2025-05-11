@@ -215,7 +215,6 @@ model CartItem {
 model Category {
   id            String             @id @default(uuid())
   name          String
-  logo          String?
   image         String?
   parent        Category?          @relation("CategoryToCategory", fields: [parentId], references: [id])
   parentId      String?

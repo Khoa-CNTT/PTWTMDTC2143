@@ -16,6 +16,8 @@ import { OrderModule } from './order/order.module';
 import { VoucherModule } from './voucher/voucher.module';
 import { DiscountModule } from './discount/discount.module';
 import { OpenaiModule } from './openai/openai.module';
+import { ImageService } from './image/image.service';
+import { ImageModule } from './image/image.module';
 import jwtConfig from './auth/config/jwt.config';
 
 @Module({
@@ -54,8 +56,9 @@ import jwtConfig from './auth/config/jwt.config';
     VoucherModule,
     DiscountModule,
     OpenaiModule,
+    ImageModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, ImageService],
 })
 export class AppModule {}

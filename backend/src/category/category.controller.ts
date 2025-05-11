@@ -6,28 +6,36 @@ import {
   Param,
   Post,
   Put,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CategoryResponseDto } from './dto/category-response.dto';
 import { CategoryService } from './category.service';
 import { CategoryCreateDTO } from './dto/category-create.dto';
 import { CategoryUpdateDTO } from './dto/category-update.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('category')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
   @Post()
+  @UseInterceptors(FileInterceptor('image'))
   async create(
+    @UploadedFile() file: Express.Multer.File,
     @Body() categoryCreateDTO: CategoryCreateDTO
   ): Promise<CategoryResponseDto> {
-    return this.categoryService.createCategory(categoryCreateDTO);
+    console.log('File:', file);
+    return this.categoryService.createCategory(categoryCreateDTO, file);
   }
 
   @Put(':id')
+  @UseInterceptors(FileInterceptor('image')) // Thêm interceptor để xử lý ảnh
   async update(
     @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File, // Lấy file ảnh từ request
     @Body() categoryUpdateDTO: CategoryUpdateDTO
   ): Promise<CategoryResponseDto> {
-    return this.categoryService.updateCategory(id, categoryUpdateDTO);
+    return this.categoryService.updateCategory(id, categoryUpdateDTO, file); // Truyền file vào service
   }
 
   @Get()

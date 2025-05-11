@@ -6,17 +6,16 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "sourceMap": true,
-    "outDir": "./dist",  // Đây là thư mục xuất tệp biên dịch
+    "outDir": "./dist", // Đây là thư mục xuất tệp biên dịch
     "baseUrl": "./",
     "incremental": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    
+
     "moduleResolution": "node",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["node", "jest"]
+    "types": ["node", "jest", "Multer"]
   },
   "exclude": ["dist", "node_modules"]
-  
 }
