@@ -11,6 +11,7 @@ const Navigation: React.FC = () => {
   const openCategoryPanel = () => {
     setIsOpenCatPanel(true);
   };
+
   return (
     <>
       <nav className="py-2">
