@@ -9,23 +9,37 @@ import {
   Post,
   Put,
   Query,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ProductCreateDTO } from './dto/product-create.dto';
-import { ProductResponseDTO } from './dto/product-response.dto';
 import { ProductService } from './product.service';
 import { VariantResponseDTO } from './dto/variant-response.dto';
 import { VariantCreateDTO } from './dto/variant-create.dto';
 import { ProductUpdateDTO } from './dto/product-update.dto';
 import { VariantUpdateDTO } from './dto/variant-update.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { OptionCreateDTO } from './dto/option-create.dto';
 
 @Controller('product')
 export class ProductController {
   constructor(private productService: ProductService) {}
 
-  @Post()
-  async create(
-    @Body() productCreateDTO: ProductCreateDTO
-  ): Promise<ProductResponseDTO> {
+  @Post('create')
+  @UseInterceptors(FilesInterceptor('images', 10))
+  async createProduct(
+    @Body() productCreateDTO: ProductCreateDTO,
+    @UploadedFiles() images: Express.Multer.File[]
+  ) {
+    if (images && images.length) {
+      productCreateDTO.images = images;
+    }
+    if (typeof productCreateDTO.options === 'string') {
+      productCreateDTO.options = JSON.parse(
+        productCreateDTO.options
+      ) as OptionCreateDTO[];
+    }
+
     return this.productService.createProduct(productCreateDTO);
   }
 

@@ -8,10 +8,14 @@ import { VariantCreateDTO } from './dto/variant-create.dto';
 import { VariantResponseDTO } from './dto/variant-response.dto';
 import { ProductUpdateDTO } from './dto/product-update.dto';
 import { VariantUpdateDTO } from './dto/variant-update.dto';
+import { ImageService } from 'src/image/image.service';
 
 @Injectable()
 export class ProductService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private imageService: ImageService
+  ) {}
 
   async createProduct(
     productCreateDTO: ProductCreateDTO
@@ -32,16 +36,22 @@ export class ProductService {
       },
     });
 
+    // Upload ảnh lên Cloudinary và lưu vào DB
     if (productCreateDTO.images?.length) {
-      await this.prisma.image.createMany({
-        data: productCreateDTO.images.map((img) => ({
-          imageUrl: img.imageUrl,
-          isThumbnail: img.isThumbnail ?? false,
-          productId: product.id,
-        })),
-      });
-    }
+      const imagePromises = productCreateDTO.images.map(async (file, index) => {
+        const imageUrl = await this.imageService.uploadImage(file, 'products');
 
+        return this.prisma.image.create({
+          data: {
+            imageUrl,
+            isThumbnail: index === 0, // xử lý thumbnail tại đây
+            productId: product.id,
+          },
+        });
+      });
+
+      await Promise.all(imagePromises);
+    }
     for (const option of productCreateDTO.options) {
       const createdOption = await this.prisma.option.create({
         data: {

@@ -1,4 +1,3 @@
-import { ImageCreateDTO } from './image-create.dto';
 import { OptionCreateDTO } from './option-create.dto';
 
 export class ProductCreateDTO {
@@ -8,6 +7,6 @@ export class ProductCreateDTO {
   stock: number;
   categoryId: string;
   brandId: string;
-  images?: ImageCreateDTO[];
+  images?: Express.Multer.File[];
   options: OptionCreateDTO[];
 }
