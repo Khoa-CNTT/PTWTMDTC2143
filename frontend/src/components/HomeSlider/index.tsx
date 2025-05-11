@@ -1,14 +1,14 @@
-import React from "react";
-import { Swiper, SwiperSlide } from "swiper/react";
-import "swiper/css";
-import "swiper/css/navigation";
-import "swiper/css/pagination";
-import { Navigation, Pagination, Mousewheel, Keyboard } from "swiper/modules";
+import React from 'react';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+import { Navigation, Pagination, Mousewheel, Keyboard } from 'swiper/modules';
 const HomeSlider = () => {
   return (
     <>
       <div className="row">
-        <div className="homeSlider mt-20">
+        <div className="homeSlider mt-5">
           <div className="container">
             <Swiper
               spaceBetween={30}
@@ -50,7 +50,6 @@ const HomeSlider = () => {
           </div>
         </div>
       </div>
-      
     </>
   );
 };
