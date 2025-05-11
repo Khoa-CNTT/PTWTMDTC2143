@@ -5,18 +5,29 @@ import { CategoryCreateDTO } from './dto/category-create.dto';
 import { CategoryUpdateDTO } from './dto/category-update.dto';
 import { Category } from './interfaces/category.interface';
 import { Prisma } from '@prisma/client';
+import { ImageService } from 'src/image/image.service';
 
 @Injectable()
 export class CategoryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private imageService: ImageService
+  ) {}
 
   async createCategory(
-    categoryCreateDTO: CategoryCreateDTO
+    categoryCreateDTO: CategoryCreateDTO,
+    imageFile?: Express.Multer.File
   ): Promise<CategoryResponseDto> {
     const { parentId, subCategories, ...categoryData } = categoryCreateDTO;
+    let imageUrl: string | undefined;
+
+    if (imageFile) {
+      imageUrl = await this.imageService.uploadImage(imageFile, 'categories');
+    }
 
     const data: Prisma.CategoryCreateInput = {
       ...categoryData,
+      image: imageUrl,
       parent: parentId
         ? { connect: { id: await this.getParentCategoryId(parentId) } }
         : undefined,
@@ -31,12 +42,26 @@ export class CategoryService {
 
   async updateCategory(
     id: string,
-    categoryUpdateDTO: CategoryUpdateDTO
+    categoryUpdateDTO: CategoryUpdateDTO,
+    imageFile?: Express.Multer.File
   ): Promise<CategoryResponseDto> {
+    const category = await this.prisma.category.findUnique({ where: { id } });
+    if (!category) throw new NotFoundException('Category not found');
+
+    let imageUrl: string | undefined = category.image;
+
+    if (imageFile) {
+      if (category.image) {
+        await this.imageService.deleteImageByUrl(category.image);
+      }
+      imageUrl = await this.imageService.uploadImage(imageFile, 'categories');
+    }
+
     const updatedCategory = await this.prisma.category.update({
       where: { id },
-      data: categoryUpdateDTO,
+      data: { ...categoryUpdateDTO, image: imageUrl },
     });
+
     return this.toCategoryResponseDto(updatedCategory);
   }
 
@@ -103,7 +128,7 @@ export class CategoryService {
   }
 
   async findCategoryByName(name: string): Promise<CategoryResponseDto[]> {
-    const cateogries = await this.prisma.category.findMany({
+    const categories = await this.prisma.category.findMany({
       where: {
         name: {
           contains: name,
@@ -113,7 +138,7 @@ export class CategoryService {
         subCategories: true,
       },
     });
-    return cateogries.map((category) => this.toCategoryResponseDto(category));
+    return categories.map((category) => this.toCategoryResponseDto(category));
   }
 
   async remove(id: string): Promise<void> {
@@ -155,7 +180,6 @@ export class CategoryService {
     return {
       id: category.id,
       name: category.name,
-      logo: category.logo,
       image: category.image,
       parentId: category.parentId,
       subCategories: category.subCategories
