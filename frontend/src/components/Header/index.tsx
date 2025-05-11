@@ -9,14 +9,25 @@ import Badge from '@mui/material/Badge';
 import { FaUserCheck } from 'react-icons/fa';
 import { ChevronRight } from 'lucide-react';
 import { CiViewList } from 'react-icons/ci';
+import { IoPhonePortraitOutline } from 'react-icons/io5';
+import { IoIosLaptop } from 'react-icons/io';
+import { TbDeviceAirpods } from 'react-icons/tb';
+import { MdWatch } from 'react-icons/md';
+import { BsUsbPlug } from 'react-icons/bs';
+import { GiPc } from 'react-icons/gi';
+import { FaTv } from 'react-icons/fa';
 const categories = [
-  { label: 'Điện thoại, Tablet', key: 'phone' },
-  { label: 'Laptop', key: 'laptop' },
-  { label: 'Âm thanh, Mic thu âm', key: 'audio' },
-  { label: 'Đồng hồ, Camera', key: 'camera' },
-  { label: 'Phụ kiện', key: 'accessories' },
-  { label: 'PC, Màn hình, Máy in', key: 'pc' },
-  { label: 'Tivi', key: 'tv' },
+  {
+    label: 'Điện thoại, Tablet',
+    key: 'phone',
+    icon: <IoPhonePortraitOutline />,
+  },
+  { label: 'Laptop', key: 'laptop', icon: <IoIosLaptop /> },
+  { label: 'Âm thanh, Mic thu âm', key: 'audio', icon: <TbDeviceAirpods /> },
+  { label: 'Đồng hồ, Camera', key: 'camera', icon: <MdWatch /> },
+  { label: 'Phụ kiện', key: 'accessories', icon: <BsUsbPlug /> },
+  { label: 'PC, Màn hình, Máy in', key: 'pc', icon: <GiPc /> },
+  { label: 'Tivi', key: 'tv', icon: <FaTv /> },
 ];
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -108,7 +119,10 @@ const Header: React.FC = () => {
                         onMouseEnter={() => setHoveredCategory(cat.key ?? null)}
                         className="flex justify-between items-center px-4 py-3 hover:bg-gray-100 cursor-pointer"
                       >
-                        <span>{cat.label}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{cat.icon}</span>
+                          <span>{cat.label}</span>
+                        </div>
                         <ChevronRight className="h-4 w-4" />
                       </li>
                     ))}
