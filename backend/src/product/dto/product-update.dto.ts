@@ -15,4 +15,7 @@ export class ProductUpdateDTO {
   brandId?: string;
   images: ProductImageUpdateInput[];
   options: OptionCreateDTO[];
+  oldImages?: ProductImageUpdateInput[];
+  newImages?: Express.Multer.File[];
+  replaceIds?: string[];
 }
