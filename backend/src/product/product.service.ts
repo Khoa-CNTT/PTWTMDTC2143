@@ -8,6 +8,7 @@ import { VariantCreateDTO } from './dto/variant-create.dto';
 import { VariantResponseDTO } from './dto/variant-response.dto';
 import { VariantUpdateDTO } from './dto/variant-update.dto';
 import { ImageService } from 'src/image/image.service';
+import { ProductUpdateDTO } from './dto/product-update.dto';
 
 @Injectable()
 export class ProductService {
@@ -74,11 +75,7 @@ export class ProductService {
 
   async updateProduct(
     productId: string,
-    dto: {
-      oldImages: { id: string; isThumbnail?: boolean }[];
-      newImages: Express.Multer.File[];
-      replaceIds: string[];
-    }
+    dto: ProductUpdateDTO
   ): Promise<ProductResponseDTO> {
     const { oldImages, newImages, replaceIds } = dto;
 
