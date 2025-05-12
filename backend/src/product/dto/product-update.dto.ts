@@ -13,9 +13,21 @@ export class ProductUpdateDTO {
   description?: string;
   categoryId?: string;
   brandId?: string;
-  images: ProductImageUpdateInput[];
-  options: OptionCreateDTO[];
+  images?: ProductImageUpdateInput[];
+  options?: OptionCreateDTO[];
   oldImages?: ProductImageUpdateInput[];
   newImages?: Express.Multer.File[];
   replaceIds?: string[];
+}
+
+export interface RawProductUpdateBody {
+  title?: string;
+  price?: number;
+  description?: string;
+  categoryId?: string;
+  brandId?: string;
+  options?: OptionCreateDTO[];
+  images?: ProductImageUpdateInput[];
+  oldImages?: string; // JSON string
+  replaceIds?: string; // JSON string
 }
