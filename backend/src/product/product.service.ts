@@ -9,6 +9,7 @@ import { VariantResponseDTO } from './dto/variant-response.dto';
 import { VariantUpdateDTO } from './dto/variant-update.dto';
 import { ImageService } from 'src/image/image.service';
 import { ProductUpdateDTO } from './dto/product-update.dto';
+import { Image } from '@prisma/client';
 
 @Injectable()
 export class ProductService {
@@ -195,12 +196,10 @@ export class ProductService {
       throw new Error('Option values cannot be duplicated.');
     }
 
+    // Tạo Variant
     const variant = await this.prisma.variant.create({
       data: {
-        sku: await this.generateSku(
-          productId,
-          variantCreateDTO.optionValues.map((val) => val.optionValueId)
-        ),
+        sku: await this.generateSku(productId, optionValueIds),
         price: variantCreateDTO.price,
         compareAtPrice: variantCreateDTO.compareAtPrice,
         weight: variantCreateDTO.weight,
@@ -210,21 +209,43 @@ export class ProductService {
         status: variantCreateDTO.status,
         productId,
       },
-      include: {
-        optionValues: true,
-      },
     });
 
-    const variantOptionValues = variantCreateDTO.optionValues.map((val) => ({
+    // Gắn option values
+    const variantOptionValues = optionValueIds.map((optionValueId) => ({
       variantId: variant.id,
-      optionValueId: val.optionValueId,
+      optionValueId,
     }));
 
     await this.prisma.variantOptionValue.createMany({
       data: variantOptionValues,
     });
 
-    return this.mapProductVariantToResponse(variant);
+    // 👇 Upload ảnh nếu có
+    if (variantCreateDTO.images?.length) {
+      for (const file of variantCreateDTO.images) {
+        const imageUrl = await this.imageService.uploadImage(file, 'variants');
+
+        await this.prisma.image.create({
+          data: {
+            imageUrl,
+            isThumbnail: false,
+            variantId: variant.id,
+          },
+        });
+      }
+    }
+
+    // Trả về variant đầy đủ
+    const fullVariant = await this.prisma.variant.findUnique({
+      where: { id: variant.id },
+      include: {
+        optionValues: true,
+        images: true,
+      },
+    });
+
+    return this.mapProductVariantToResponse(fullVariant);
   }
 
   async updateVariant(
@@ -448,9 +469,8 @@ export class ProductService {
   }
 
   private async mapProductVariantToResponse(
-    variant: Variant
+    variant: Variant & { images?: Image[] }
   ): Promise<VariantResponseDTO> {
-    // Lấy thông tin variantOptionValues (đã có trong mã của bạn)
     const variantOptionValues = await this.prisma.variantOptionValue.findMany({
       where: { variantId: variant.id },
       include: {
@@ -462,7 +482,6 @@ export class ProductService {
       },
     });
 
-    // Lấy thông tin về product và category
     const product = await this.prisma.product.findUnique({
       where: { id: variant.productId },
       include: {
@@ -470,7 +489,6 @@ export class ProductService {
       },
     });
 
-    // Lấy các discount áp dụng cho product và category
     const productDiscounts = await this.prisma.productDiscount.findMany({
       where: { productId: product.id },
       include: { discount: true },
@@ -481,18 +499,13 @@ export class ProductService {
       include: { discount: true },
     });
 
-    // Kết hợp discount từ product và category
     const discounts = [
       ...productDiscounts.map((pd) => pd.discount),
       ...categoryDiscounts.map((cd) => cd.discount),
     ];
 
-    console.log(discounts);
-
-    // Tính giá giảm cho variant
     let discountedPrice = variant.price;
-    const finalPrice = variant.price; // Giá gốc
-
+    const finalPrice = variant.price;
     for (const discount of discounts) {
       if (
         discount.status === 'ACTIVE' &&
@@ -500,7 +513,6 @@ export class ProductService {
         new Date() <= discount.endDate
       ) {
         if (discount.applyType === 'PRODUCT' || discount.applyType === 'ALL') {
-          // Áp dụng discount cho variant (tùy vào DiscountType)
           if (discount.type === 'PERCENTAGE') {
             discountedPrice -= (discountedPrice * discount.discount) / 100;
           } else if (discount.type === 'FIXED_AMOUNT') {
@@ -513,8 +525,8 @@ export class ProductService {
     return {
       id: variant.id,
       sku: variant.sku,
-      price: finalPrice, // Giá gốc
-      discountedPrice: discountedPrice, // Giá giảm
+      price: finalPrice,
+      discountedPrice: discountedPrice,
       compareAtPrice: variant.compareAtPrice,
       weight: variant.weight,
       weightUnit: variant.weightUnit,
@@ -527,6 +539,12 @@ export class ProductService {
         optionId: vov.optionValue.optionId,
         optionName: vov.optionValue.option.name,
       })),
+      images:
+        variant.images?.map((img) => ({
+          id: img.id,
+          imageUrl: img.imageUrl,
+          isThumbnail: img.isThumbnail,
+        })) || [],
     };
   }
 

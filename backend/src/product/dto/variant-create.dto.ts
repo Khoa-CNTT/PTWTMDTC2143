@@ -9,4 +9,6 @@ export class VariantCreateDTO {
   description: string;
   status: VariantStatus;
   optionValues: VariantOptionValue[];
+
+  images?: Express.Multer.File[];
 }

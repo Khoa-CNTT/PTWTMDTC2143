@@ -1,5 +1,6 @@
 import { VariantStatus, WeightUnit } from '@prisma/client';
 import { OptionValueResponseDTO } from './option-value-response.dto';
+import { ImageResponseDTO } from './image-response.dto';
 
 export class VariantResponseDTO {
   id: string;
@@ -13,4 +14,5 @@ export class VariantResponseDTO {
   description: string;
   status: VariantStatus;
   optionValues: OptionValueResponseDTO[];
+  images: ImageResponseDTO[];
 }
