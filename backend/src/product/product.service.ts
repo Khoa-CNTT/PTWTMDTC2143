@@ -36,7 +36,6 @@ export class ProductService {
       },
     });
 
-    // Upload ảnh lên Cloudinary và lưu vào DB
     if (productCreateDTO.images?.length) {
       const imagePromises = productCreateDTO.images.map(async (file, index) => {
         const imageUrl = await this.imageService.uploadImage(file, 'products');
