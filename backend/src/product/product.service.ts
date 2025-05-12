@@ -6,7 +6,6 @@ import { Variant } from './interfaces/variant.interface';
 import { ProductCreateDTO } from './dto/product-create.dto';
 import { VariantCreateDTO } from './dto/variant-create.dto';
 import { VariantResponseDTO } from './dto/variant-response.dto';
-import { ProductUpdateDTO } from './dto/product-update.dto';
 import { VariantUpdateDTO } from './dto/variant-update.dto';
 import { ImageService } from 'src/image/image.service';
 
@@ -75,51 +74,74 @@ export class ProductService {
 
   async updateProduct(
     productId: string,
-    productUpdateDTO: ProductUpdateDTO
+    dto: {
+      oldImages: { id: string; isThumbnail?: boolean }[];
+      newImages: Express.Multer.File[];
+      replaceIds: string[];
+    }
   ): Promise<ProductResponseDTO> {
-    await this.prisma.product.update({
-      where: { id: productId },
-      data: {
-        title: productUpdateDTO.title,
-        description: productUpdateDTO.description,
-        categoryId: productUpdateDTO.categoryId,
-        brandId: productUpdateDTO.brandId,
-      },
-    });
+    const { oldImages, newImages, replaceIds } = dto;
 
-    if (productUpdateDTO.images?.length) {
-      await this.prisma.image.deleteMany({ where: { productId } });
-      await this.prisma.image.createMany({
-        data: productUpdateDTO.images.map((img) => ({
-          imageUrl: img.imageUrl,
-          isThumbnail: img.isThumbnail ?? false,
-          productId,
-        })),
+    const existingImages = await this.prisma.image.findMany({
+      where: { productId },
+    });
+    const parsedReplaceIds: string[] = replaceIds || [];
+
+    for (const img of oldImages) {
+      await this.prisma.image.update({
+        where: { id: img.id },
+        data: {
+          isThumbnail: img.isThumbnail === true,
+        },
       });
     }
 
-    const existingOptions = await this.prisma.option.findMany({
-      where: { productId },
-      include: { values: true },
-    });
+    if (newImages.length && parsedReplaceIds.length === newImages.length) {
+      for (let i = 0; i < newImages.length; i++) {
+        const file = newImages[i];
+        const targetId = parsedReplaceIds[i];
 
-    for (const option of productUpdateDTO.options) {
-      await this.upsertProductOption(productId, option, existingOptions);
+        const oldImage = existingImages.find((img) => img.id === targetId);
+        if (!oldImage) continue;
+
+        const imageUrl = await this.imageService.uploadImage(file, 'products');
+
+        await this.imageService.deleteImageByUrl(oldImage.imageUrl);
+        await this.prisma.image.delete({ where: { id: oldImage.id } });
+
+        await this.prisma.image.create({
+          data: {
+            imageUrl,
+            isThumbnail: oldImage.isThumbnail === true,
+            productId,
+          },
+        });
+      }
     }
 
-    const updatedProduct = await this.prisma.product.findUnique({
+    const finalImages = await this.prisma.image.findMany({
+      where: { productId },
+    });
+    const hasThumbnail = finalImages.some((img) => img.isThumbnail);
+
+    if (!hasThumbnail && finalImages.length) {
+      await this.prisma.image.update({
+        where: { id: finalImages[0].id },
+        data: { isThumbnail: true },
+      });
+    }
+
+    const updated = await this.prisma.product.findUnique({
       where: { id: productId },
       include: {
         images: true,
         brand: true,
         category: true,
-        options: {
-          include: { values: true },
-        },
+        options: { include: { values: true } },
       },
     });
 
-    return this.mapProductToResponse(updatedProduct);
+    return this.mapProductToResponse(updated);
   }
 
   private async upsertProductOption(
