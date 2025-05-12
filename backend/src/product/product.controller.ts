@@ -16,7 +16,10 @@ import { ProductCreateDTO } from './dto/product-create.dto';
 import { ProductService } from './product.service';
 import { VariantResponseDTO } from './dto/variant-response.dto';
 import { VariantCreateDTO } from './dto/variant-create.dto';
-import { ProductUpdateDTO } from './dto/product-update.dto';
+import {
+  ProductUpdateDTO,
+  RawProductUpdateBody,
+} from './dto/product-update.dto';
 import { VariantUpdateDTO } from './dto/variant-update.dto';
 import {
   FileFieldsInterceptor,
@@ -47,11 +50,21 @@ export class ProductController {
   }
 
   @Put(':productId')
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'newImages', maxCount: 10 }]))
   async updateProduct(
     @Param('productId', ParseUUIDPipe) productId: string,
-    @Body() productUpdateDTO: ProductUpdateDTO
+    @UploadedFiles()
+    files: { newImages?: Express.Multer.File[] },
+    @Body() body: RawProductUpdateBody
   ) {
-    return this.productService.updateProduct(productId, productUpdateDTO);
+    const dto: ProductUpdateDTO = {
+      ...body,
+      oldImages: body.oldImages ? JSON.parse(body.oldImages) : [],
+      replaceIds: body.replaceIds ? JSON.parse(body.replaceIds) : [],
+      newImages: files?.newImages || [],
+    };
+
+    return this.productService.updateProduct(productId, dto);
   }
 
   @UseInterceptors(FileFieldsInterceptor([{ name: 'images', maxCount: 10 }]))
@@ -65,12 +78,20 @@ export class ProductController {
     return this.productService.createVariant(productId, dto);
   }
 
-  @Put('variants/:variantId')
+  @Put(':variantId/variants')
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'newImages', maxCount: 10 }]))
   async updateVariant(
     @Param('variantId', ParseUUIDPipe) variantId: string,
-    @Body() variantUpdateDTO: VariantUpdateDTO
-  ) {
-    return this.productService.updateVariant(variantId, variantUpdateDTO);
+    @Body() body: Omit<VariantUpdateDTO, 'newImages'>,
+    @UploadedFiles()
+    files: { newImages?: Express.Multer.File[] }
+  ): Promise<VariantResponseDTO> {
+    const dto: VariantUpdateDTO = {
+      ...body,
+      newImages: files?.newImages || [],
+    };
+
+    return this.productService.updateVariant(variantId, dto);
   }
 
   @Get('by-category')

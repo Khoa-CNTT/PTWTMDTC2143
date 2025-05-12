@@ -196,7 +196,6 @@ export class ProductService {
       throw new Error('Option values cannot be duplicated.');
     }
 
-    // Tạo Variant
     const variant = await this.prisma.variant.create({
       data: {
         sku: await this.generateSku(productId, optionValueIds),
@@ -211,7 +210,6 @@ export class ProductService {
       },
     });
 
-    // Gắn option values
     const variantOptionValues = optionValueIds.map((optionValueId) => ({
       variantId: variant.id,
       optionValueId,
@@ -221,7 +219,6 @@ export class ProductService {
       data: variantOptionValues,
     });
 
-    // 👇 Upload ảnh nếu có
     if (variantCreateDTO.images?.length) {
       for (const file of variantCreateDTO.images) {
         const imageUrl = await this.imageService.uploadImage(file, 'variants');
@@ -236,7 +233,6 @@ export class ProductService {
       }
     }
 
-    // Trả về variant đầy đủ
     const fullVariant = await this.prisma.variant.findUnique({
       where: { id: variant.id },
       include: {
@@ -250,46 +246,44 @@ export class ProductService {
 
   async updateVariant(
     variantId: string,
-    variantUpdateDTO: VariantUpdateDTO
+    dto: VariantUpdateDTO
   ): Promise<VariantResponseDTO> {
+    const { newImages, replaceIds } = dto;
+    console.log(dto.replaceIds);
+    // Cập nhật thông tin variant
     await this.prisma.variant.update({
       where: { id: variantId },
       data: {
-        price: variantUpdateDTO.price,
-        compareAtPrice: variantUpdateDTO.compareAtPrice,
-        weight: variantUpdateDTO.weight,
-        weightUnit: variantUpdateDTO.weightUnit,
-        dimensions: variantUpdateDTO.dimensions,
-        description: variantUpdateDTO.description,
-        status: variantUpdateDTO.status,
+        price: dto.price,
+        compareAtPrice: dto.compareAtPrice,
+        weight: dto.weight,
+        weightUnit: dto.weightUnit,
+        dimensions: dto.dimensions,
+        description: dto.description,
+        status: dto.status,
       },
     });
 
-    if (variantUpdateDTO.optionValues?.length) {
-      await this.prisma.variantOptionValue.deleteMany({
-        where: { variantId },
-      });
-
+    // Cập nhật option values nếu có
+    if (dto.optionValues?.length) {
+      await this.prisma.variantOptionValue.deleteMany({ where: { variantId } });
       await this.prisma.variantOptionValue.createMany({
-        data: variantUpdateDTO.optionValues.map((val) => ({
+        data: dto.optionValues.map((val) => ({
           variantId,
           optionValueId: val.optionValueId,
         })),
       });
 
-      const productId = (
-        await this.prisma.variant.findUnique({
-          where: { id: variantId },
-          select: { productId: true },
-        })
-      )?.productId;
+      const productId = await this.prisma.variant.findUnique({
+        where: { id: variantId },
+        select: { productId: true },
+      });
 
-      if (productId) {
+      if (productId?.productId) {
         const sku = await this.generateSku(
-          productId,
-          variantUpdateDTO.optionValues.map((v) => v.optionValueId)
+          productId.productId,
+          dto.optionValues.map((v) => v.optionValueId)
         );
-
         await this.prisma.variant.update({
           where: { id: variantId },
           data: { sku },
@@ -297,20 +291,66 @@ export class ProductService {
       }
     }
 
+    // Xử lý ảnh
+    const existingImages = await this.prisma.image.findMany({
+      where: { variantId },
+    });
+
+    // Log kiểm tra danh sách ảnh hiện tại
+    console.log('existingImages:', existingImages);
+
+    if (newImages.length > 0 && replaceIds.length === newImages.length) {
+      for (let i = 0; i < replaceIds.length; i++) {
+        const targetId = replaceIds[i];
+        const file = newImages[i];
+
+        // Kiểm tra ảnh cũ có tồn tại không
+        const oldImage = existingImages.find((img) => img.id === targetId);
+        if (!oldImage) {
+          console.log(`Không tìm thấy ảnh cũ với ID ${targetId}`);
+          continue; // Nếu không tìm thấy ảnh cũ, bỏ qua
+        }
+
+        console.log(`Đang thay thế ảnh cũ với ID ${oldImage.id}`);
+
+        // Tải ảnh mới lên
+        const imageUrl = await this.imageService.uploadImage(file, 'variants');
+        console.log('Đang tải lên ảnh mới:', imageUrl);
+
+        // Xóa ảnh cũ khỏi hệ thống
+        await this.imageService.deleteImageByUrl(oldImage.imageUrl);
+        console.log('Đã xóa ảnh cũ:', oldImage.imageUrl);
+
+        // Xóa ảnh cũ trong cơ sở dữ liệu
+        await this.prisma.image.delete({ where: { id: oldImage.id } });
+        console.log('Đã xóa ảnh trong database');
+
+        // Lưu ảnh mới vào cơ sở dữ liệu
+        await this.prisma.image.create({
+          data: {
+            imageUrl,
+            variantId,
+          },
+        });
+        console.log('Đã thêm ảnh mới vào cơ sở dữ liệu');
+      }
+    }
+
+    // Trả về dữ liệu sau cập nhật
     const variant = await this.prisma.variant.findUnique({
       where: { id: variantId },
       include: {
         optionValues: {
           include: {
-            optionValue: {
-              include: {
-                option: true,
-              },
-            },
+            optionValue: { include: { option: true } },
           },
         },
+        images: true, // Bao gồm các ảnh mới đã cập nhật
       },
     });
+
+    // Log dữ liệu variant đã cập nhật
+    console.log('Dữ liệu variant sau khi cập nhật:', variant);
 
     return this.mapProductVariantToResponse(variant);
   }
