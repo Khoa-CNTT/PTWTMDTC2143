@@ -18,7 +18,10 @@ import { VariantResponseDTO } from './dto/variant-response.dto';
 import { VariantCreateDTO } from './dto/variant-create.dto';
 import { ProductUpdateDTO } from './dto/product-update.dto';
 import { VariantUpdateDTO } from './dto/variant-update.dto';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import {
+  FileFieldsInterceptor,
+  FilesInterceptor,
+} from '@nestjs/platform-express';
 import { OptionCreateDTO } from './dto/option-create.dto';
 
 @Controller('product')
@@ -43,20 +46,23 @@ export class ProductController {
     return this.productService.createProduct(productCreateDTO);
   }
 
-  @Post(':productId/variants')
-  async createVariant(
-    @Param('productId') productId: string,
-    @Body() variantCreateDTO: VariantCreateDTO
-  ): Promise<VariantResponseDTO> {
-    return this.productService.createVariant(productId, variantCreateDTO);
-  }
-
   @Put(':productId')
   async updateProduct(
     @Param('productId', ParseUUIDPipe) productId: string,
     @Body() productUpdateDTO: ProductUpdateDTO
   ) {
     return this.productService.updateProduct(productId, productUpdateDTO);
+  }
+
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'images', maxCount: 10 }]))
+  @Post(':productId/variants')
+  async createVariant(
+    @Param('productId', ParseUUIDPipe) productId: string,
+    @Body() dto: VariantCreateDTO,
+    @UploadedFiles() files: { images?: Express.Multer.File[] }
+  ) {
+    dto.images = files.images || [];
+    return this.productService.createVariant(productId, dto);
   }
 
   @Put('variants/:variantId')
