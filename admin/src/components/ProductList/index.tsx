@@ -12,34 +12,102 @@ import { IoBagHandleOutline } from 'react-icons/io5';
 
 const ProductList = () => {
   const navigate = useNavigate();
-  const [isActive, setIsActive] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [status, setStatus] = useState<string>('inactive');
   const [currentPage, setCurrentPage] = useState(1);
+  const [showVariantForm, setShowVariantForm] = useState(false);
+  const [, setSelectedVariantProduct] = useState<number | null>(null);
 
-  // test du lieu
-  const allProducts = Array.from({ length: 30 }, (_, i) => ({
-    id: i + 1,
-    name: `Product ${String.fromCharCode(65 + (i % 26))}`,
-    category: `Category ${(i % 3) + 1}`,
-    brand: `Brand ${(i % 5) + 1}`,
-    price: `$${(100 + i * 5).toFixed(2)}`,
-    stock: i % 2 === 0,
-    rating: '⭐⭐⭐⭐',
-    status: i % 3 === 0 ? 'Active' : 'Inactive',
-  }));
+  const [products, setProducts] = useState(() =>
+    Array.from({ length: 30 }, (_, i) => ({
+      id: i + 1,
+      name: `Product ${String.fromCharCode(65 + (i % 26))}`,
+      category: `Category ${(i % 3) + 1}`,
+      brand: `Brand ${(i % 5) + 1}`,
+      price: `$${(100 + i * 5).toFixed(2)}`,
+      stock: i % 2 === 0,
+      rating: '⭐⭐⭐⭐',
+      status: i % 3 === 0 ? 'Active' : 'Inactive',
+    }))
+  );
+
+  const attributeOptions = [
+    { name: 'Size', values: ['S', 'M', 'L', 'XL'] },
+    { name: 'Color', values: ['Red', 'Blue', 'Black', 'White'] },
+    { name: 'Material', values: ['Cotton', 'Polyester', 'Silk'] },
+  ];
+
+  type SelectedAttribute = {
+    attribute: string;
+    value: string;
+  };
+
+  const [productId, setProductId] = useState<string>('');
+  const [price, setPrice] = useState('');
+  const [selectedAttributes, setSelectedAttributes] = useState<
+    SelectedAttribute[]
+  >([{ attribute: '', value: '' }]);
+
+  const handleAttributeChange = (index: number, value: string) => {
+    const updated = [...selectedAttributes];
+    updated[index].attribute = value;
+    updated[index].value = '';
+    setSelectedAttributes(updated);
+  };
+
+  const handleValueChange = (index: number, value: string) => {
+    const updated = [...selectedAttributes];
+    updated[index].value = value;
+    setSelectedAttributes(updated);
+  };
+
+  const handleAddAttribute = () => {
+    setSelectedAttributes([
+      ...selectedAttributes,
+      { attribute: '', value: '' },
+    ]);
+  };
+
+  const handleRemoveAttribute = (index: number) => {
+    const updated = selectedAttributes.filter((_, i) => i !== index);
+    setSelectedAttributes(updated);
+  };
+
+  const handleSave = () => {
+    const variant = {
+      productId,
+      price,
+      attributes: selectedAttributes,
+    };
+    console.log('Saving variant:', variant);
+    setShowVariantForm(false);
+  };
+
+  const handleCancel = () => {
+    setPrice('');
+    setSelectedAttributes([{ attribute: '', value: '' }]);
+    setShowVariantForm(false);
+  };
 
   const itemsPerPage = 10;
-  const totalPages = Math.ceil(allProducts.length / itemsPerPage);
-  const paginatedProducts = allProducts.slice(
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const paginatedProducts = products.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  const handleSwitchChange = () => {
-    setIsActive(!isActive);
-    console.log('Switch is now:', !isActive ? 'Active' : 'Inactive');
+  const handleAddVariantClick = (productId: number) => {
+    setProductId(productId.toString());
+    setSelectedVariantProduct(productId);
+    setShowVariantForm(true);
+  };
+
+  const handleSwitchChange = (productId: number) => {
+    const updatedProducts = products.map((product) =>
+      product.id === productId ? { ...product, stock: !product.stock } : product
+    );
+    setProducts(updatedProducts);
   };
 
   const handleEditClick = (productId: string, currentStatus: string) => {
@@ -49,9 +117,13 @@ const ProductList = () => {
   };
 
   const handleFormSubmit = () => {
-    console.log(
-      `Product ${selectedProduct} is now ${isActive ? 'Active' : 'Inactive'}`
+    console.log(`Product ${selectedProduct} is now ${status}`);
+    const updatedProducts = products.map((product) =>
+      product.id.toString() === selectedProduct
+        ? { ...product, status }
+        : product
     );
+    setProducts(updatedProducts);
     setShowForm(false);
   };
 
@@ -152,7 +224,7 @@ const ProductList = () => {
                   <td className="px-4 py-2">
                     <Switch
                       checked={product.stock}
-                      onChange={handleSwitchChange}
+                      onChange={() => handleSwitchChange(product.id)}
                       color="primary"
                     />
                   </td>
@@ -167,13 +239,19 @@ const ProductList = () => {
                       }
                     />
                   </td>
-                  <td className="px-4 py-2 text-blue-600 font-semibold cursor-pointer">
+                  <td className="px-4 py-2 text-blue-600 font-semibold cursor-pointer  flex space-x-2">
                     <button
                       onClick={() =>
                         handleEditClick(product.id.toString(), product.status)
                       }
                     >
                       Edit
+                    </button>
+                    <button
+                      onClick={() => handleAddVariantClick(product.id)}
+                      className="text-blue-600 hover:underline"
+                    >
+                      AddVarian
                     </button>
                   </td>
                 </tr>
@@ -256,6 +334,101 @@ const ProductList = () => {
               <button
                 onClick={handleFormSubmit}
                 className="bg-blue-600 text-white px-4 py-2 rounded"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showVariantForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="max-w-xl p-6 bg-white rounded shadow">
+            <h2 className="text-xl font-semibold mb-4">Create Variant</h2>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">
+                Product ID
+              </label>
+              <input
+                type="text"
+                value={productId}
+                disabled
+                className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-500"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">Price</label>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">
+                Attributes
+              </label>
+              {selectedAttributes.map((item, index) => (
+                <div key={index} className="flex gap-3 mb-2">
+                  <select
+                    value={item.attribute}
+                    onChange={(e) =>
+                      handleAttributeChange(index, e.target.value)
+                    }
+                    className="w-1/2 border px-3 py-2 rounded"
+                  >
+                    <option value="">Select attribute</option>
+                    {attributeOptions.map((attr) => (
+                      <option key={attr.name} value={attr.name}>
+                        {attr.name}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={item.value}
+                    onChange={(e) => handleValueChange(index, e.target.value)}
+                    className="w-1/2 border px-3 py-2 rounded"
+                    disabled={!item.attribute}
+                  >
+                    <option value="">Select value</option>
+                    {attributeOptions
+                      .find((opt) => opt.name === item.attribute)
+                      ?.values.map((val) => (
+                        <option key={val} value={val}>
+                          {val}
+                        </option>
+                      ))}
+                  </select>
+                  {selectedAttributes.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAttribute(index)}
+                      className="text-red-500"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={handleAddAttribute}
+                className="mt-2 text-blue-600 text-sm"
+              >
+                + Add attribute
+              </button>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 border rounded text-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 bg-blue-600 text-white rounded"
               >
                 Save
               </button>
