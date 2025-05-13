@@ -248,41 +248,50 @@ export class ProductService {
     variantId: string,
     dto: VariantUpdateDTO
   ): Promise<VariantResponseDTO> {
-    const { newImages, replaceIds } = dto;
-    console.log(dto.replaceIds);
-    // Cập nhật thông tin variant
+    const {
+      price,
+      compareAtPrice,
+      weight,
+      weightUnit,
+      dimensions,
+      description,
+      status,
+      optionValues,
+      newImages = [],
+      replaceIds = [],
+    } = dto;
+
     await this.prisma.variant.update({
       where: { id: variantId },
       data: {
-        price: dto.price,
-        compareAtPrice: dto.compareAtPrice,
-        weight: dto.weight,
-        weightUnit: dto.weightUnit,
-        dimensions: dto.dimensions,
-        description: dto.description,
-        status: dto.status,
+        price,
+        compareAtPrice,
+        weight,
+        weightUnit,
+        dimensions,
+        description,
+        status,
       },
     });
 
-    // Cập nhật option values nếu có
-    if (dto.optionValues?.length) {
+    if (optionValues?.length) {
       await this.prisma.variantOptionValue.deleteMany({ where: { variantId } });
       await this.prisma.variantOptionValue.createMany({
-        data: dto.optionValues.map((val) => ({
+        data: optionValues.map((val) => ({
           variantId,
           optionValueId: val.optionValueId,
         })),
       });
 
-      const productId = await this.prisma.variant.findUnique({
+      const variant = await this.prisma.variant.findUnique({
         where: { id: variantId },
         select: { productId: true },
       });
 
-      if (productId?.productId) {
+      if (variant?.productId) {
         const sku = await this.generateSku(
-          productId.productId,
-          dto.optionValues.map((v) => v.optionValueId)
+          variant.productId,
+          optionValues.map((v) => v.optionValueId)
         );
         await this.prisma.variant.update({
           where: { id: variantId },
@@ -291,53 +300,34 @@ export class ProductService {
       }
     }
 
-    // Xử lý ảnh
     const existingImages = await this.prisma.image.findMany({
       where: { variantId },
     });
 
-    // Log kiểm tra danh sách ảnh hiện tại
-    console.log('existingImages:', existingImages);
-
-    if (newImages.length > 0 && replaceIds.length === newImages.length) {
-      for (let i = 0; i < replaceIds.length; i++) {
+    const isReplaceValid =
+      newImages.length && replaceIds.length === newImages.length;
+    if (isReplaceValid) {
+      for (let i = 0; i < newImages.length; i++) {
         const targetId = replaceIds[i];
         const file = newImages[i];
 
-        // Kiểm tra ảnh cũ có tồn tại không
         const oldImage = existingImages.find((img) => img.id === targetId);
-        if (!oldImage) {
-          console.log(`Không tìm thấy ảnh cũ với ID ${targetId}`);
-          continue; // Nếu không tìm thấy ảnh cũ, bỏ qua
-        }
+        if (!oldImage) continue;
 
-        console.log(`Đang thay thế ảnh cũ với ID ${oldImage.id}`);
-
-        // Tải ảnh mới lên
         const imageUrl = await this.imageService.uploadImage(file, 'variants');
-        console.log('Đang tải lên ảnh mới:', imageUrl);
-
-        // Xóa ảnh cũ khỏi hệ thống
         await this.imageService.deleteImageByUrl(oldImage.imageUrl);
-        console.log('Đã xóa ảnh cũ:', oldImage.imageUrl);
-
-        // Xóa ảnh cũ trong cơ sở dữ liệu
         await this.prisma.image.delete({ where: { id: oldImage.id } });
-        console.log('Đã xóa ảnh trong database');
 
-        // Lưu ảnh mới vào cơ sở dữ liệu
         await this.prisma.image.create({
           data: {
             imageUrl,
             variantId,
           },
         });
-        console.log('Đã thêm ảnh mới vào cơ sở dữ liệu');
       }
     }
 
-    // Trả về dữ liệu sau cập nhật
-    const variant = await this.prisma.variant.findUnique({
+    const updatedVariant = await this.prisma.variant.findUnique({
       where: { id: variantId },
       include: {
         optionValues: {
@@ -345,14 +335,11 @@ export class ProductService {
             optionValue: { include: { option: true } },
           },
         },
-        images: true, // Bao gồm các ảnh mới đã cập nhật
+        images: true,
       },
     });
 
-    // Log dữ liệu variant đã cập nhật
-    console.log('Dữ liệu variant sau khi cập nhật:', variant);
-
-    return this.mapProductVariantToResponse(variant);
+    return this.mapProductVariantToResponse(updatedVariant);
   }
 
   async getProductsByCategory(

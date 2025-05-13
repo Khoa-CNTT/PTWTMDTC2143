@@ -28,6 +28,6 @@ export interface RawProductUpdateBody {
   brandId?: string;
   options?: OptionCreateDTO[];
   images?: ProductImageUpdateInput[];
-  oldImages?: string; // JSON string
-  replaceIds?: string; // JSON string
+  oldImages?: string;
+  replaceIds?: string;
 }
