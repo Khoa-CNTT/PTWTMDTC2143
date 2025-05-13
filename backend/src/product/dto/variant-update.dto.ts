@@ -1,8 +1,8 @@
 import { VariantOptionValue, VariantStatus, WeightUnit } from '@prisma/client';
 
 export class VariantImageUpdateDTO {
-  id: string; // ID ảnh cũ cần thay thế
-  file?: Express.Multer.File; // Ảnh mới (gửi qua form-data)
+  id: string;
+  file?: Express.Multer.File;
 }
 
 export class VariantUpdateDTO {

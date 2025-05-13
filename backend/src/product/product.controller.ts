@@ -77,7 +77,6 @@ export class ProductController {
     dto.images = files.images || [];
     return this.productService.createVariant(productId, dto);
   }
-
   @Put(':variantId/variants')
   @UseInterceptors(FileFieldsInterceptor([{ name: 'newImages', maxCount: 10 }]))
   async updateVariant(
@@ -86,9 +85,22 @@ export class ProductController {
     @UploadedFiles()
     files: { newImages?: Express.Multer.File[] }
   ): Promise<VariantResponseDTO> {
+    const parsedReplaceIds = Array.isArray(body.replaceIds)
+      ? body.replaceIds
+      : typeof body.replaceIds === 'string'
+        ? JSON.parse(body.replaceIds)
+        : [];
+
+    const parsedOptionValues =
+      typeof body.optionValues === 'string'
+        ? JSON.parse(body.optionValues)
+        : body.optionValues;
+
     const dto: VariantUpdateDTO = {
       ...body,
       newImages: files?.newImages || [],
+      replaceIds: parsedReplaceIds,
+      optionValues: parsedOptionValues,
     };
 
     return this.productService.updateVariant(variantId, dto);
