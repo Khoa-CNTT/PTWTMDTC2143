@@ -19,6 +19,7 @@ import { OpenaiModule } from './openai/openai.module';
 import { ImageService } from './image/image.service';
 import { ImageModule } from './image/image.module';
 import jwtConfig from './auth/config/jwt.config';
+import { VnpayModule } from './vnpay/vnpay.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import jwtConfig from './auth/config/jwt.config';
     DiscountModule,
     OpenaiModule,
     ImageModule,
+    VnpayModule,
   ],
   controllers: [AppController],
   providers: [AppService, ImageService],
