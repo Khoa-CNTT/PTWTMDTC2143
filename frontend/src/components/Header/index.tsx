@@ -51,8 +51,12 @@ const Header: React.FC = () => {
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   return (
-    <header className="bg-white z-[1000] relative">
-      <div className="top-strip lg:block py-2 border-t-[1px] border-gray-250  border-b-[1px] ">
+    <header
+      className={`z-[1000] w-full transition ${isOpen ? 'shadow-lg bg-blue-50' : 'bg-white'} sticky top-0`}
+    >
+      <div
+        className={`top-strip lg:block py-2 border-t-[1px] border-gray-250 border-b-[1px] ${isOpen ? 'bg-blue-50' : ''}`}
+      >
         <div className="container">
           <div className="flex items-center justify-between">
             <div className="col1 w-[50%]">
@@ -86,7 +90,9 @@ const Header: React.FC = () => {
         </div>
       </div>
 
-      <div className="header py-2 lg:py-4 border-b-[1px] border-gray-250">
+      <div
+        className={`header py-2 lg:py-4 border-b-[1px] border-gray-250 ${isOpen ? 'bg-blue-50' : ''}`}
+      >
         <div className="container flex items-center justify-between">
           <div className="col1 w-[40%] lg:w-[25%]">
             <Link to={'/'}>
@@ -96,7 +102,7 @@ const Header: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="mt-3 px-4 py-2 bg-gray-400 text-white rounded-md whitespace-nowrap flex items-center gap-2"
+              className={`mt-3 px-4 py-2 rounded-md whitespace-nowrap flex items-center gap-2 transition ${isOpen ? 'bg-blue-600 text-white' : 'bg-gray-400 text-white'}`}
             >
               <CiViewList />
               Danh mục
@@ -105,11 +111,11 @@ const Header: React.FC = () => {
             {isOpen && (
               <>
                 <div
-                  className="fixed top-[120px] left-0 w-full h-full bg-black bg-opacity-50 z-[999]"
+                  className="fixed top-[135px] left-0 w-full h-full bg-black bg-opacity-50 z-[999]"
                   onClick={() => setIsOpen(false)}
                 ></div>
                 <div
-                  className="fixed top-[120px] left-40 rounded-lg bg-white border shadow-2xl flex z-[1001] "
+                  className="fixed top-[135px] left-40 rounded-lg bg-white border shadow-2xl flex z-[1001] "
                   onMouseLeave={() => setHoveredCategory(null)}
                 >
                   <ul className="w-64 border-r divide-y text-sm">
