@@ -18,7 +18,8 @@ const ProductList = () => {
   const [dimensions, setDimensions] = useState('');
   const [description, setDescription] = useState('');
   const [variantStatus, setVariantStatus] = useState('Active');
-  const [, setImages] = useState<FileList | null>(null);
+
+  const [variantImages, setVariantImages] = useState<string[]>([]);
 
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
@@ -34,7 +35,7 @@ const ProductList = () => {
     price: '',
     rating: '',
     status: '',
-    image: '',
+    images: [] as string[],
   });
   const [products, setProducts] = useState(() =>
     Array.from({ length: 30 }, (_, i) => ({
@@ -45,6 +46,7 @@ const ProductList = () => {
       price: `$${(100 + i * 5).toFixed(2)}`,
       rating: '4',
       status: i % 3 === 0 ? 'Active' : 'Inactive',
+      images: [`https://i.pravatar.cc/40?img=${i + 3}`],
       image: `https://i.pravatar.cc/40?img=${i + 3}`,
     }))
   );
@@ -124,7 +126,12 @@ const ProductList = () => {
         price: product.price.replace('$', ''),
         rating: product.rating,
         status: product.status,
-        image: product.image,
+        images:
+          Array.isArray(product.images) && product.images.length > 0
+            ? product.images
+            : product.image
+              ? [product.image]
+              : [],
       });
       setShowForm(true);
     }
@@ -147,14 +154,95 @@ const ProductList = () => {
               price: `$${editData.price}`,
               rating: editData.rating,
               status: editData.status,
-              image: editData.image,
+              images: editData.images,
+              image: editData.images[0] || '',
             }
           : product
       )
     );
     setShowForm(false);
   };
-
+  const handleEditImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const readers = Array.from(files).map(
+        (file) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => resolve(ev.target?.result as string);
+            reader.readAsDataURL(file);
+          })
+      );
+      Promise.all(readers).then((images) => {
+        setEditData((prev) => ({
+          ...prev,
+          images: [...prev.images, ...images],
+        }));
+      });
+    }
+  };
+  const handleRemoveEditImage = (index: number) => {
+    setEditData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
+  };
+  const handleReplaceEditImage = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setEditData((prev) => ({
+          ...prev,
+          images: prev.images.map((img, i) =>
+            i === index ? (ev.target?.result as string) : img
+          ),
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  const handleVariantImagesChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = e.target.files;
+    if (files) {
+      const readers = Array.from(files).map(
+        (file) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => resolve(ev.target?.result as string);
+            reader.readAsDataURL(file);
+          })
+      );
+      Promise.all(readers).then((images) => {
+        setVariantImages((prev) => [...prev, ...images]);
+      });
+    }
+  };
+  const handleRemoveVariantImage = (index: number) => {
+    setVariantImages((prev) => prev.filter((_, i) => i !== index));
+  };
+  const handleReplaceVariantImage = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setVariantImages((prev) =>
+          prev.map((img, i) =>
+            i === index ? (ev.target?.result as string) : img
+          )
+        );
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
@@ -244,9 +332,9 @@ const ProductList = () => {
                 <tr key={product.id} className="border-b">
                   <td className="px-4 py-2">{product.id}</td>
                   <td className="px-4 py-2 flex items-center gap-2">
-                    {product.image && (
+                    {(product.images?.[0] || product.image) && (
                       <img
-                        src={product.image}
+                        src={product.images?.[0] || product.image}
                         alt={product.name}
                         className="w-10 h-10 object-cover rounded border"
                       />
@@ -383,31 +471,41 @@ const ProductList = () => {
                 <label className="block text-sm font-medium mb-2">
                   Category
                 </label>
-                <input
+                <select
                   name="category"
-                  type="text"
                   value={editData.category}
                   onChange={handleEditChange}
                   className="w-full border border-gray-300 rounded px-3 py-2"
-                />
+                >
+                  <option value="1">Category 1</option>
+                  <option value="0">Category 2</option>
+                </select>
               </div>
               <div className="">
                 <label className="block text-sm font-medium mb-2">Brand</label>
-                <input
+                <select
                   name="brand"
-                  type="text"
                   value={editData.brand}
                   onChange={handleEditChange}
                   className="w-full border border-gray-300 rounded px-3 py-2"
-                />
+                >
+                  <option value="1">Brand 1</option>
+                  <option value="0">Brand 2</option>
+                </select>
               </div>
               <div className="">
                 <label className="block text-sm font-medium mb-2">Price</label>
                 <input
                   name="price"
                   type="number"
+                  min={0}
                   value={editData.price}
-                  onChange={handleEditChange}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (Number(value) >= 0 || value === '') {
+                      handleEditChange(e);
+                    }
+                  }}
                   className="w-full border border-gray-300 rounded px-3 py-2"
                 />
               </div>
@@ -423,48 +521,96 @@ const ProductList = () => {
                   <option value="Inactive">Inactive</option>
                 </select>
               </div>
-              <div className="">
-                <label className="block text-sm font-medium mb-2">Rating</label>
-                <Rating
-                  name="rating"
-                  value={Number(editData.rating) || 0}
-                  precision={1}
-                  max={5}
-                  onChange={(_, newValue) => {
-                    setEditData((prev) => ({
-                      ...prev,
-                      rating: newValue ? newValue.toString() : '0',
-                    }));
-                  }}
-                />
-              </div>
-
-              <div className=" md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Image</label>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-2">Images</label>
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (ev) => {
-                        setEditData((prev) => ({
-                          ...prev,
-                          image: ev.target?.result as string,
-                        }));
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
+                  multiple
+                  onChange={handleEditImagesChange}
                   className="w-full border border-gray-300 rounded px-3 py-2"
                 />
-                {editData.image && (
-                  <img
-                    src={editData.image}
-                    alt="preview"
-                    className="w-20 h-20 object-cover rounded mt-2 border"
-                  />
+                {editData.images && editData.images.length > 0 && (
+                  <div className="flex items-center gap-4 mt-2 flex-wrap">
+                    <div className="relative border border-dashed border-gray-300 rounded p-2 cursor-pointer">
+                      <img
+                        src={editData.images[0]}
+                        alt="Thumbnail"
+                        className="w-32 h-32 object-cover"
+                        onClick={() =>
+                          document
+                            .getElementById(`edit-image-upload-input-0`)
+                            ?.click()
+                        }
+                      />
+                      <p className="text-sm text-center mt-2">Thumbnail</p>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveEditImage(0)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
+                      >
+                        ✕
+                      </button>
+                      <input
+                        id="edit-image-upload-input-0"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleReplaceEditImage(e, 0)}
+                        className="hidden"
+                      />
+                    </div>
+                    {editData.images.slice(1).map((img, idx) => (
+                      <div
+                        key={idx + 1}
+                        className="relative border border-dashed border-gray-300 rounded p-2 cursor-pointer"
+                      >
+                        <img
+                          src={img}
+                          alt={`Image ${idx + 1}`}
+                          className="w-16 h-16 object-cover"
+                          onClick={() =>
+                            document
+                              .getElementById(
+                                `edit-image-upload-input-${idx + 1}`
+                              )
+                              ?.click()
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveEditImage(idx + 1)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
+                        >
+                          ✕
+                        </button>
+                        <input
+                          id={`edit-image-upload-input-${idx + 1}`}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleReplaceEditImage(e, idx + 1)}
+                          className="hidden"
+                        />
+                      </div>
+                    ))}
+                    <div
+                      className="border border-dashed border-gray-300 rounded p-2 flex items-center justify-center cursor-pointer w-16 h-16"
+                      onClick={() =>
+                        document
+                          .getElementById('edit-image-upload-input-add')
+                          ?.click()
+                      }
+                    >
+                      <span className="text-gray-400">Add Image</span>
+                      <input
+                        id="edit-image-upload-input-add"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleEditImagesChange}
+                        className="hidden"
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -492,11 +638,14 @@ const ProductList = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="">
                 <label className="block text-sm font-medium mb-1">
-                  Product ID
+                  Product
                 </label>
                 <input
                   type="text"
-                  value={productId}
+                  value={
+                    products.find((p) => p.id.toString() === productId)?.name ||
+                    ''
+                  }
                   disabled
                   className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-500"
                 />
@@ -506,7 +655,13 @@ const ProductList = () => {
                 <input
                   type="number"
                   value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  min={0}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (Number(value) >= 0 || value === '') {
+                      setPrice(value);
+                    }
+                  }}
                   className="w-full border rounded px-3 py-2"
                 />
               </div>
@@ -517,7 +672,13 @@ const ProductList = () => {
                 <input
                   type="number"
                   value={compareAtPrice}
-                  onChange={(e) => setCompareAtPrice(e.target.value)}
+                  min={0}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (Number(value) >= 0 || value === '') {
+                      setCompareAtPrice(value);
+                    }
+                  }}
                   className="w-full border rounded px-3 py-2"
                 />
               </div>
@@ -526,7 +687,13 @@ const ProductList = () => {
                 <input
                   type="number"
                   value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
+                  min={0}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (Number(value) >= 0 || value === '') {
+                      setWeight(value);
+                    }
+                  }}
                   className="w-full border rounded px-3 py-2"
                 />
               </div>
@@ -540,8 +707,10 @@ const ProductList = () => {
                   className="w-full border rounded px-3 py-2"
                 >
                   <option value="">Select unit</option>
-                  <option value="kg">kg</option>
-                  <option value="g">g</option>
+                  <option value="kg">kilos</option>
+                  <option value="g">grams</option>
+                  <option value="lbs">pounds</option>
+                  <option value="oz">ounces</option>
                 </select>
               </div>
               <div className="">
@@ -576,15 +745,6 @@ const ProductList = () => {
                   <option value="Outofstock">Outofstock</option>
                   <option value="Discontinued">Discontinued</option>
                 </select>
-              </div>
-              <div className="">
-                <label className="block text-sm font-medium mb-1">Images</label>
-                <input
-                  type="file"
-                  multiple
-                  onChange={(e) => setImages(e.target.files)}
-                  className="w-full border rounded px-3 py-2"
-                />
               </div>
               <div className=" md:col-span-2">
                 <label className="block text-sm font-medium mb-2">
@@ -633,6 +793,98 @@ const ProductList = () => {
                   </div>
                 ))}
               </div>
+            </div>
+            <div className="">
+              <label className="block text-sm font-medium mb-1">Images</label>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleVariantImagesChange}
+                className="w-full border rounded px-3 py-2"
+              />
+              {variantImages.length > 0 && (
+                <div className="flex items-center gap-4 mt-2 flex-wrap">
+                  <div className="relative border border-dashed border-gray-300 rounded p-2 cursor-pointer">
+                    <img
+                      src={variantImages[0]}
+                      alt="Thumbnail"
+                      className="w-32 h-32 object-cover"
+                      onClick={() =>
+                        document
+                          .getElementById(`variant-image-upload-input-0`)
+                          ?.click()
+                      }
+                    />
+                    <p className="text-sm text-center mt-2">Thumbnail</p>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveVariantImage(0)}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
+                    >
+                      ✕
+                    </button>
+                    <input
+                      id="variant-image-upload-input-0"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleReplaceVariantImage(e, 0)}
+                      className="hidden"
+                    />
+                  </div>
+                  {variantImages.slice(1).map((img, idx) => (
+                    <div
+                      key={idx + 1}
+                      className="relative border border-dashed border-gray-300 rounded p-2 cursor-pointer"
+                    >
+                      <img
+                        src={img}
+                        alt={`Image ${idx + 1}`}
+                        className="w-16 h-16 object-cover"
+                        onClick={() =>
+                          document
+                            .getElementById(
+                              `variant-image-upload-input-${idx + 1}`
+                            )
+                            ?.click()
+                        }
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveVariantImage(idx + 1)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
+                      >
+                        ✕
+                      </button>
+                      <input
+                        id={`variant-image-upload-input-${idx + 1}`}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleReplaceVariantImage(e, idx + 1)}
+                        className="hidden"
+                      />
+                    </div>
+                  ))}
+                  <div
+                    className="border border-dashed border-gray-300 rounded p-2 flex items-center justify-center cursor-pointer w-16 h-16"
+                    onClick={() =>
+                      document
+                        .getElementById('variant-image-upload-input-add')
+                        ?.click()
+                    }
+                  >
+                    <span className="text-gray-400">Add Image</span>
+                    <input
+                      id="variant-image-upload-input-add"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleVariantImagesChange}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex justify-end gap-3 mt-4">
               <button
