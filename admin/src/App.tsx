@@ -15,6 +15,7 @@ import PromoManagerPage from './pages/PromoManagerPage';
 import ReviewManagerPage from './pages/ReviewManagerPage';
 import CategoryPage from './pages/CategoryPage';
 import CategoryList from './components/Category/categoryList';
+import VariantPage from './pages/VariantPage';
 function App() {
   return (
     <>
@@ -34,6 +35,7 @@ function App() {
           <Route path="/review" element={<ReviewManagerPage />} />
           <Route path="/category" element={<CategoryPage />} />
           <Route path="/category-list" element={<CategoryList />} />
+          <Route path="/variant" element={<VariantPage />} />
         </Routes>
       </BrowserRouter>
     </>
