@@ -7,7 +7,7 @@ import {
   MdOutlineNavigateBefore,
   MdSkipPrevious,
 } from 'react-icons/md';
-
+import Switch from '@mui/material/Switch';
 const allUsers = [
   {
     name: 'Cristine Easom',
@@ -18,6 +18,7 @@ const allUsers = [
     totalspent: '$ 1,000',
     avatar: 'https://i.pravatar.cc/40?img=1',
     flag: 'https://flagcdn.com/vn.svg',
+    status: 'Active',
   },
   ...Array.from({ length: 28 }, (_, i) => ({
     name: `Customer ${i + 1}`,
@@ -28,6 +29,7 @@ const allUsers = [
     totalspent: `$ ${(i + 1) * 100}`,
     avatar: `https://i.pravatar.cc/40?img=${i + 2}`,
     flag: 'https://flagcdn.com/vn.svg',
+    status: i % 2 === 0 ? 'Active' : 'Inactive',
   })),
 ];
 
@@ -45,7 +47,7 @@ const UserList = () => {
     currentPage * itemsPerPage
   );
 
-  const handleView = (userid: string) => {
+  const handleView = () => {
     navigate(`/user-details`);
   };
 
@@ -98,6 +100,8 @@ const UserList = () => {
               <th className="py-2 px-2">COUNTRY</th>
               <th className="py-2 px-2">ORDERS</th>
               <th className="py-2 px-2 text-center">TOTAL SPENT</th>
+              <th className="py-2 px-2 text-center">STATUS</th>
+              <th className="py-2 px-2 text-center">STATUS CONTROL</th>
               <th className="py-2 px-2 ">ACTIONS</th>
             </tr>
           </thead>
@@ -126,6 +130,36 @@ const UserList = () => {
                 </td>
                 <td className="py-2 px-2">{user.order}</td>
                 <td className="py-2 px-2 text-center">{user.totalspent}</td>
+                <td className="py-2 px-2 text-center">
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-semibold ${
+                      user.status === 'Active'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-200 text-gray-500'
+                    }`}
+                  >
+                    {user.status}
+                  </span>
+                </td>
+                <td className="py-2 px-2 text-center">
+                  <Switch
+                    checked={user.status === 'Active'}
+                    onChange={() => {
+                      setUsers((users) =>
+                        users.map((u) =>
+                          u.userid === user.userid
+                            ? {
+                                ...u,
+                                status:
+                                  u.status === 'Active' ? 'Inactive' : 'Active',
+                              }
+                            : u
+                        )
+                      );
+                    }}
+                    color="primary"
+                  />
+                </td>
                 <td className="py-2 px-2">
                   <div className="relative inline-block text-left">
                     <button
@@ -140,7 +174,7 @@ const UserList = () => {
                     {showMenu === index && (
                       <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-20">
                         <button
-                          onClick={() => handleView(user.userid)}
+                          onClick={handleView}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                         >
                           View
