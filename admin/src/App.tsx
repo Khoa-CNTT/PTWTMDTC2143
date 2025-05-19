@@ -28,7 +28,7 @@ function App() {
           <Route path="/order-list" element={<OrderListPage />} />
           <Route path="/order-details" element={<OrderDetailsPage />} />
           <Route path="/user-list" element={<UserListPage />} />
-          <Route path="/user-details" element={<UserDetailsPage />} />
+          <Route path="/user-details/:id" element={<UserDetailsPage />} />
           <Route path="/invoice-list" element={<InvoiceListPage />} />
           <Route path="/invoice-details" element={<InvoiceDetailsPage />} />
           <Route path="/promotion" element={<PromoManagerPage />} />

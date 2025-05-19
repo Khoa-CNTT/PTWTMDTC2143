@@ -1,19 +1,49 @@
-import React, { useState } from 'react';
-import { FaCloudUploadAlt, FaStar, FaRegStar } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaCloudUploadAlt } from 'react-icons/fa';
+import {
+  productService,
+  ProductCreateDTO,
+} from '../../services/productService';
+import { categoryService, Category } from '../../services/categoryService';
+import { brandService, Brand } from '../../services/brandService';
 import './index.css';
 
 const ProductUpload = () => {
-  const [hover, setHover] = useState<number | null>(null);
-  const [rating, setRating] = useState<number>(3);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState<boolean>(false);
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    categoryId: '',
+    brandId: '',
+  });
 
   const [variants, setVariants] = useState<
     { attribute: string; values: string[] }[]
   >([]);
   const [newAttribute, setNewAttribute] = useState<string>('');
   const [newValues, setNewValues] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [categoriesData, brandsData] = await Promise.all([
+          categoryService.getAllCategories(),
+          brandService.getAllBrands(),
+        ]);
+        setCategories(categoriesData);
+        setBrands(brandsData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handleAddVariant = () => {
     if (newAttribute.trim()) {
@@ -48,15 +78,65 @@ const ProductUpload = () => {
     setVariants(updatedVariants);
   };
 
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setIsLoading(true);
+      const productData: ProductCreateDTO = {
+        title: formData.title,
+        description: formData.description,
+        categoryId: formData.categoryId,
+        brandId: formData.brandId,
+        images: uploadedImages,
+        options: variants.map((variant) => ({
+          name: variant.attribute,
+          values: variant.values,
+        })),
+      };
+
+      console.log('Product Data:', productData);
+      await productService.createProduct(productData);
+      alert('Product created successfully!');
+      setIsModalOpen(false);
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        categoryId: '',
+        brandId: '',
+      });
+      setUploadedImages([]);
+      setVariants([]);
+    } catch (error) {
+      console.error('Error creating product:', error);
+      alert('Failed to create product. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const files = Array.from(event.target.files);
       setUploadedImages((prevImages) => [...prevImages, ...files]);
     }
   };
+
   const handleDeleteImage = (index: number) => {
     setUploadedImages((prevImages) => prevImages.filter((_, i) => i !== index));
   };
+
   const handleReplaceImage = (
     event: React.ChangeEvent<HTMLInputElement>,
     index: number
@@ -68,8 +148,9 @@ const ProductUpload = () => {
       );
     }
   };
+
   return (
-    <div className="p-4 bg-gray-100 ">
+    <div className="p-4 bg-gray-100">
       <div className="bg-white rounded shadow p-6 mb-6">
         <h1 className="text-2xl font-semibold">Product Upload</h1>
       </div>
@@ -80,58 +161,59 @@ const ProductUpload = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="label">Product Name</label>
-              <input type="text" className="input " />
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                className="input"
+              />
             </div>
 
             <div className="md:col-span-2">
               <label className="label">Description</label>
-              <textarea className="input h-24 resize-none" />
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                className="input h-24 resize-none"
+              />
             </div>
 
             <div>
               <label className="label">Category</label>
-              <select className="input">
-                <option>None</option>
-                <option>Category 1</option>
+              <select
+                name="categoryId"
+                value={formData.categoryId}
+                onChange={handleInputChange}
+                className="input"
+              >
+                <option value="">Select Category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
               </select>
-            </div>
-            <div>
-              <label className="label">Product Stock</label>
-              <input type="text" className="input" />
             </div>
 
             <div>
               <label className="label">Brand</label>
-              <select className="input">
-                <option>None</option>
-                <option>Brand A</option>
-                <option>Brand B</option>
-                <option>Brand C</option>
+              <select
+                name="brandId"
+                value={formData.brandId}
+                onChange={handleInputChange}
+                className="input"
+              >
+                <option value="">Select Brand</option>
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
               </select>
             </div>
-            <div>
-              <label className="font-medium">Rating</label>
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((star) => {
-                  const isFilled = (hover || rating) >= star;
-                  return (
-                    <span
-                      key={star}
-                      onClick={() => setRating(star)}
-                      onMouseEnter={() => setHover(star)}
-                      onMouseLeave={() => setHover(null)}
-                      className="cursor-pointer text-2xl transition-colors"
-                    >
-                      {isFilled ? (
-                        <FaStar className="text-yellow-400" />
-                      ) : (
-                        <FaRegStar className="text-gray-300" />
-                      )}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
+
             <div className="md:col-span-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                 <div>
@@ -229,7 +311,9 @@ const ProductUpload = () => {
           >
             <div className="text-gray-400">
               <FaCloudUploadAlt className="mx-auto text-4xl mb-2" />
-              image upload
+              {uploadedImages.length > 0
+                ? `${uploadedImages.length} images uploaded`
+                : 'Click to upload images'}
             </div>
           </div>
 
@@ -254,22 +338,22 @@ const ProductUpload = () => {
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="bg-gray-300 hover:bg-gray-400 text-black font-semibold py-2 px-4 rounded"
+                disabled={isLoading}
               >
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  setIsModalOpen(false);
-                  alert('Product Published!');
-                }}
+                onClick={handleSubmit}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
+                disabled={isLoading}
               >
-                Confirm
+                {isLoading ? 'Publishing...' : 'Confirm'}
               </button>
             </div>
           </div>
         </div>
       )}
+
       {isImageModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded shadow-lg p-6 w-[600px]">
@@ -283,81 +367,46 @@ const ProductUpload = () => {
             />
             <div className="mb-4">
               <h3 className="font-medium mb-2">Selected Images:</h3>
-              <div className="flex items-center gap-4">
-                {uploadedImages.length > 0 ? (
-                  <>
-                    <div className="relative border border-dashed border-gray-300 rounded p-2 cursor-pointer">
-                      <img
-                        src={URL.createObjectURL(uploadedImages[0])}
-                        alt="Thumbnail"
-                        className="w-32 h-32 object-cover"
-                        onClick={() =>
-                          document
-                            .getElementById(`image-upload-input-0`)
-                            ?.click()
-                        }
-                      />
-                      <p className="text-sm text-center mt-2">Thumbnail</p>
-                      <button
-                        onClick={() => handleDeleteImage(0)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
-                      >
-                        ✕
-                      </button>
-                      <input
-                        id="image-upload-input-0"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleReplaceImage(e, 0)}
-                        className="hidden"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      {uploadedImages.slice(1).map((file, index) => (
-                        <div
-                          key={index + 1}
-                          className="relative border border-dashed border-gray-300 rounded p-2 cursor-pointer"
-                        >
-                          <img
-                            src={URL.createObjectURL(file)}
-                            alt={`Image ${index + 1}`}
-                            className="w-16 h-16 object-cover"
-                            onClick={() =>
-                              document
-                                .getElementById(
-                                  `image-upload-input-${index + 1}`
-                                )
-                                ?.click()
-                            }
-                          />
-                          <button
-                            onClick={() => handleDeleteImage(index + 1)}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
-                          >
-                            ✕
-                          </button>
-                          <input
-                            id={`image-upload-input-${index + 1}`}
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleReplaceImage(e, index + 1)}
-                            className="hidden"
-                          />
-                        </div>
-                      ))}
-                      <div
-                        className="border border-dashed border-gray-300 rounded p-2 flex items-center justify-center cursor-pointer"
-                        onClick={() =>
-                          document.getElementById('image-upload-input')?.click()
-                        }
-                      >
-                        <span className="text-gray-400">Add Image</span>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-gray-500">No images selected.</p>
-                )}
+              <div className="grid grid-cols-4 gap-4">
+                {uploadedImages.map((file, index) => (
+                  <div
+                    key={index}
+                    className="relative border border-dashed border-gray-300 rounded p-2"
+                  >
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`Image ${index + 1}`}
+                      className="w-full h-24 object-cover"
+                    />
+                    <button
+                      onClick={() => handleDeleteImage(index)}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
+                    >
+                      ✕
+                    </button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleReplaceImage(e, index)}
+                      className="hidden"
+                      id={`image-upload-input-${index}`}
+                    />
+                    <label
+                      htmlFor={`image-upload-input-${index}`}
+                      className="absolute bottom-1 right-1 bg-blue-500 text-white rounded-full p-1 text-xs cursor-pointer"
+                    >
+                      Replace
+                    </label>
+                  </div>
+                ))}
+                <div
+                  className="border border-dashed border-gray-300 rounded p-2 flex items-center justify-center cursor-pointer h-24"
+                  onClick={() =>
+                    document.getElementById('image-upload-input')?.click()
+                  }
+                >
+                  <span className="text-gray-400">Add More</span>
+                </div>
               </div>
               <input
                 id="image-upload-input"
@@ -373,16 +422,7 @@ const ProductUpload = () => {
                 onClick={() => setIsImageModalOpen(false)}
                 className="bg-gray-300 hover:bg-gray-400 text-black font-semibold py-2 px-4 rounded"
               >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setIsImageModalOpen(false);
-                  alert(`${uploadedImages.length} Images Uploaded!`);
-                }}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
-              >
-                Confirm
+                Done
               </button>
             </div>
           </div>

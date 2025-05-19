@@ -14,9 +14,11 @@ import ForgotPassword from './pages/ForgotPassword';
 import LoginAccount from './pages/LoginAccount';
 import ProfilePage from './pages/ProfilePage';
 import ChatbotPage from './components/ChatBox/chatBoxPage';
+import { AuthProvider } from './contexts/AuthContext';
+
 function App() {
   return (
-    <>
+    <AuthProvider>
       <BrowserRouter>
         <Header />
         <Routes>
@@ -35,7 +37,7 @@ function App() {
         </Routes>
         <Footer />
       </BrowserRouter>
-    </>
+    </AuthProvider>
   );
 }
 
