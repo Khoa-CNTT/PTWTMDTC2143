@@ -14,6 +14,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import LoginAccount from './pages/LoginAccount';
 import ProfilePage from './pages/ProfilePage';
 import ChatbotPage from './components/ChatBox/chatBoxPage';
+import WishlistPage from './pages/WishlistPage';
 import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
           <Route path="/login" element={<LoginAccount />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/electric-ai" element={<ChatbotPage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
         </Routes>
         <Footer />
       </BrowserRouter>

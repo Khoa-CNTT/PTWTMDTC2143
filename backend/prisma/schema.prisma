@@ -311,6 +311,26 @@ model InvoiceItem {
   @@map("invoice_items")
 }
 
+model Voucher {
+  id            String         @id @default(uuid())
+  code          String         @unique
+  discountValue Int
+  maxDiscount   Int?
+  type          VoucherType
+  startDate     DateTime
+  endDate       DateTime
+  status        VoucherStatus
+  minPrice      Int?
+  usageLimit    Int
+  usedCount     Int            @default(0)
+  isPublic      Boolean        @default(true)
+  orders        Order[]
+  usages        VoucherUsage[]
+
+  @@map("vouchers")
+}
+
+
 model Order {
   id              String         @id @default(uuid())
   user            User           @relation(fields: [userId], references: [id])
@@ -381,7 +401,6 @@ model Product {
   variants    Variant[]
   options     Option[]
   reviews     Review[]
-  wishlists   WishlistProduct[]
   createdAt   DateTime          @default(now())
 
   @@map("products")
@@ -397,15 +416,16 @@ model Wishlist {
 }
 
 model WishlistProduct {
-  id         String   @id @default(uuid())
-  wishlist   Wishlist @relation(fields: [wishlistId], references: [id])
+  id         String    @id @default(uuid())
+  wishlist   Wishlist  @relation(fields: [wishlistId], references: [id])
   wishlistId String
-  product    Product  @relation(fields: [productId], references: [id])
-  productId  String
+  variant    Variant   @relation(fields: [variantId], references: [id])
+  variantId  String
 
-  @@unique([wishlistId, productId])
+  @@unique([wishlistId, variantId])
   @@map("wishlist_products")
 }
+
 
 model Variant {
   id             String               @id @default(uuid())
@@ -424,7 +444,7 @@ model Variant {
   inventory      Inventory[]
   cartItems      CartItem[]
   orderItems     OrderItem[]
-
+  wishlistItems  WishlistProduct[]
   @@map("variants")
 }
 
@@ -507,7 +527,8 @@ model Review {
   parentId  String?
   replies   Review[] @relation("ReviewToReview")
 
-  @@map("reviews")
+  createdAt DateTime @default(now())
+ @@map("reviews")
 }
 
 model Transaction {
@@ -537,24 +558,6 @@ model Verification {
   @@map("email_verifications")
 }
 
-model Voucher {
-  id            String         @id @default(uuid())
-  code          String         @unique
-  discountValue Int
-  maxDiscount   Int?
-  type          VoucherType
-  startDate     DateTime
-  endDate       DateTime
-  status        VoucherStatus
-  minPrice      Int?
-  usageLimit    Int
-  usedCount     Int            @default(0)
-  isPublic      Boolean        @default(true)
-  orders        Order[]
-  usages        VoucherUsage[]
-
-  @@map("vouchers")
-}
 
 model VoucherUsage {
   id        String   @id @default(uuid())
@@ -562,7 +565,7 @@ model VoucherUsage {
   userId    String
   voucher   Voucher  @relation(fields: [voucherId], references: [id])
   voucherId String
-  order     Order?   @relation(fields: [orderId], references: [id])
+  order     Order?   @relation(fields: [orderId], references: [id],map: "voucher_usages_orderId_fkey")
   orderId   String?
   usedAt    DateTime @default(now())
 

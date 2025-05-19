@@ -16,6 +16,8 @@ import { BsUsbPlug } from 'react-icons/bs';
 import { GiPc } from 'react-icons/gi';
 import { FaTv } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
+import { FaHeart } from 'react-icons/fa';
+
 const categories = [
   {
     label: 'Điện thoại, Tablet',
@@ -44,7 +46,9 @@ const Header: React.FC = () => {
       navigate('/login');
     }
   };
-
+  const handleWishlistClick = () => {
+    navigate('/wishlist');
+  };
   const StyledBadge = styled(Badge)(({ theme }) => ({
     '& .MuiBadge-badge': {
       right: -3,
@@ -112,7 +116,7 @@ const Header: React.FC = () => {
               className={`mt-3 px-4 py-2 rounded-md whitespace-nowrap flex items-center gap-2 transition ${isOpen ? 'bg-blue-600 text-white' : 'bg-gray-400 text-white'}`}
             >
               <CiViewList />
-              Danh mục
+              Category
             </button>
 
             {isOpen && (
@@ -1317,6 +1321,26 @@ const Header: React.FC = () => {
               </Button>
             </div> */}
             <ul className="flex items-center justify-end gap-0 lg:gap-3 w-full">
+              <li>
+                <Button
+                  onClick={handleWishlistClick}
+                  className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
+                  startIcon={
+                    <StyledBadge badgeContent={2} color="secondary">
+                      <FaHeart className="text-xl text-pink-500" />
+                    </StyledBadge>
+                  }
+                >
+                  <div className="info flex flex-col">
+                    <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
+                      Wishlist
+                    </h4>
+                    <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
+                      2 items
+                    </span>
+                  </div>
+                </Button>
+              </li>
               <li>
                 <Button
                   onClick={handleCartClick}

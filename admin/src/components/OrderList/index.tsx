@@ -11,6 +11,18 @@ import {
   MdOutlineNavigateBefore,
   MdSkipPrevious,
 } from 'react-icons/md';
+type Order = {
+  id: string;
+  date: string;
+  name: string;
+  email: string;
+  payment: string;
+  status: string;
+  method: string;
+  paymentColor: string;
+  statusColor: string;
+  avatar: string;
+};
 const allOrders = [
   {
     id: '#6979',
@@ -64,6 +76,7 @@ const OrderList = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState(allOrders);
   const [showMenu, setShowMenu] = useState<number | null>(null);
+  const [orderToEdit, setOrderToEdit] = useState<Order | null>(null);
 
   const itemsPerPage = 10;
   const [currentPage, setCurrentPage] = useState(1);
@@ -74,10 +87,21 @@ const OrderList = () => {
     currentPage * itemsPerPage
   );
 
-  const handleView = (orderId: string) => {
+  const handleView = () => {
     navigate(`/order-details`);
   };
+  const getStatusColor = (status: string) => {
+    if (status === 'Delivered') return 'bg-green-100 text-green-600';
+    if (status === 'Processing') return 'bg-yellow-100 text-yellow-600';
+    return 'bg-gray-200 text-gray-600';
+  };
 
+  const getPaymentColor = (payment: string) => {
+    if (payment === 'Completed') return 'text-green-500';
+    if (payment === 'Pending') return 'text-orange-500';
+    if (payment === 'Failed') return 'text-red-500';
+    return 'text-gray-500';
+  };
   const handleDelete = (orderId: string) => {
     const updatedOrders = orders.filter((order) => order.id !== orderId);
     setOrders(updatedOrders);
@@ -204,20 +228,42 @@ const OrderList = () => {
                     </button>
 
                     {showMenu === index && (
-                      <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-20">
-                        <button
-                          onClick={() => handleView(order.id)}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() => handleDelete(order.id)}
-                          className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
-                        >
-                          Delete
-                        </button>
-                      </div>
+                      <>
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setShowMenu(null)}
+                          tabIndex={-1}
+                        />
+                        <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-20">
+                          <button
+                            onClick={() => {
+                              handleView();
+                              setShowMenu(null);
+                            }}
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => {
+                              setOrderToEdit(order);
+                              setShowMenu(null);
+                            }}
+                            className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100 w-full text-left"
+                          >
+                            Change Status
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleDelete(order.id);
+                              setShowMenu(null);
+                            }}
+                            className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </>
                     )}
                   </div>
                 </td>
@@ -274,6 +320,68 @@ const OrderList = () => {
           </button>
         </div>
       </div>
+      {orderToEdit && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-full max-w-xs">
+            <h3 className="text-lg font-semibold mb-4">Edit Order Status</h3>
+            <div className="mb-3">
+              <label className="block text-sm mb-1">Status</label>
+              <select
+                className="border rounded px-3 py-2 w-full"
+                value={orderToEdit.status}
+                onChange={(e) =>
+                  setOrderToEdit({ ...orderToEdit, status: e.target.value })
+                }
+              >
+                <option value="Delivered">Delivered</option>
+                <option value="Processing">Processing</option>
+              </select>
+            </div>
+            <div className="mb-3">
+              <label className="block text-sm mb-1">Payment</label>
+              <select
+                className="border rounded px-3 py-2 w-full"
+                value={orderToEdit.payment}
+                onChange={(e) =>
+                  setOrderToEdit({ ...orderToEdit, payment: e.target.value })
+                }
+              >
+                <option value="Completed">Completed</option>
+                <option value="Pending">Pending</option>
+                <option value="Failed">Failed</option>
+              </select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 rounded bg-gray-200"
+                onClick={() => setOrderToEdit(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-blue-600 text-white"
+                onClick={() => {
+                  setOrders((orders) =>
+                    orders.map((o) =>
+                      o.id === orderToEdit.id
+                        ? {
+                            ...o,
+                            ...orderToEdit,
+                            statusColor: getStatusColor(orderToEdit.status),
+                            paymentColor: getPaymentColor(orderToEdit.payment),
+                          }
+                        : o
+                    )
+                  );
+                  setOrderToEdit(null);
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
