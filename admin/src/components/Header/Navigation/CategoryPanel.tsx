@@ -185,6 +185,24 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
             <span>Category Management</span>
           </a>
         </div>
+        <div className="rounded-lg hover:bg-gray-100">
+          <a
+            href="/inventory"
+            className="flex items-center gap-3 text-gray-800 p-2 font-medium cursor-pointer"
+          >
+            <FaBoxOpen className="text-blue-500" />
+            <span>Inventory</span>
+          </a>
+        </div>
+        <div className="rounded-lg hover:bg-gray-100">
+          <a
+            href="/warehouse"
+            className="flex items-center gap-3 text-gray-800 p-2 font-medium cursor-pointer"
+          >
+            <FaClipboardList className="text-green-500" />
+            <span>Warehouse</span>
+          </a>
+        </div>
       </div>
 
       <div className="bg-blue-100 rounded-2xl p-4 mt-4">
