@@ -31,6 +31,14 @@ import { OptionCreateDTO } from './dto/option-create.dto';
 export class ProductController {
   constructor(private productService: ProductService) {}
 
+  @Get()
+  async getAllProducts(
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('cursor') cursor?: string
+  ) {
+    return this.productService.getAllProducts(limit, cursor);
+  }
+
   @Post('create')
   @UseInterceptors(FilesInterceptor('images', 10))
   async createProduct(
