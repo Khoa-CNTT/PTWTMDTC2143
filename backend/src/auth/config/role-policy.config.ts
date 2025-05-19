@@ -3,15 +3,15 @@ import { RoleEnum } from '@prisma/client';
 export const RolePolicy = {
   '/brands': {
     POST: [RoleEnum.ADMIN],
-    GET: [RoleEnum.ADMIN, RoleEnum.USER], // Admin + User được lấy danh sách
+    GET: [RoleEnum.ADMIN, RoleEnum.USER],
   },
   '/brands/:id': {
     PUT: [RoleEnum.ADMIN, RoleEnum.MANAGER],
     DELETE: [RoleEnum.ADMIN],
-    GET: [RoleEnum.ADMIN, RoleEnum.USER], // Admin + User được lấy chi tiết
+    GET: [RoleEnum.ADMIN, RoleEnum.USER],
   },
   '/brands/name/:name': {
-    GET: [RoleEnum.ADMIN, RoleEnum.USER], // Admin + User được tìm theo name
+    GET: [RoleEnum.ADMIN, RoleEnum.USER],
   },
 
   // Categories
