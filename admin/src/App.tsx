@@ -2,7 +2,6 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import './App.css';
 import Header from './components/Header';
 import DashBoard from './components/DashBoard';
-import SignInPage from './pages/SignInPage';
 import OrderListPage from './pages/OrderListPage';
 import ProductUploadPage from './pages/ProductUploadPage';
 import ProductListPage from './pages/ProductListPage';
@@ -15,7 +14,8 @@ import InvoiceListPage from './pages/InvoiceListPage';
 import PromoManagerPage from './pages/PromoManagerPage';
 import ReviewManagerPage from './pages/ReviewManagerPage';
 import CategoryPage from './pages/CategoryPage';
-
+import CategoryList from './components/Category/categoryList';
+import VariantPage from './pages/VariantPage';
 function App() {
   return (
     <>
@@ -34,6 +34,8 @@ function App() {
           <Route path="/promotion" element={<PromoManagerPage />} />
           <Route path="/review" element={<ReviewManagerPage />} />
           <Route path="/category" element={<CategoryPage />} />
+          <Route path="/category-list" element={<CategoryList />} />
+          <Route path="/variant" element={<VariantPage />} />
         </Routes>
       </BrowserRouter>
     </>
