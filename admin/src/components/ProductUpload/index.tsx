@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { FaCloudUploadAlt, FaStar, FaRegStar } from 'react-icons/fa';
+import { FaCloudUploadAlt } from 'react-icons/fa';
 import './index.css';
 
 const ProductUpload = () => {
-  const [hover, setHover] = useState<number | null>(null);
-  const [rating, setRating] = useState<number>(3);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState<boolean>(false);
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
@@ -109,29 +107,7 @@ const ProductUpload = () => {
                 <option>Brand C</option>
               </select>
             </div>
-            <div>
-              <label className="font-medium">Rating</label>
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((star) => {
-                  const isFilled = (hover || rating) >= star;
-                  return (
-                    <span
-                      key={star}
-                      onClick={() => setRating(star)}
-                      onMouseEnter={() => setHover(star)}
-                      onMouseLeave={() => setHover(null)}
-                      className="cursor-pointer text-2xl transition-colors"
-                    >
-                      {isFilled ? (
-                        <FaStar className="text-yellow-400" />
-                      ) : (
-                        <FaRegStar className="text-gray-300" />
-                      )}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
+
             <div className="md:col-span-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                 <div>

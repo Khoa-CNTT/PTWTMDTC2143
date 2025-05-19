@@ -48,7 +48,11 @@ const allVariants = [
     ],
   })),
 ];
-type EditData = Variant & { images: string[]; price: string | number };
+type EditData = Variant & {
+  images: string[];
+  price: string | number;
+  compareAtPrice?: string | number;
+};
 type Attribute = {
   attribute: string;
   value: string;
@@ -59,6 +63,7 @@ type Variant = {
   product: string;
   thumbnail: string;
   price: number;
+  compareAtPrice?: number;
   status: string;
   attributes: Attribute[];
   images?: string[];
@@ -79,7 +84,6 @@ const VariantList = () => {
   };
   const handleEditSave = () => {
     if (!editData) return;
-
     setVariants((prev) =>
       prev.map((v) =>
         v.id === editData.id
@@ -87,6 +91,7 @@ const VariantList = () => {
               ...v,
               ...editData,
               price: Number(editData.price),
+              compareAtPrice: Number(editData.compareAtPrice),
               thumbnail:
                 editData.images && editData.images.length > 0
                   ? editData.images[0]
@@ -285,320 +290,294 @@ const VariantList = () => {
           <div className="w-full max-w-lg bg-white rounded shadow-lg p-6">
             <h2 className="text-xl font-semibold mb-4">Edit Variant</h2>
             <div className="space-y-3">
-              <div>
-                <label className="block text-sm mb-1">Product</label>
-                <input
-                  className="border rounded px-3 py-2 w-full"
-                  value={editData.product || ''}
-                  onChange={(e) =>
-                    setEditData({ ...editData, product: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Price</label>
-                <input
-                  type="number"
-                  min={0}
-                  className="border rounded px-3 py-2 w-full"
-                  value={editData.price || ''}
-                  onChange={(e) => {
-                    const value = parseFloat(e.target.value);
-                    if (!isNaN(value) && value >= 0) {
-                      setEditData({ ...editData, price: value });
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm mb-1">Product</label>
+                  <input
+                    className="border rounded px-3 py-2 w-full"
+                    value={editData.product || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, product: e.target.value })
                     }
-                  }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Status</label>
-                <select
-                  className="border rounded px-3 py-2 w-full"
-                  value={editData.status || ''}
-                  onChange={(e) =>
-                    setEditData({ ...editData, status: e.target.value })
-                  }
-                >
-                  <option value="Available">Available</option>
-                  <option value="Outofstock">Outofstock</option>
-                  <option value="Discontinued">Discontinued</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Attributes</label>
-                {(editData.attributes || []).map(
-                  (attr: Attribute, idx: number) => (
-                    <div key={idx} className="flex gap-2 mb-1">
-                      <select
-                        className="border rounded px-2 py-1 w-1/2"
-                        value={attr.attribute}
-                        onChange={(e) => {
-                          const updated = [...editData.attributes];
-                          updated[idx].attribute = e.target.value;
-                          updated[idx].value = '';
-                          setEditData({ ...editData, attributes: updated });
-                        }}
-                      >
-                        <option value="">Select attribute</option>
-                        {attributeOptions.map((opt) => {
-                          const isUsed = editData.attributes.some(
-                            (a: Attribute, i: number) =>
-                              a.attribute === opt.name && i !== idx
-                          );
-                          return (
-                            <option
-                              key={opt.name}
-                              value={opt.name}
-                              disabled={isUsed}
-                            >
-                              {opt.name}
-                            </option>
-                          );
-                        })}
-                      </select>
-                      <select
-                        className="border rounded px-2 py-1 w-1/2"
-                        value={attr.value}
-                        onChange={(e) => {
-                          const updated = [...editData.attributes];
-                          updated[idx].value = e.target.value;
-                          setEditData({ ...editData, attributes: updated });
-                        }}
-                        disabled={!attr.attribute}
-                      >
-                        <option value="">Select value</option>
-                        {attributeOptions
-                          .find((opt) => opt.name === attr.attribute)
-                          ?.values.map((val) => (
-                            <option key={val} value={val}>
-                              {val}
-                            </option>
-                          ))}
-                      </select>
-                      {editData.attributes.length > 1 && (
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Price</label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="border rounded px-3 py-2 w-full"
+                    value={editData.price || ''}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      if (!isNaN(value) && value >= 0) {
+                        setEditData({ ...editData, price: value });
+                      }
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Compare At Price</label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="border rounded px-3 py-2 w-full"
+                    value={editData.compareAtPrice || ''}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      if (!isNaN(value) && value >= 0) {
+                        setEditData({ ...editData, compareAtPrice: value });
+                      }
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Status</label>
+                  <select
+                    className="border rounded px-3 py-2 w-full"
+                    value={editData.status || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, status: e.target.value })
+                    }
+                  >
+                    <option value="Available">Available</option>
+                    <option value="Outofstock">Outofstock</option>
+                    <option value="Discontinued">Discontinued</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className=" block text-sm mb-1">Attributes</label>
+                  {(editData.attributes || []).map(
+                    (attr: Attribute, idx: number) => (
+                      <div key={idx} className="flex gap-2 mb-1">
+                        <select
+                          className="border rounded px-2 py-1 w-1/2"
+                          value={attr.attribute}
+                          onChange={(e) => {
+                            const updated = [...editData.attributes];
+                            updated[idx].attribute = e.target.value;
+                            updated[idx].value = '';
+                            setEditData({ ...editData, attributes: updated });
+                          }}
+                        >
+                          <option value="">Select attribute</option>
+                          {attributeOptions.map((opt) => {
+                            const isUsed = editData.attributes.some(
+                              (a: Attribute, i: number) =>
+                                a.attribute === opt.name && i !== idx
+                            );
+                            return (
+                              <option
+                                key={opt.name}
+                                value={opt.name}
+                                disabled={isUsed}
+                              >
+                                {opt.name}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <select
+                          className="border rounded px-2 py-1 w-1/2"
+                          value={attr.value}
+                          onChange={(e) => {
+                            const updated = [...editData.attributes];
+                            updated[idx].value = e.target.value;
+                            setEditData({ ...editData, attributes: updated });
+                          }}
+                          disabled={!attr.attribute}
+                        >
+                          <option value="">Select value</option>
+                          {attributeOptions
+                            .find((opt) => opt.name === attr.attribute)
+                            ?.values.map((val) => (
+                              <option key={val} value={val}>
+                                {val}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    )
+                  )}
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm mb-1">Images</label>
+                  {editData.images && editData.images.length > 0 && (
+                    <div className="flex items-center gap-4 mt-2 flex-wrap">
+                      <div className="relative border border-dashed border-gray-300 rounded p-2 cursor-pointer">
+                        <img
+                          src={editData.images[0]}
+                          alt="Thumbnail"
+                          className="w-32 h-32 object-cover"
+                          onClick={() =>
+                            document
+                              .getElementById(`edit-image-upload-input-0`)
+                              ?.click()
+                          }
+                        />
+                        <p className="text-sm text-center mt-2">Thumbnail</p>
                         <button
                           type="button"
-                          className="text-red-500"
                           onClick={() =>
-                            setEditData({
-                              ...editData,
-                              attributes: editData.attributes.filter(
-                                (_, i) => i !== idx
-                              ),
-                            })
+                            setEditData((prev) =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    images: prev.images.filter(
+                                      (_, i) => i !== 0
+                                    ),
+                                  }
+                                : prev
+                            )
                           }
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
                         >
                           ✕
                         </button>
-                      )}
-                    </div>
-                  )
-                )}
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Images</label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) => {
-                    const files = e.target.files;
-                    if (files) {
-                      const readers = Array.from(files).map(
-                        (file) =>
-                          new Promise<string>((resolve) => {
-                            const reader = new FileReader();
-                            reader.onload = (ev) =>
-                              resolve(ev.target?.result as string);
-                            reader.readAsDataURL(file);
-                          })
-                      );
-                      Promise.all(readers).then((images) => {
-                        setEditData((prev) =>
-                          prev
-                            ? {
-                                ...prev,
-                                images: [...(prev.images || []), ...images],
+                        <input
+                          id="edit-image-upload-input-0"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                setEditData((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        images: prev.images.map((img, i) =>
+                                          i === 0
+                                            ? (ev.target?.result as string)
+                                            : img
+                                        ),
+                                      }
+                                    : prev
+                                );
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </div>
+                      {editData.images
+                        .slice(1)
+                        .map((img: string, idx: number) => (
+                          <div
+                            key={idx + 1}
+                            className="relative border border-dashed border-gray-300 rounded p-2 cursor-pointer"
+                          >
+                            <img
+                              src={img}
+                              alt={`Image ${idx + 1}`}
+                              className="w-16 h-16 object-cover"
+                              onClick={() =>
+                                document
+                                  .getElementById(
+                                    `edit-image-upload-input-${idx + 1}`
+                                  )
+                                  ?.click()
                               }
-                            : prev
-                        );
-                      });
-                    }
-                  }}
-                  className="w-full border rounded px-3 py-2"
-                />
-                {editData.images && editData.images.length > 0 && (
-                  <div className="flex items-center gap-4 mt-2 flex-wrap">
-                    <div className="relative border border-dashed border-gray-300 rounded p-2 cursor-pointer">
-                      <img
-                        src={editData.images[0]}
-                        alt="Thumbnail"
-                        className="w-32 h-32 object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditData((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        images: prev.images.filter(
+                                          (_, i) => i !== idx + 1
+                                        ),
+                                      }
+                                    : prev
+                                )
+                              }
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
+                            >
+                              ✕
+                            </button>
+                            <input
+                              id={`edit-image-upload-input-${idx + 1}`}
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (ev) => {
+                                    setEditData((prev) =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            images: prev.images.map((img, i) =>
+                                              i === 0
+                                                ? (ev.target?.result as string)
+                                                : img
+                                            ),
+                                          }
+                                        : prev
+                                    );
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              className="hidden"
+                            />
+                          </div>
+                        ))}
+                      <div
+                        className="border border-dashed border-gray-300 rounded p-2 flex items-center justify-center cursor-pointer w-16 h-16"
                         onClick={() =>
                           document
-                            .getElementById(`edit-image-upload-input-0`)
+                            .getElementById('edit-image-upload-input-add')
                             ?.click()
                         }
-                      />
-                      <p className="text-sm text-center mt-2">Thumbnail</p>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setEditData((prev) =>
-                            prev
-                              ? {
-                                  ...prev,
-                                  images: prev.images.filter((_, i) => i !== 0),
-                                }
-                              : prev
-                          )
-                        }
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
                       >
-                        ✕
-                      </button>
-                      <input
-                        id="edit-image-upload-input-0"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (ev) => {
-                              setEditData((prev) =>
-                                prev
-                                  ? {
-                                      ...prev,
-                                      images: prev.images.map((img, i) =>
-                                        i === 0
-                                          ? (ev.target?.result as string)
-                                          : img
-                                      ),
-                                    }
-                                  : prev
+                        <span className="text-gray-400">Add Image</span>
+                        <input
+                          id="edit-image-upload-input-add"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={(e) => {
+                            const files = e.target.files;
+                            if (files) {
+                              const readers = Array.from(files).map(
+                                (file) =>
+                                  new Promise<string>((resolve) => {
+                                    const reader = new FileReader();
+                                    reader.onload = (ev) =>
+                                      resolve(ev.target?.result as string);
+                                    reader.readAsDataURL(file);
+                                  })
                               );
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                        className="hidden"
-                      />
-                    </div>
-                    {editData.images
-                      .slice(1)
-                      .map((img: string, idx: number) => (
-                        <div
-                          key={idx + 1}
-                          className="relative border border-dashed border-gray-300 rounded p-2 cursor-pointer"
-                        >
-                          <img
-                            src={img}
-                            alt={`Image ${idx + 1}`}
-                            className="w-16 h-16 object-cover"
-                            onClick={() =>
-                              document
-                                .getElementById(
-                                  `edit-image-upload-input-${idx + 1}`
-                                )
-                                ?.click()
+                              Promise.all(readers).then((images) => {
+                                setEditData((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        images: [
+                                          ...(prev.images || []),
+                                          ...images,
+                                        ],
+                                      }
+                                    : prev
+                                );
+                              });
                             }
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setEditData((prev) =>
-                                prev
-                                  ? {
-                                      ...prev,
-                                      images: prev.images.filter(
-                                        (_, i) => i !== idx + 1
-                                      ),
-                                    }
-                                  : prev
-                              )
-                            }
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
-                          >
-                            ✕
-                          </button>
-                          <input
-                            id={`edit-image-upload-input-${idx + 1}`}
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onload = (ev) => {
-                                  setEditData((prev) =>
-                                    prev
-                                      ? {
-                                          ...prev,
-                                          images: prev.images.map((img, i) =>
-                                            i === 0
-                                              ? (ev.target?.result as string)
-                                              : img
-                                          ),
-                                        }
-                                      : prev
-                                  );
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                            className="hidden"
-                          />
-                        </div>
-                      ))}
-                    <div
-                      className="border border-dashed border-gray-300 rounded p-2 flex items-center justify-center cursor-pointer w-16 h-16"
-                      onClick={() =>
-                        document
-                          .getElementById('edit-image-upload-input-add')
-                          ?.click()
-                      }
-                    >
-                      <span className="text-gray-400">Add Image</span>
-                      <input
-                        id="edit-image-upload-input-add"
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={(e) => {
-                          const files = e.target.files;
-                          if (files) {
-                            const readers = Array.from(files).map(
-                              (file) =>
-                                new Promise<string>((resolve) => {
-                                  const reader = new FileReader();
-                                  reader.onload = (ev) =>
-                                    resolve(ev.target?.result as string);
-                                  reader.readAsDataURL(file);
-                                })
-                            );
-                            Promise.all(readers).then((images) => {
-                              setEditData((prev) =>
-                                prev
-                                  ? {
-                                      ...prev,
-                                      images: [
-                                        ...(prev.images || []),
-                                        ...images,
-                                      ],
-                                    }
-                                  : prev
-                              );
-                            });
-                          }
-                        }}
-                        className="hidden"
-                      />
+                          }}
+                          className="hidden"
+                        />
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
+
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setEditData(null)}
