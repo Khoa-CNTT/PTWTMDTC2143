@@ -527,7 +527,8 @@ model Review {
   parentId  String?
   replies   Review[] @relation("ReviewToReview")
 
-  @@map("reviews")
+  createdAt DateTime @default(now())
+ @@map("reviews")
 }
 
 model Transaction {

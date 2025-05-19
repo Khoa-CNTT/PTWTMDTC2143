@@ -21,6 +21,7 @@ import { ImageModule } from './image/image.module';
 import jwtConfig from './auth/config/jwt.config';
 import { VnpayModule } from './vnpay/vnpay.module';
 import { WishlistModule } from './wishlist/wishlist.module';
+import { ReviewModule } from './review/review.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { WishlistModule } from './wishlist/wishlist.module';
     ImageModule,
     VnpayModule,
     WishlistModule,
+    ReviewModule,
   ],
   controllers: [AppController],
   providers: [AppService, ImageService],
