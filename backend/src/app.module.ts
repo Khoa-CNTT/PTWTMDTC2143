@@ -22,6 +22,9 @@ import jwtConfig from './auth/config/jwt.config';
 import { VnpayModule } from './vnpay/vnpay.module';
 import { WishlistModule } from './wishlist/wishlist.module';
 import { ReviewModule } from './review/review.module';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { GlobalRoleGuard } from './auth/guards/global-role.guard';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -65,6 +68,17 @@ import { ReviewModule } from './review/review.module';
     ReviewModule,
   ],
   controllers: [AppController],
-  providers: [AppService, ImageService],
+  providers: [
+    AppService,
+    ImageService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard, // đầu tiên phải xác thực
+    },
+    {
+      provide: APP_GUARD,
+      useClass: GlobalRoleGuard, // sau đó check role
+    },
+  ],
 })
 export class AppModule {}
