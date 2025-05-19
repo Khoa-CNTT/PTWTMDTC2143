@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
-import Button from '@mui/material/Button';
 import { IoIosClose } from 'react-icons/io';
 import '../Navigation/style.css';
 import {
@@ -81,6 +79,9 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
 
               <div className="cursor-pointer hover:text-black">
                 <a href="/product-upload">Product Upload</a>
+              </div>
+              <div className="cursor-pointer hover:text-black">
+                <a href="/variant">Variant</a>
               </div>
             </div>
           )}
