@@ -16,6 +16,8 @@ import ReviewManagerPage from './pages/ReviewManagerPage';
 import CategoryPage from './pages/CategoryPage';
 import CategoryList from './components/Category/categoryList';
 import VariantPage from './pages/VariantPage';
+import InventoryPage from './pages/InventoryPage';
+import WarehousePage from './pages/WarehousePage';
 function App() {
   return (
     <>
@@ -36,6 +38,8 @@ function App() {
           <Route path="/category" element={<CategoryPage />} />
           <Route path="/category-list" element={<CategoryList />} />
           <Route path="/variant" element={<VariantPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/warehouse" element={<WarehousePage />} />
         </Routes>
       </BrowserRouter>
     </>
