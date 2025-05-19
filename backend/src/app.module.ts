@@ -20,6 +20,7 @@ import { ImageService } from './image/image.service';
 import { ImageModule } from './image/image.module';
 import jwtConfig from './auth/config/jwt.config';
 import { VnpayModule } from './vnpay/vnpay.module';
+import { WishlistModule } from './wishlist/wishlist.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { VnpayModule } from './vnpay/vnpay.module';
     OpenaiModule,
     ImageModule,
     VnpayModule,
+    WishlistModule,
   ],
   controllers: [AppController],
   providers: [AppService, ImageService],
