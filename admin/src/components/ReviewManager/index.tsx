@@ -6,7 +6,7 @@ import {
   MdOutlineNavigateBefore,
   MdSkipPrevious,
 } from 'react-icons/md';
-import { FaRegEyeSlash } from 'react-icons/fa';
+import { FaRegEye, FaRegEyeSlash } from 'react-icons/fa';
 interface Review {
   id: number;
   name: string;
@@ -161,7 +161,11 @@ const ReviewManager: React.FC = () => {
                       className="text-gray-500 hover:text-blue-600"
                       title={r.approved ? 'Hide review' : 'Show review'}
                     >
-                      <FaRegEyeSlash size={20} />
+                      {r.approved ? (
+                        <FaRegEyeSlash size={20} />
+                      ) : (
+                        <FaRegEye size={20} />
+                      )}
                     </button>
                     <button
                       onClick={() => setReviewToDelete(r)}
