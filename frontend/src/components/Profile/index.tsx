@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import LogoutDialog from '../LogoutDialog';
 import { logout } from '../../services/auth.services';
 import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
+  const { logout: authLogout } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [activeForm, setActiveForm] = useState<string>('profile');
@@ -16,6 +18,7 @@ const Profile: React.FC = () => {
     try {
       setIsLoggingOut(true);
       await logout();
+      authLogout(); // Call AuthContext logout to update the global state
       toast.success('Đăng xuất thành công');
       navigate('/login');
     } catch (error) {

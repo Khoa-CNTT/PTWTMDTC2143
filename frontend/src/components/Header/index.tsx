@@ -6,7 +6,6 @@ import { Button } from '@mui/material';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { styled } from '@mui/material/styles';
 import Badge from '@mui/material/Badge';
-import { FaUserCheck } from 'react-icons/fa';
 import { ChevronRight } from 'lucide-react';
 import { CiViewList } from 'react-icons/ci';
 import { IoPhonePortraitOutline } from 'react-icons/io5';
@@ -16,6 +15,7 @@ import { MdWatch } from 'react-icons/md';
 import { BsUsbPlug } from 'react-icons/bs';
 import { GiPc } from 'react-icons/gi';
 import { FaTv } from 'react-icons/fa';
+import { useAuth } from '../../contexts/AuthContext';
 const categories = [
   {
     label: 'Điện thoại, Tablet',
@@ -31,11 +31,18 @@ const categories = [
 ];
 const Header: React.FC = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+
   const handleCartClick = () => {
     navigate('/shopping-cart');
   };
+
   const handleUserClick = () => {
-    navigate('/profile');
+    if (isAuthenticated) {
+      navigate('/profile');
+    } else {
+      navigate('/login');
+    }
   };
 
   const StyledBadge = styled(Badge)(({ theme }) => ({
@@ -1294,6 +1301,21 @@ const Header: React.FC = () => {
             <SearchBox />
           </div>
           <div className="col3 w-[10%] lg:w-[30%] flex items-center pl-7">
+            {/* <div className="h-6 w-[1px] bg-gray-300"></div>
+            <div className="col3 flex items-center gap-4">
+              <Button onClick={handleCartClick}>
+                <StyledBadge badgeContent={4} color="secondary">
+                  <ShoppingCartIcon />
+                </StyledBadge>
+              </Button>
+              <Button
+                onClick={handleUserClick}
+                className="flex items-center gap-2"
+                startIcon={<FaUserCheck />}
+              >
+                {isAuthenticated ? user?.name || 'Profile' : 'Đăng nhập'}
+              </Button>
+            </div> */}
             <ul className="flex items-center justify-end gap-0 lg:gap-3 w-full">
               <li>
                 <Button
@@ -1322,15 +1344,15 @@ const Header: React.FC = () => {
                   onClick={handleUserClick}
                   className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
                 >
-                  <FaUserCheck className="text-2xl text-gray-700" />
+                  {isAuthenticated ? user?.name || 'Profile' : 'Đăng nhập'}
+                  {/* <FaUserCheck className="text-2xl text-gray-700" />
                   <div className="info flex flex-col">
-                    <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
-                      User
-                    </h4>
+                    <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">User</h4>
+
                     <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
                       Messiu
                     </span>
-                  </div>
+                  </div> */}
                 </Button>
               </li>
             </ul>

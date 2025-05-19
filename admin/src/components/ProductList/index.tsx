@@ -1,15 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Switch } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import {
-  MdOutlineNavigateNext,
-  MdSkipNext,
-  MdOutlineNavigateBefore,
-  MdSkipPrevious,
-} from 'react-icons/md';
 import { FaUser, FaShoppingCart } from 'react-icons/fa';
 import { IoBagHandleOutline } from 'react-icons/io5';
 import Rating from '@mui/material/Rating';
+import { productService, Product } from '../../services/productService';
 
 const ProductList = () => {
   const [compareAtPrice, setCompareAtPrice] = useState('');
@@ -18,14 +13,13 @@ const ProductList = () => {
   const [dimensions, setDimensions] = useState('');
   const [description, setDescription] = useState('');
   const [variantStatus, setVariantStatus] = useState('Active');
-
   const [variantImages, setVariantImages] = useState<string[]>([]);
-
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [showVariantForm, setShowVariantForm] = useState(false);
   const [, setSelectedVariantProduct] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
 
   const [editData, setEditData] = useState({
     id: '',
@@ -37,19 +31,22 @@ const ProductList = () => {
     status: '',
     images: [] as string[],
   });
-  const [products, setProducts] = useState(() =>
-    Array.from({ length: 30 }, (_, i) => ({
-      id: i + 1,
-      name: `Product ${String.fromCharCode(65 + (i % 26))}`,
-      category: `Category ${(i % 3) + 1}`,
-      brand: `Brand ${(i % 5) + 1}`,
-      price: `$${(100 + i * 5).toFixed(2)}`,
-      rating: '4',
-      status: i % 3 === 0 ? 'Active' : 'Inactive',
-      images: [`https://i.pravatar.cc/40?img=${i + 3}`],
-      image: `https://i.pravatar.cc/40?img=${i + 3}`,
-    }))
-  );
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setIsLoading(true);
+      const response = await productService.getAllProducts();
+      setProducts(response.products);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const attributeOptions = [
     { name: 'Size', values: ['S', 'M', 'L', 'XL'] },
@@ -102,13 +99,6 @@ const ProductList = () => {
     setShowVariantForm(false);
   };
 
-  const itemsPerPage = 10;
-  const totalPages = Math.ceil(products.length / itemsPerPage);
-  const paginatedProducts = products.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
   const handleAddVariantClick = (productId: number) => {
     setProductId(productId.toString());
     setSelectedVariantProduct(productId);
@@ -116,24 +106,63 @@ const ProductList = () => {
   };
 
   const handleEditClick = (productId: string) => {
-    const product = products.find((p) => p.id.toString() === productId);
+    const product = products.find((p) => p.id === productId);
     if (product) {
       setEditData({
-        id: product.id.toString(),
-        name: product.name,
-        category: product.category,
-        brand: product.brand,
-        price: product.price.replace('$', ''),
-        rating: product.rating,
-        status: product.status,
-        images:
-          Array.isArray(product.images) && product.images.length > 0
-            ? product.images
-            : product.image
-              ? [product.image]
-              : [],
+        id: product.id,
+        name: product.title,
+        category: product.category?.name || '',
+        brand: product.brand?.name || '',
+        price: product.variants?.[0]?.price?.toString() || '',
+        rating: product.rating?.toString() || '',
+        status: product.variants?.[0]?.status || '',
+        images: product.images?.map((img) => img.imageUrl) || [],
       });
       setShowForm(true);
+    }
+  };
+
+  const handleFormSubmit = async () => {
+    try {
+      await productService.updateProduct(editData.id, {
+        title: editData.name,
+        category: {
+          id:
+            products.find((p) => p.category?.name === editData.category)
+              ?.category?.id || '',
+          name: editData.category,
+          image:
+            products.find((p) => p.category?.name === editData.category)
+              ?.category?.image || '',
+        },
+        brand: {
+          id:
+            products.find((p) => p.brand?.name === editData.brand)?.brand?.id ||
+            '',
+          name: editData.brand,
+          logo:
+            products.find((p) => p.brand?.name === editData.brand)?.brand
+              ?.logo || '',
+        },
+        variants: [
+          {
+            id:
+              products.find((p) => p.id === editData.id)?.variants?.[0]?.id ||
+              '',
+            price: Number(editData.price),
+            status: editData.status,
+            images:
+              products.find((p) => p.id === editData.id)?.variants?.[0]
+                ?.images || [],
+          },
+        ],
+        rating: Number(editData.rating),
+      });
+      await fetchProducts();
+      setShowForm(false);
+    } catch (error) {
+      console.error('Error updating product:', error);
+      alert('Failed to update product. Please try again.');
     }
   };
 
@@ -142,26 +171,7 @@ const ProductList = () => {
   ) => {
     setEditData({ ...editData, [e.target.name]: e.target.value });
   };
-  const handleFormSubmit = () => {
-    setProducts((prev) =>
-      prev.map((product) =>
-        product.id.toString() === editData.id
-          ? {
-              ...product,
-              name: editData.name,
-              category: editData.category,
-              brand: editData.brand,
-              price: `$${editData.price}`,
-              rating: editData.rating,
-              status: editData.status,
-              images: editData.images,
-              image: editData.images[0] || '',
-            }
-          : product
-      )
-    );
-    setShowForm(false);
-  };
+
   const handleEditImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
@@ -181,12 +191,14 @@ const ProductList = () => {
       });
     }
   };
+
   const handleRemoveEditImage = (index: number) => {
     setEditData((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }));
   };
+
   const handleReplaceEditImage = (
     e: React.ChangeEvent<HTMLInputElement>,
     index: number
@@ -205,6 +217,7 @@ const ProductList = () => {
       reader.readAsDataURL(file);
     }
   };
+
   const handleVariantImagesChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -223,9 +236,11 @@ const ProductList = () => {
       });
     }
   };
+
   const handleRemoveVariantImage = (index: number) => {
     setVariantImages((prev) => prev.filter((_, i) => i !== index));
   };
+
   const handleReplaceVariantImage = (
     e: React.ChangeEvent<HTMLInputElement>,
     index: number
@@ -243,15 +258,36 @@ const ProductList = () => {
       reader.readAsDataURL(file);
     }
   };
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
 
   const Badge = ({ text, color }: { text: string; color: string }) => (
     <span className={`px-2 py-1 text-xs rounded-full font-medium ${color}`}>
       {text}
     </span>
   );
+
+  const handleStatusChange = async (productId: string, newStatus: string) => {
+    try {
+      await productService.updateProduct(productId, {
+        variants: [
+          {
+            id:
+              products.find((p) => p.id === productId)?.variants?.[0]?.id || '',
+            price:
+              products.find((p) => p.id === productId)?.variants?.[0]?.price ||
+              0,
+            status: newStatus,
+            images:
+              products.find((p) => p.id === productId)?.variants?.[0]?.images ||
+              [],
+          },
+        ],
+      });
+      await fetchProducts();
+    } catch (error) {
+      console.error('Error updating product status:', error);
+      alert('Failed to update product status. Please try again.');
+    }
+  };
 
   return (
     <div className="p-4 bg-gray-100 min-h-screen">
@@ -328,125 +364,80 @@ const ProductList = () => {
               </tr>
             </thead>
             <tbody>
-              {paginatedProducts.map((product) => (
-                <tr key={product.id} className="border-b">
-                  <td className="px-4 py-2">{product.id}</td>
-                  <td className="px-4 py-2 flex items-center gap-2">
-                    {(product.images?.[0] || product.image) && (
-                      <img
-                        src={product.images?.[0] || product.image}
-                        alt={product.name}
-                        className="w-10 h-10 object-cover rounded border"
-                      />
-                    )}
-                    <span>{product.name}</span>
-                  </td>
-                  <td className="px-4 py-2">{product.category}</td>
-                  <td className="px-4 py-2">{product.brand}</td>
-                  <td className="px-4 py-2">{product.price}</td>
-                  <td className="px-4 py-2">
-                    <Rating
-                      value={Number(product.rating) || 0}
-                      readOnly
-                      size="small"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <Badge
-                      text={product.status}
-                      color={
-                        product.status === 'Active'
-                          ? 'bg-green-100 text-green-600'
-                          : 'bg-gray-200 text-gray-500'
-                      }
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <Switch
-                      checked={product.status === 'Active'}
-                      onChange={() => {
-                        setProducts((products) =>
-                          products.map((p) =>
-                            p.id === product.id
-                              ? {
-                                  ...p,
-                                  status:
-                                    p.status === 'Active'
-                                      ? 'Inactive'
-                                      : 'Active',
-                                }
-                              : p
-                          )
-                        );
-                      }}
-                      color="primary"
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-blue-600 font-semibold cursor-pointer  flex space-x-2">
-                    <button
-                      onClick={() => handleEditClick(product.id.toString())}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleAddVariantClick(product.id)}
-                      className="text-blue-600 hover:underline"
-                    >
-                      AddVarian
-                    </button>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={9} className="text-center py-4">
+                    Loading...
                   </td>
                 </tr>
-              ))}
+              ) : (
+                products.map((product) => (
+                  <tr key={product.id} className="border-b">
+                    <td className="px-4 py-2">{product.id}</td>
+                    <td className="px-4 py-2 flex items-center gap-2">
+                      {product.images?.[0]?.imageUrl && (
+                        <img
+                          src={product.images[0].imageUrl}
+                          alt={product.title}
+                          className="w-10 h-10 object-cover rounded border"
+                        />
+                      )}
+                      <span>{product.title}</span>
+                    </td>
+                    <td className="px-4 py-2">{product.category?.name}</td>
+                    <td className="px-4 py-2">{product.brand?.name}</td>
+                    <td className="px-4 py-2">
+                      {product.variants?.[0]?.price || 'N/A'}
+                    </td>
+                    <td className="px-4 py-2">
+                      <Rating
+                        value={product.rating || 0}
+                        readOnly
+                        size="small"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <Badge
+                        text={product.variants?.[0]?.status || 'Inactive'}
+                        color={
+                          product.variants?.[0]?.status === 'Active'
+                            ? 'bg-green-100 text-green-600'
+                            : 'bg-gray-200 text-gray-500'
+                        }
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <Switch
+                        checked={product.variants?.[0]?.status === 'Active'}
+                        onChange={() => {
+                          handleStatusChange(
+                            product.id,
+                            product.variants?.[0]?.status === 'Active'
+                              ? 'Inactive'
+                              : 'Active'
+                          );
+                        }}
+                        color="primary"
+                      />
+                    </td>
+                    <td className="px-4 py-2 text-blue-600 font-semibold cursor-pointer flex space-x-2">
+                      <button onClick={() => handleEditClick(product.id)}>
+                        Edit
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleAddVariantClick(Number(product.id))
+                        }
+                        className="text-blue-600 hover:underline"
+                      >
+                        AddVarian
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-        </div>
-
-        <div className="flex justify-end mt-4 space-x-2 items-center">
-          <button
-            onClick={() => setCurrentPage(1)}
-            disabled={currentPage === 1}
-            className="text-gray-400 disabled:opacity-30"
-          >
-            <MdSkipPrevious />
-          </button>
-          <button
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className="text-gray-400 disabled:opacity-30"
-          >
-            <MdOutlineNavigateBefore />
-          </button>
-
-          {Array.from({ length: totalPages }, (_, i) => (
-            <button
-              key={i + 1}
-              onClick={() => handlePageChange(i + 1)}
-              className={`rounded-full w-8 h-8 flex items-center justify-center ${
-                currentPage === i + 1
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 bg-gray-100'
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
-
-          <button
-            onClick={() =>
-              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-            }
-            disabled={currentPage === totalPages}
-            className="text-gray-400 disabled:opacity-30"
-          >
-            <MdOutlineNavigateNext />
-          </button>
-          <button
-            onClick={() => setCurrentPage(totalPages)}
-            disabled={currentPage === totalPages}
-            className="text-gray-400 disabled:opacity-30"
-          >
-            <MdSkipNext />
-          </button>
         </div>
       </div>
 
@@ -462,9 +453,12 @@ const ProductList = () => {
                 <input
                   name="name"
                   type="text"
-                  value={editData.name}
-                  onChange={handleEditChange}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
+                  value={
+                    products.find((p) => p.id.toString() === productId)
+                      ?.title || ''
+                  }
+                  disabled
+                  className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-500"
                 />
               </div>
               <div className="">
@@ -643,8 +637,8 @@ const ProductList = () => {
                 <input
                   type="text"
                   value={
-                    products.find((p) => p.id.toString() === productId)?.name ||
-                    ''
+                    products.find((p) => p.id.toString() === productId)
+                      ?.title || ''
                   }
                   disabled
                   className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-500"
