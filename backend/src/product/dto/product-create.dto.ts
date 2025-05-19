@@ -23,10 +23,6 @@ export class ProductCreateDTO {
   @IsString()
   description: string;
 
-  @IsNumber()
-  @Min(0)
-  stock: number;
-
   @IsUUID()
   categoryId: string;
 
@@ -35,7 +31,7 @@ export class ProductCreateDTO {
 
   @IsOptional()
   @IsArray()
-  newImages?: Express.Multer.File[];
+  images?: Express.Multer.File[];
 
   @IsArray()
   @ValidateNested({ each: true })
