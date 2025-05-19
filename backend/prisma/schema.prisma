@@ -311,6 +311,26 @@ model InvoiceItem {
   @@map("invoice_items")
 }
 
+model Voucher {
+  id            String         @id @default(uuid())
+  code          String         @unique
+  discountValue Int
+  maxDiscount   Int?
+  type          VoucherType
+  startDate     DateTime
+  endDate       DateTime
+  status        VoucherStatus
+  minPrice      Int?
+  usageLimit    Int
+  usedCount     Int            @default(0)
+  isPublic      Boolean        @default(true)
+  orders        Order[]
+  usages        VoucherUsage[]
+
+  @@map("vouchers")
+}
+
+
 model Order {
   id              String         @id @default(uuid())
   user            User           @relation(fields: [userId], references: [id])
@@ -537,24 +557,6 @@ model Verification {
   @@map("email_verifications")
 }
 
-model Voucher {
-  id            String         @id @default(uuid())
-  code          String         @unique
-  discountValue Int
-  maxDiscount   Int?
-  type          VoucherType
-  startDate     DateTime
-  endDate       DateTime
-  status        VoucherStatus
-  minPrice      Int?
-  usageLimit    Int
-  usedCount     Int            @default(0)
-  isPublic      Boolean        @default(true)
-  orders        Order[]
-  usages        VoucherUsage[]
-
-  @@map("vouchers")
-}
 
 model VoucherUsage {
   id        String   @id @default(uuid())
