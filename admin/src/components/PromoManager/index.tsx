@@ -9,6 +9,7 @@ interface Promotion {
   startDate: string;
   endDate: string;
   status: string;
+  type: 'discount' | 'voucher';
 }
 
 const initialPromotions: Promotion[] = [
@@ -20,6 +21,7 @@ const initialPromotions: Promotion[] = [
     startDate: '2025-06-01',
     endDate: '2025-06-30',
     status: 'Active',
+    type: 'discount',
   },
   {
     id: 2,
@@ -29,6 +31,7 @@ const initialPromotions: Promotion[] = [
     startDate: '2025-11-25',
     endDate: '2025-11-29',
     status: 'Inactive',
+    type: 'voucher',
   },
 ];
 
@@ -41,6 +44,14 @@ const PromoManager: React.FC = () => {
   const [deletingPromotion, setDeletingPromotion] = useState<Promotion | null>(
     null
   );
+  const [typeFilter, setTypeFilter] = useState<'all' | 'discount' | 'voucher'>(
+    'all'
+  );
+  const filteredPromotions = promotions.filter(
+    (p) =>
+      (typeFilter === 'all' || p.type === typeFilter) &&
+      p.name.toLowerCase().includes(search.toLowerCase())
+  );
   const [addingPromotion, setAddingPromotion] = useState(false);
   const [newPromotion, setNewPromotion] = useState<Promotion>({
     id: Date.now(),
@@ -50,11 +61,9 @@ const PromoManager: React.FC = () => {
     startDate: '',
     endDate: '',
     status: 'Active',
+    type: 'discount',
   });
 
-  const filteredPromotions = promotions.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
-  );
   const handleAddClick = () => {
     setAddingPromotion(true);
   };
@@ -69,6 +78,7 @@ const PromoManager: React.FC = () => {
       startDate: '',
       endDate: '',
       status: 'Active',
+      type: 'voucher',
     });
   };
 
@@ -116,8 +126,7 @@ const PromoManager: React.FC = () => {
             Add Promotion
           </button>
         </div>
-
-        <div className="mb-4">
+        <div className="mb-4 flex gap-4">
           <input
             type="text"
             placeholder="Search promotions..."
@@ -125,6 +134,17 @@ const PromoManager: React.FC = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          <select
+            value={typeFilter}
+            onChange={(e) =>
+              setTypeFilter(e.target.value as 'all' | 'discount' | 'voucher')
+            }
+            className="px-3 py-2 border rounded"
+          >
+            <option value="all">All Types</option>
+            <option value="discount">Discount</option>
+            <option value="voucher">Voucher</option>
+          </select>
         </div>
 
         <div className="overflow-x-auto">
@@ -136,6 +156,7 @@ const PromoManager: React.FC = () => {
                 <th className="border px-4 py-2">Discount (%)</th>
                 <th className="border px-4 py-2">Start Date</th>
                 <th className="border px-4 py-2">End Date</th>
+                <th className="border px-4 py-2">Type</th>
                 <th className="border px-4 py-2">Status</th>
                 <th className="border px-4 py-2">Actions</th>
               </tr>
@@ -153,6 +174,9 @@ const PromoManager: React.FC = () => {
                   </td>
                   <td className="border px-4 py-2 text-center">
                     {promo.endDate}
+                  </td>
+                  <td className="border px-4 py-2 text-center capitalize">
+                    {promo.type}
                   </td>
                   <td className="border px-4 py-2 text-center">
                     <Badge
@@ -196,103 +220,119 @@ const PromoManager: React.FC = () => {
           className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center"
           style={{ zIndex: 9999 }}
         >
-          <div className="bg-white p-6 rounded shadow-lg w-96">
+          <div className="bg-white p-6 rounded shadow-lg w-[500px]">
             <h2 className="text-xl font-semibold mb-4">Add Promotion</h2>
+            <div className="grid grid-cols-2 gap-4 ">
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Name</label>
+                <input
+                  type="text"
+                  value={newPromotion.name}
+                  onChange={(e) =>
+                    setNewPromotion({ ...newPromotion, name: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  Discount (%)
+                </label>
+                <input
+                  type="number"
+                  value={newPromotion.discount}
+                  onChange={(e) =>
+                    setNewPromotion({
+                      ...newPromotion,
+                      discount: Number(e.target.value),
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="mb-4 md:col-span-2">
+                <label className="block text-sm font-medium mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={newPromotion.description}
+                  onChange={(e) =>
+                    setNewPromotion({
+                      ...newPromotion,
+                      description: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={newPromotion.startDate}
+                  onChange={(e) =>
+                    setNewPromotion({
+                      ...newPromotion,
+                      startDate: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Name</label>
-              <input
-                type="text"
-                value={newPromotion.name}
-                onChange={(e) =>
-                  setNewPromotion({ ...newPromotion, name: e.target.value })
-                }
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={newPromotion.endDate}
+                  onChange={(e) =>
+                    setNewPromotion({
+                      ...newPromotion,
+                      endDate: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Type</label>
+                <select
+                  value={newPromotion.type}
+                  onChange={(e) =>
+                    setNewPromotion({
+                      ...newPromotion,
+                      type: e.target.value as 'discount' | 'voucher',
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="discount">Discount</option>
+                  <option value="voucher">Voucher</option>
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Status</label>
+                <select
+                  value={newPromotion.status}
+                  onChange={(e) =>
+                    setNewPromotion({
+                      ...newPromotion,
+                      status: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
             </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">
-                Description
-              </label>
-              <textarea
-                value={newPromotion.description}
-                onChange={(e) =>
-                  setNewPromotion({
-                    ...newPromotion,
-                    description: e.target.value,
-                  })
-                }
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">
-                Discount (%)
-              </label>
-              <input
-                type="number"
-                value={newPromotion.discount}
-                onChange={(e) =>
-                  setNewPromotion({
-                    ...newPromotion,
-                    discount: Number(e.target.value),
-                  })
-                }
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">
-                Start Date
-              </label>
-              <input
-                type="date"
-                value={newPromotion.startDate}
-                onChange={(e) =>
-                  setNewPromotion({
-                    ...newPromotion,
-                    startDate: e.target.value,
-                  })
-                }
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">End Date</label>
-              <input
-                type="date"
-                value={newPromotion.endDate}
-                onChange={(e) =>
-                  setNewPromotion({
-                    ...newPromotion,
-                    endDate: e.target.value,
-                  })
-                }
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Status</label>
-              <select
-                value={newPromotion.status}
-                onChange={(e) =>
-                  setNewPromotion({
-                    ...newPromotion,
-                    status: e.target.value,
-                  })
-                }
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-            </div>
-
             <div className="flex justify-end space-x-2">
               <button
                 className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
@@ -315,104 +355,120 @@ const PromoManager: React.FC = () => {
           className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center"
           style={{ zIndex: 9999 }}
         >
-          <div className="bg-white p-6 rounded shadow-lg w-96">
+          <div className="bg-white p-6 rounded shadow-lg w-[500px]">
             <h2 className="text-xl font-semibold mb-4">Edit Promotion</h2>
+            <div className="grid grid-cols-2 gap-4 ">
+              <div className="mb-4 ">
+                <label className="block text-sm font-medium mb-1">Name</label>
+                <input
+                  type="text"
+                  value={editingPromotion.name}
+                  onChange={(e) =>
+                    setEditingPromotion({
+                      ...editingPromotion,
+                      name: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  Discount (%)
+                </label>
+                <input
+                  type="number"
+                  value={editingPromotion.discount}
+                  onChange={(e) =>
+                    setEditingPromotion({
+                      ...editingPromotion,
+                      discount: Number(e.target.value),
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="mb-4 md:col-span-2">
+                <label className="block text-sm font-medium mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={editingPromotion.description}
+                  onChange={(e) =>
+                    setEditingPromotion({
+                      ...editingPromotion,
+                      description: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Name</label>
-              <input
-                type="text"
-                value={editingPromotion.name}
-                onChange={(e) =>
-                  setEditingPromotion({
-                    ...editingPromotion,
-                    name: e.target.value,
-                  })
-                }
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={editingPromotion.startDate}
+                  onChange={(e) =>
+                    setEditingPromotion({
+                      ...editingPromotion,
+                      startDate: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">
-                Description
-              </label>
-              <textarea
-                value={editingPromotion.description}
-                onChange={(e) =>
-                  setEditingPromotion({
-                    ...editingPromotion,
-                    description: e.target.value,
-                  })
-                }
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">
-                Discount (%)
-              </label>
-              <input
-                type="number"
-                value={editingPromotion.discount}
-                onChange={(e) =>
-                  setEditingPromotion({
-                    ...editingPromotion,
-                    discount: Number(e.target.value),
-                  })
-                }
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">
-                Start Date
-              </label>
-              <input
-                type="date"
-                value={editingPromotion.startDate}
-                onChange={(e) =>
-                  setEditingPromotion({
-                    ...editingPromotion,
-                    startDate: e.target.value,
-                  })
-                }
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">End Date</label>
-              <input
-                type="date"
-                value={editingPromotion.endDate}
-                onChange={(e) =>
-                  setEditingPromotion({
-                    ...editingPromotion,
-                    endDate: e.target.value,
-                  })
-                }
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Status</label>
-              <select
-                value={editingPromotion.status}
-                onChange={(e) =>
-                  setEditingPromotion({
-                    ...editingPromotion,
-                    status: e.target.value,
-                  })
-                }
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={editingPromotion.endDate}
+                  onChange={(e) =>
+                    setEditingPromotion({
+                      ...editingPromotion,
+                      endDate: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Type</label>
+                <select
+                  value={editingPromotion.type}
+                  onChange={(e) =>
+                    setEditingPromotion({
+                      ...editingPromotion,
+                      type: e.target.value as 'discount' | 'voucher',
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="discount">Discount</option>
+                  <option value="voucher">Voucher</option>
+                </select>
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Status</label>
+                <select
+                  value={editingPromotion.status}
+                  onChange={(e) =>
+                    setEditingPromotion({
+                      ...editingPromotion,
+                      status: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
             </div>
 
             <div className="flex justify-end space-x-2">
