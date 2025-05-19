@@ -28,8 +28,14 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login(formData);
-      navigate('/'); // Redirect to home page after successful login
+      const response = await login(formData);
+      if (response.access_token) {
+        localStorage.setItem('token', response.access_token);
+        if (rememberMe) {
+          localStorage.setItem('rememberedEmail', formData.email);
+        }
+        navigate('/'); // Redirect to home page after successful login
+      }
     } catch (err) {
       console.error('Login error:', err);
       if (err instanceof AxiosError) {

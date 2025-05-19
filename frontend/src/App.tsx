@@ -31,7 +31,7 @@ function App() {
           <Route path="/forgotpassword" element={<ForgotPassword />} />
           <Route path="/login" element={<LoginAccount />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="//electric-ai" element={<ChatbotPage />} />
+          <Route path="/electric-ai" element={<ChatbotPage />} />
         </Routes>
         <Footer />
       </BrowserRouter>

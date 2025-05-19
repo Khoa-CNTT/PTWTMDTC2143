@@ -4,18 +4,15 @@ import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  // Enable CORS for all origins
-  app.enableCors({
-    origin: '*', // Allow all origins (you can specify a specific origin if needed)
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
-  });
 
-  app.useGlobalPipes(new ValidationPipe());
-
-  // Enable CORS with more permissive settings for development
+  // Cấu hình CORS
   app.enableCors({
-    origin: true, // Allow all origins in development
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+      'http://localhost:5176',
+    ], // Thêm các port frontend của bạn
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
@@ -23,6 +20,7 @@ async function bootstrap() {
     optionsSuccessStatus: 204,
   });
 
+  app.useGlobalPipes(new ValidationPipe());
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap().catch((error) => {

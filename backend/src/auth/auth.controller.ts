@@ -1,4 +1,10 @@
-import { Body, Controller, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  Post,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 
@@ -19,6 +25,9 @@ export class AuthController {
 
   @Post('logout/:userId')
   async logout(@Param('userId') userId: string) {
+    if (!userId) {
+      throw new UnauthorizedException('User ID is required');
+    }
     return this.authService.logout(userId);
   }
 }
