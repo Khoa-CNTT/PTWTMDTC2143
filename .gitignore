@@ -54,6 +54,7 @@ cypress/downloads/
 
 /backend/dist/
 
+*.env
 /backend/src/chatboxai/.env
 
 node_modules
