@@ -3,10 +3,12 @@ import {
   Controller,
   Get,
   Param,
-  Post,
   Put,
   UseGuards,
   Delete,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -15,16 +17,10 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { RoleEnum } from '@prisma/client'; // Ensure this import is correct and matches the actual definition of RoleEnum
-import { UserCreateDTO } from './dto/user-create.dto';
 
 @Controller('user')
 export class UserController {
   constructor(private UserService: UserService) {}
-
-  @Post()
-  async create(@Body() userCreateDTO: UserCreateDTO): Promise<UserResponseDto> {
-    return this.UserService.create(userCreateDTO);
-  }
 
   @Put(':id')
   async update(
@@ -42,11 +38,22 @@ export class UserController {
   }
 
   @Get()
-  async getAllUsers(): Promise<UserResponseDto[]> {
-    return this.UserService.getAll();
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  async getAllUsers(
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('cursor') cursor?: string
+  ): Promise<{
+    users: UserResponseDto[];
+    total: number;
+    nextCursor: string | null;
+  }> {
+    return this.UserService.getAll(limit, cursor);
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   async deleteUser(@Param('id') id: string): Promise<{ message: string }> {
     await this.UserService.deleteUser(id);
     return { message: 'User deleted successfully' };

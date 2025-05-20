@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Trash2, CheckCircle } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import {
   MdOutlineNavigateNext,
   MdSkipNext,
   MdOutlineNavigateBefore,
   MdSkipPrevious,
 } from 'react-icons/md';
-
+import { FaRegEye, FaRegEyeSlash } from 'react-icons/fa';
 interface Review {
   id: number;
   name: string;
@@ -15,6 +15,7 @@ interface Review {
   rating: number;
   content: string;
   date: string;
+  approved: boolean;
 }
 
 const initialReviews: Review[] = [
@@ -23,9 +24,10 @@ const initialReviews: Review[] = [
     name: 'Cristine Easom',
     email: 'ceasomw@theguardian.com',
     avatar: 'https://i.pravatar.cc/40?img=1',
-    rating: 4.5,
+    rating: 4,
     content: 'Good service, quality product.',
     date: '2025-05-01',
+    approved: true,
   },
   {
     id: 2,
@@ -35,6 +37,7 @@ const initialReviews: Review[] = [
     rating: 3,
     content: 'Product is okay, delivery was a bit slow.',
     date: '2025-04-30',
+    approved: true,
   },
   {
     id: 3,
@@ -44,15 +47,17 @@ const initialReviews: Review[] = [
     rating: 5,
     content: 'Very satisfied, will support next time.',
     date: '2025-04-29',
+    approved: true,
   },
   ...Array.from({ length: 28 }, (_, i) => ({
     id: 4 + i,
     name: `Customer ${i + 1}`,
     email: `email${i + 1}@example.com`,
     avatar: `https://i.pravatar.cc/40?img=${(i % 70) + 1}`,
-    rating: parseFloat((Math.random() * 5).toFixed(1)),
+    rating: parseInt((Math.random() * 5).toFixed(1)),
     content: `This is a sample review from Customer ${i + 1}.`,
     date: `2025-05-${String(i + 1).padStart(2, '0')}`,
+    approved: Math.random() > 0.3,
   })),
 ];
 
@@ -62,15 +67,9 @@ const ReviewManager: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [reviewToDelete, setReviewToDelete] = useState<Review | null>(null);
+  const [reviewToToggle, setReviewToToggle] = useState<Review | null>(null);
 
   const totalPages = Math.ceil(reviews.length / itemsPerPage);
-
-  const handleApprove = (id: number) => {
-    setReviews((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, approved: true } : r))
-    );
-  };
-
   const handleDelete = (id: number) => {
     setReviews((prev) => prev.filter((r) => r.id !== id));
     setReviewToDelete(null);
@@ -122,6 +121,7 @@ const ReviewManager: React.FC = () => {
                 <th className="py-2 px-2">RATING</th>
                 <th className="py-2 px-2">CONTENT</th>
                 <th className="py-2 px-2">DATE</th>
+                <th className="py-2 px-2">STATUS</th>
                 <th className="py-2 px-2">ACTIONS</th>
               </tr>
             </thead>
@@ -144,7 +144,29 @@ const ReviewManager: React.FC = () => {
                   </td>
                   <td className="py-2 px-2">{r.content}</td>
                   <td className="py-2 px-2">{r.date}</td>
+                  <td className="py-2 px-2 ">
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-semibold ${
+                        r.approved
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-200 text-gray-500'
+                      }`}
+                    >
+                      {r.approved ? 'Visible' : 'Hidden'}
+                    </span>
+                  </td>
                   <td className="py-2 px-2 space-x-2">
+                    <button
+                      onClick={() => setReviewToToggle(r)}
+                      className="text-gray-500 hover:text-blue-600"
+                      title={r.approved ? 'Hide review' : 'Show review'}
+                    >
+                      {r.approved ? (
+                        <FaRegEyeSlash size={20} />
+                      ) : (
+                        <FaRegEye size={20} />
+                      )}
+                    </button>
                     <button
                       onClick={() => setReviewToDelete(r)}
                       className="text-red-600 hover:text-red-800"
@@ -251,6 +273,43 @@ const ReviewManager: React.FC = () => {
                 onClick={() => handleDelete(reviewToDelete.id)}
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {reviewToToggle && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-96">
+            <h2 className="text-xl font-semibold mb-4">
+              Confirm Status Change
+            </h2>
+            <p className="mb-4">
+              Are you sure you want to{' '}
+              <strong>{reviewToToggle.approved ? 'hide' : 'show'}</strong> the
+              review from <strong>{reviewToToggle.name}</strong>?
+            </p>
+            <div className="flex justify-end space-x-2">
+              <button
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                onClick={() => setReviewToToggle(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                onClick={() => {
+                  setReviews((prev) =>
+                    prev.map((review) =>
+                      review.id === reviewToToggle.id
+                        ? { ...review, approved: !review.approved }
+                        : review
+                    )
+                  );
+                  setReviewToToggle(null);
+                }}
+              >
+                Confirm
               </button>
             </div>
           </div>

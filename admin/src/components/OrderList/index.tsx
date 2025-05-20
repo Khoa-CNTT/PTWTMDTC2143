@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MoreVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MdOutlinePendingActions } from 'react-icons/md';
@@ -11,48 +11,13 @@ import {
   MdOutlineNavigateBefore,
   MdSkipPrevious,
 } from 'react-icons/md';
-const allOrders = [
-  {
-    id: '#6979',
-    date: 'Apr 15, 2023, 10:21',
-    name: 'Cristine Easom',
-    email: 'ceasomw@theguardian.com',
-    payment: 'Pending',
-    status: 'Delivered',
-    method: 'Mastercard •••• 2356',
-    paymentColor: 'text-orange-500',
-    statusColor: 'bg-green-100 text-green-600',
-    avatar: 'https://i.pravatar.cc/40?img=1',
-  },
-  {
-    id: '#6624',
-    date: 'Apr 17, 2023, 6:43',
-    name: 'Fayre Screech',
-    email: 'fscreechs@army.mil',
-    payment: 'Failed',
-    status: 'Delivered',
-    method: 'Mastercard •••• 2077',
-    paymentColor: 'text-red-500',
-    statusColor: 'bg-green-100 text-green-600',
-    avatar: 'https://i.pravatar.cc/40?img=2',
-  },
-  //test du lieu
-  ...Array.from({ length: 28 }, (_, i) => ({
-    id: `#6${700 + i}`,
-    date: `Apr ${10 + i}, 2023`,
-    name: `Customer ${i + 1}`,
-    email: `email${i + 1}@example.com`,
-    payment: i % 2 === 0 ? 'Completed' : 'Failed',
-    status: i % 3 === 0 ? 'Delivered' : 'Processing',
-    method: 'Visa •••• 1234',
-    paymentColor: i % 2 === 0 ? 'text-green-500' : 'text-red-500',
-    statusColor:
-      i % 3 === 0
-        ? 'bg-green-100 text-green-600'
-        : 'bg-yellow-100 text-yellow-600',
-    avatar: `https://i.pravatar.cc/40?img=${i + 3}`,
-  })),
-];
+import { orderService, Order } from '../../services/orderServices';
+import { toast } from 'react-toastify';
+import { AxiosError } from 'axios';
+
+interface ErrorResponse {
+  message: string;
+}
 
 const Badge = ({ text, color }: { text: string; color: string }) => (
   <span className={`px-2 py-1 text-xs rounded-full font-medium ${color}`}>
@@ -62,8 +27,11 @@ const Badge = ({ text, color }: { text: string; color: string }) => (
 
 const OrderList = () => {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState(allOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [showMenu, setShowMenu] = useState<number | null>(null);
+  const [orderToEdit, setOrderToEdit] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const itemsPerPage = 10;
   const [currentPage, setCurrentPage] = useState(1);
@@ -74,24 +42,92 @@ const OrderList = () => {
     currentPage * itemsPerPage
   );
 
-  const handleView = (orderId: string) => {
-    navigate(`/order-details`);
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await orderService.getOrders();
+      setOrders(data);
+    } catch (err) {
+      const error = err as AxiosError<ErrorResponse>;
+      const errorMessage =
+        error.response?.data?.message || 'Lỗi khi tải đơn hàng';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (orderId: string) => {
-    const updatedOrders = orders.filter((order) => order.id !== orderId);
-    setOrders(updatedOrders);
+  const handleView = (orderId: string) => {
+    navigate(`/order-details/${orderId}`);
+  };
 
-    if (updatedOrders.length % itemsPerPage === 0 && currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+  const getStatusColor = (status: string) => {
+    if (status === 'Delivered') return 'bg-green-100 text-green-600';
+    if (status === 'Processing') return 'bg-yellow-100 text-yellow-600';
+    if (status === 'Refunded') return 'bg-pink-100 text-pink-600';
+    if (status === 'Failed') return 'bg-blue-100 text-blue-600';
+    return 'bg-gray-200 text-gray-600';
+  };
+
+  const getPaymentColor = (payment: string) => {
+    if (payment === 'Completed') return 'text-green-500';
+    if (payment === 'Pending') return 'text-orange-500';
+    if (payment === 'Failed') return 'text-red-500';
+    return 'text-gray-500';
+  };
+
+  const handleDelete = async (orderId: string) => {
+    try {
+      await orderService.deleteOrder(orderId);
+      const updatedOrders = orders.filter((order) => order.id !== orderId);
+      setOrders(updatedOrders);
+      if (updatedOrders.length % itemsPerPage === 0 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
+      setShowMenu(null);
+      toast.success('Đã xóa đơn hàng');
+    } catch (err) {
+      toast.error('Lỗi khi xóa đơn hàng');
     }
-
-    setShowMenu(null);
   };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     setShowMenu(null);
+  };
+
+  const handleSaveStatus = async () => {
+    if (!orderToEdit) return;
+    try {
+      await orderService.updateStatus(orderToEdit.id, {
+        status: orderToEdit.status,
+        payment: orderToEdit.payment,
+      });
+      setOrders((orders) =>
+        orders.map((o) =>
+          o.id === orderToEdit.id
+            ? {
+                ...o,
+                status: orderToEdit.status,
+                payment: orderToEdit.payment,
+                statusColor: getStatusColor(orderToEdit.status),
+                paymentColor: getPaymentColor(orderToEdit.payment),
+              }
+            : o
+        )
+      );
+      toast.success('Cập nhật trạng thái thành công');
+    } catch (err) {
+      toast.error('Lỗi khi cập nhật trạng thái');
+    } finally {
+      setOrderToEdit(null);
+    }
   };
 
   return (
@@ -103,25 +139,33 @@ const OrderList = () => {
         {[
           {
             name: 'Pending Payment',
-            count: '12',
+            count: orders
+              .filter((o) => o.payment === 'Pending')
+              .length.toString(),
             color: 'from-yellow-400 to-yellow-500',
             icon: <MdOutlinePendingActions />,
           },
           {
             name: 'Completed',
-            count: '30',
+            count: orders
+              .filter((o) => o.status === 'Delivered')
+              .length.toString(),
             color: 'from-green-500 to-green-400',
             icon: <IoCheckmarkDoneSharp />,
           },
           {
             name: 'Refunded',
-            count: '9',
+            count: orders
+              .filter((o) => o.status === 'Refunded')
+              .length.toString(),
             color: 'from-fuchsia-500 to-pink-400',
             icon: <RiRefundFill />,
           },
           {
             name: 'Failed',
-            count: '1',
+            count: orders
+              .filter((o) => o.status === 'Failed')
+              .length.toString(),
             color: 'from-blue-600 to-blue-400',
             icon: <CgDanger />,
           },
@@ -156,76 +200,97 @@ const OrderList = () => {
             </button>
           </div>
         </div>
-
-        <table className="w-full text-left text-sm relative">
-          <thead>
-            <tr className="text-gray-500 border-b">
-              <th className="py-2 px-2">ORDER</th>
-              <th className="py-2 px-2">DATE</th>
-              <th className="py-2 px-2">CUSTOMERS</th>
-              <th className="py-2 px-2">PAYMENT</th>
-              <th className="py-2 px-2">STATUS</th>
-              <th className="py-2 px-2">METHOD</th>
-              <th className="py-2 px-2">ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedOrders.map((order, index) => (
-              <tr className="border-b relative" key={index}>
-                <td className="py-2 px-2 text-blue-600">{order.id}</td>
-                <td className="py-2 px-2">{order.date}</td>
-                <td className="py-2 px-2 flex items-center gap-2">
-                  <img
-                    src={order.avatar}
-                    className="w-8 h-8 rounded-full"
-                    alt=""
-                  />
-                  <div>
-                    <div className="font-medium">{order.name}</div>
-                    <div className="text-xs text-gray-500">{order.email}</div>
-                  </div>
-                </td>
-                <td className={`py-2 px-2 ${order.paymentColor}`}>
-                  {order.payment}
-                </td>
-                <td className="py-2 px-2">
-                  <Badge text={order.status} color={order.statusColor} />
-                </td>
-                <td className="py-2 px-2">{order.method}</td>
-                <td className="py-2 px-2">
-                  <div className="relative inline-block text-left">
-                    <button
-                      className="hover:bg-gray-200 p-2 rounded-full"
-                      onClick={() =>
-                        setShowMenu(showMenu === index ? null : index)
-                      }
-                    >
-                      <MoreVertical className="w-4 h-4 text-gray-500" />
-                    </button>
-
-                    {showMenu === index && (
-                      <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-20">
-                        <button
-                          onClick={() => handleView(order.id)}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() => handleDelete(order.id)}
-                          className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </td>
+        {loading ? (
+          <div>Đang tải đơn hàng...</div>
+        ) : error ? (
+          <div className="text-red-500">{error}</div>
+        ) : (
+          <table className="w-full text-left text-sm relative">
+            <thead>
+              <tr className="text-gray-500 border-b">
+                <th className="py-2 px-2">ORDER</th>
+                <th className="py-2 px-2">CUSTOMER</th>
+                <th className="py-2 px-2">PHONE</th>
+                <th className="py-2 px-2">ADDRESS</th>
+                <th className="py-2 px-2">PAYMENT</th>
+                <th className="py-2 px-2">STATUS</th>
+                <th className="py-2 px-2">ACTIONS</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-
+            </thead>
+            <tbody>
+              {paginatedOrders.map((order, index) => (
+                <tr className="border-b relative" key={order.id}>
+                  <td className="py-2 px-2 text-blue-600">{order.id}</td>
+                  <td className="py-2 px-2">{order.fullName}</td>
+                  <td className="py-2 px-2">{order.phone}</td>
+                  <td className="py-2 px-2">
+                    {order.streetAddress}, {order.ward}, {order.district},{' '}
+                    {order.city}, {order.province}, {order.country}
+                  </td>
+                  <td className={`py-2 px-2 ${getPaymentColor(order.payment)}`}>
+                    {order.payment}
+                  </td>
+                  <td className="py-2 px-2">
+                    <Badge
+                      text={order.status}
+                      color={getStatusColor(order.status)}
+                    />
+                  </td>
+                  <td className="py-2 px-2">
+                    <div className="relative inline-block text-left">
+                      <button
+                        className="hover:bg-gray-200 p-2 rounded-full"
+                        onClick={() =>
+                          setShowMenu(showMenu === index ? null : index)
+                        }
+                      >
+                        <MoreVertical className="w-4 h-4 text-gray-500" />
+                      </button>
+                      {showMenu === index && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => setShowMenu(null)}
+                            tabIndex={-1}
+                          />
+                          <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-20">
+                            <button
+                              onClick={() => {
+                                handleView(order.id);
+                                setShowMenu(null);
+                              }}
+                              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                            >
+                              View
+                            </button>
+                            <button
+                              onClick={() => {
+                                setOrderToEdit(order);
+                                setShowMenu(null);
+                              }}
+                              className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100 w-full text-left"
+                            >
+                              Change Status
+                            </button>
+                            <button
+                              onClick={() => {
+                                handleDelete(order.id);
+                                setShowMenu(null);
+                              }}
+                              className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
         <div className="flex justify-end mt-4 space-x-2 items-center">
           <button
             onClick={() => setCurrentPage(1)}
@@ -241,7 +306,6 @@ const OrderList = () => {
           >
             <MdOutlineNavigateBefore />
           </button>
-
           {Array.from({ length: totalPages }, (_, i) => (
             <button
               key={i + 1}
@@ -255,7 +319,6 @@ const OrderList = () => {
               {i + 1}
             </button>
           ))}
-
           <button
             onClick={() =>
               setCurrentPage((prev) => Math.min(prev + 1, totalPages))
@@ -274,6 +337,56 @@ const OrderList = () => {
           </button>
         </div>
       </div>
+      {orderToEdit && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-full max-w-xs">
+            <h3 className="text-lg font-semibold mb-4">Edit Order Status</h3>
+            <div className="mb-3">
+              <label className="block text-sm mb-1">Status</label>
+              <select
+                className="border rounded px-3 py-2 w-full"
+                value={orderToEdit.status}
+                onChange={(e) =>
+                  setOrderToEdit({ ...orderToEdit, status: e.target.value })
+                }
+              >
+                <option value="Delivered">Delivered</option>
+                <option value="Processing">Processing</option>
+                <option value="Refunded">Refunded</option>
+                <option value="Failed">Failed</option>
+              </select>
+            </div>
+            <div className="mb-3">
+              <label className="block text-sm mb-1">Payment</label>
+              <select
+                className="border rounded px-3 py-2 w-full"
+                value={orderToEdit.payment}
+                onChange={(e) =>
+                  setOrderToEdit({ ...orderToEdit, payment: e.target.value })
+                }
+              >
+                <option value="Completed">Completed</option>
+                <option value="Pending">Pending</option>
+                <option value="Failed">Failed</option>
+              </select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 rounded bg-gray-200"
+                onClick={() => setOrderToEdit(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-blue-600 text-white"
+                onClick={handleSaveStatus}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

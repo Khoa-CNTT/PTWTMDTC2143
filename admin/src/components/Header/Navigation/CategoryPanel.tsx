@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
-import Button from '@mui/material/Button';
 import { IoIosClose } from 'react-icons/io';
 import '../Navigation/style.css';
 import {
@@ -81,6 +79,9 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
 
               <div className="cursor-pointer hover:text-black">
                 <a href="/product-upload">Product Upload</a>
+              </div>
+              <div className="cursor-pointer hover:text-black">
+                <a href="/variant">Variant</a>
               </div>
             </div>
           )}
@@ -182,6 +183,24 @@ const CategoryPanel: React.FC<CategoryPanelProps> = (props) => {
           >
             <FaThLarge className="text-blue-500" />
             <span>Category Management</span>
+          </a>
+        </div>
+        <div className="rounded-lg hover:bg-gray-100">
+          <a
+            href="/inventory"
+            className="flex items-center gap-3 text-gray-800 p-2 font-medium cursor-pointer"
+          >
+            <FaBoxOpen className="text-blue-500" />
+            <span>Inventory</span>
+          </a>
+        </div>
+        <div className="rounded-lg hover:bg-gray-100">
+          <a
+            href="/warehouse"
+            className="flex items-center gap-3 text-gray-800 p-2 font-medium cursor-pointer"
+          >
+            <FaClipboardList className="text-green-500" />
+            <span>Warehouse</span>
           </a>
         </div>
       </div>

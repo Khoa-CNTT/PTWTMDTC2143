@@ -4,30 +4,38 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Post,
   Put,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { BrandService } from './brand.service';
 import { BrandResponseDTO } from './dto/brand-response.dto';
-import { CreateBranDTO } from './dto/create-brand.dto';
-import { UpdateBranDTO } from './dto/update-brand.dto';
+import { CreateBrandDTO } from './dto/create-brand.dto';
+import { UpdateBrandDTO } from './dto/update-brand.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
-@Controller('brand')
+@Controller('brands')
 export class BrandController {
   constructor(private brandService: BrandService) {}
   @Post()
+  @UseInterceptors(FileInterceptor('logo'))
   async createBrand(
-    @Body() createBrandDTO: CreateBranDTO
+    @Body() createBrandDTO: CreateBrandDTO,
+    @UploadedFile() logoFile?: Express.Multer.File
   ): Promise<BrandResponseDTO> {
-    return this.brandService.createBrand(createBrandDTO);
+    return this.brandService.createBrand(createBrandDTO, logoFile);
   }
 
   @Put(':id')
+  @UseInterceptors(FileInterceptor('logo'))
   async updateBrand(
-    @Param('id') id: string,
-    @Body() updateBrandDTO: UpdateBranDTO
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateBrandDTO: UpdateBrandDTO,
+    @UploadedFile() logoFile?: Express.Multer.File
   ): Promise<BrandResponseDTO> {
-    return this.brandService.updateBrand(id, updateBrandDTO);
+    return this.brandService.updateBrand(id, updateBrandDTO, logoFile);
   }
 
   @Get()

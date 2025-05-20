@@ -106,21 +106,56 @@ export class UserService {
     return { message: 'Người dùng đã bị xóa' };
   }
 
-  async getAll(): Promise<UserResponseDto[]> {
-    const users = await this.prisma.user.findMany({
-      include: {
-        roles: {
-          select: {
-            role: { select: { name: true } },
+  async getAll(
+    limit: number,
+    cursor?: string
+  ): Promise<{
+    users: UserResponseDto[];
+    total: number;
+    nextCursor: string | null;
+  }> {
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        take: limit + 1,
+        ...(cursor && {
+          skip: 1,
+          cursor: { id: cursor },
+        }),
+        orderBy: { id: 'desc' },
+        include: {
+          roles: {
+            select: {
+              role: {
+                select: {
+                  name: true,
+                },
+              },
+            },
           },
         },
-      },
-    });
+      }),
+      this.prisma.user.count(),
+    ]);
 
-    return users.map((user) => ({
-      ...user,
-      roles: user.roles.map((roleItem) => ({ name: roleItem.role.name })),
-    }));
+    let nextCursor: string | null = null;
+    if (users.length > limit) {
+      const nextItem = users.pop();
+      nextCursor = nextItem?.id || null;
+    }
+
+    return {
+      users: users.map((user) => {
+        const mappedUser: User = {
+          ...user,
+          roles: user.roles.map((roleItem) => ({
+            name: roleItem.role.name,
+          })),
+        };
+        return this.mapToUserResponseDto(mappedUser);
+      }),
+      total,
+      nextCursor,
+    };
   }
 
   async findOne(id: string): Promise<UserResponseDto> {

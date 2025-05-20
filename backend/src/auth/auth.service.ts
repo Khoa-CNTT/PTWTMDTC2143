@@ -63,8 +63,30 @@ export class AuthService {
   }
 
   async logout(userId: string): Promise<{ code: number; message: string }> {
-    await this.prisma.refreshToken.delete({ where: { userId } });
-    return { code: 1000, message: 'Đăng xuất thành công' };
+    try {
+      // Tìm refresh token của user
+      const refreshToken = await this.prisma.refreshToken.findFirst({
+        where: { userId },
+      });
+
+      // Nếu có refresh token thì xóa
+      if (refreshToken) {
+        await this.prisma.refreshToken.delete({
+          where: { id: refreshToken.id },
+        });
+      }
+
+      return {
+        code: 200,
+        message: 'Logout successful',
+      };
+    } catch (error) {
+      console.error('Logout error:', error);
+      return {
+        code: 500,
+        message: 'Logout failed',
+      };
+    }
   }
 
   private async getUserByEmail(email: string): Promise<

@@ -6,7 +6,6 @@ import { Button } from '@mui/material';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { styled } from '@mui/material/styles';
 import Badge from '@mui/material/Badge';
-import { FaUserCheck } from 'react-icons/fa';
 import { ChevronRight } from 'lucide-react';
 import { CiViewList } from 'react-icons/ci';
 import { IoPhonePortraitOutline } from 'react-icons/io5';
@@ -16,6 +15,9 @@ import { MdWatch } from 'react-icons/md';
 import { BsUsbPlug } from 'react-icons/bs';
 import { GiPc } from 'react-icons/gi';
 import { FaTv } from 'react-icons/fa';
+import { useAuth } from '../../contexts/AuthContext';
+import { FaHeart } from 'react-icons/fa';
+
 const categories = [
   {
     label: 'Điện thoại, Tablet',
@@ -31,13 +33,22 @@ const categories = [
 ];
 const Header: React.FC = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+
   const handleCartClick = () => {
     navigate('/shopping-cart');
   };
-  const handleUserClick = () => {
-    navigate('/profile');
-  };
 
+  const handleUserClick = () => {
+    if (isAuthenticated) {
+      navigate('/profile');
+    } else {
+      navigate('/login');
+    }
+  };
+  const handleWishlistClick = () => {
+    navigate('/wishlist');
+  };
   const StyledBadge = styled(Badge)(({ theme }) => ({
     '& .MuiBadge-badge': {
       right: -3,
@@ -51,8 +62,12 @@ const Header: React.FC = () => {
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   return (
-    <header className="bg-white z-[1000] relative">
-      <div className="top-strip lg:block py-2 border-t-[1px] border-gray-250  border-b-[1px] ">
+    <header
+      className={`z-[1000] w-full transition ${isOpen ? 'shadow-lg bg-blue-50' : 'bg-white'} sticky top-0`}
+    >
+      <div
+        className={`top-strip lg:block py-2 border-t-[1px] border-gray-250 border-b-[1px] ${isOpen ? 'bg-blue-50' : ''}`}
+      >
         <div className="container">
           <div className="flex items-center justify-between">
             <div className="col1 w-[50%]">
@@ -86,7 +101,9 @@ const Header: React.FC = () => {
         </div>
       </div>
 
-      <div className="header py-2 lg:py-4 border-b-[1px] border-gray-250">
+      <div
+        className={`header py-2 lg:py-4 border-b-[1px] border-gray-250 ${isOpen ? 'bg-blue-50' : ''}`}
+      >
         <div className="container flex items-center justify-between">
           <div className="col1 w-[40%] lg:w-[25%]">
             <Link to={'/'}>
@@ -96,20 +113,20 @@ const Header: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="mt-3 px-4 py-2 bg-gray-400 text-white rounded-md whitespace-nowrap flex items-center gap-2"
+              className={`mt-3 px-4 py-2 rounded-md whitespace-nowrap flex items-center gap-2 transition ${isOpen ? 'bg-blue-600 text-white' : 'bg-gray-400 text-white'}`}
             >
               <CiViewList />
-              Danh mục
+              Category
             </button>
 
             {isOpen && (
               <>
                 <div
-                  className="fixed top-[120px] left-0 w-full h-full bg-black bg-opacity-50 z-[999]"
+                  className="fixed top-[135px] left-0 w-full h-full bg-black bg-opacity-50 z-[999]"
                   onClick={() => setIsOpen(false)}
                 ></div>
                 <div
-                  className="fixed top-[120px] left-40 rounded-lg bg-white border shadow-2xl flex z-[1001] "
+                  className="fixed top-[135px] left-40 rounded-lg bg-white border shadow-2xl flex z-[1001] "
                   onMouseLeave={() => setHoveredCategory(null)}
                 >
                   <ul className="w-64 border-r divide-y text-sm">
@@ -1288,7 +1305,42 @@ const Header: React.FC = () => {
             <SearchBox />
           </div>
           <div className="col3 w-[10%] lg:w-[30%] flex items-center pl-7">
+            {/* <div className="h-6 w-[1px] bg-gray-300"></div>
+            <div className="col3 flex items-center gap-4">
+              <Button onClick={handleCartClick}>
+                <StyledBadge badgeContent={4} color="secondary">
+                  <ShoppingCartIcon />
+                </StyledBadge>
+              </Button>
+              <Button
+                onClick={handleUserClick}
+                className="flex items-center gap-2"
+                startIcon={<FaUserCheck />}
+              >
+                {isAuthenticated ? user?.name || 'Profile' : 'Đăng nhập'}
+              </Button>
+            </div> */}
             <ul className="flex items-center justify-end gap-0 lg:gap-3 w-full">
+              <li>
+                <Button
+                  onClick={handleWishlistClick}
+                  className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
+                  startIcon={
+                    <StyledBadge badgeContent={2} color="secondary">
+                      <FaHeart className="text-xl text-pink-500" />
+                    </StyledBadge>
+                  }
+                >
+                  <div className="info flex flex-col">
+                    <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
+                      Wishlist
+                    </h4>
+                    <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
+                      2 items
+                    </span>
+                  </div>
+                </Button>
+              </li>
               <li>
                 <Button
                   onClick={handleCartClick}
@@ -1316,15 +1368,15 @@ const Header: React.FC = () => {
                   onClick={handleUserClick}
                   className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
                 >
-                  <FaUserCheck className="text-2xl text-gray-700" />
+                  {isAuthenticated ? user?.name || 'Profile' : 'Đăng nhập'}
+                  {/* <FaUserCheck className="text-2xl text-gray-700" />
                   <div className="info flex flex-col">
-                    <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
-                      User
-                    </h4>
+                    <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">User</h4>
+
                     <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
                       Messiu
                     </span>
-                  </div>
+                  </div> */}
                 </Button>
               </li>
             </ul>

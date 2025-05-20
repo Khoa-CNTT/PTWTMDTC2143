@@ -1,9 +1,34 @@
 import React, { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import LogoutDialog from '../LogoutDialog';
+import { logout } from '../../services/auth.services';
+import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Profile: React.FC = () => {
+  const navigate = useNavigate();
+  const { logout: authLogout } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [activeForm, setActiveForm] = useState<string>('profile');
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      authLogout(); // Call AuthContext logout to update the global state
+      toast.success('Đăng xuất thành công');
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Đăng xuất thất bại. Vui lòng thử lại.');
+    } finally {
+      setIsLoggingOut(false);
+      setIsLogoutDialogOpen(false);
+    }
+  };
 
   const handleButtonClick = () => {
     if (fileInputRef.current) {
@@ -63,6 +88,17 @@ const Profile: React.FC = () => {
               }`}
             >
               Đổi Mật Khẩu
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={() => setIsLogoutDialogOpen(true)}
+              className={`${
+                activeForm === 'logout' ? 'font-semibold text-red-500' : ''
+              }`}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? 'Đang đăng xuất...' : 'Đăng Xuất'}
             </button>
           </li>
         </ul>
@@ -448,6 +484,13 @@ const Profile: React.FC = () => {
           </>
         )}
       </div>
+
+      <LogoutDialog
+        open={isLogoutDialogOpen}
+        onClose={() => setIsLogoutDialogOpen(false)}
+        onConfirm={handleLogout}
+        isLoading={isLoggingOut}
+      />
     </div>
   );
 };
