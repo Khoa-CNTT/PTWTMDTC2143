@@ -526,6 +526,7 @@ model Review {
   parent    Review?  @relation("ReviewToReview", fields: [parentId], references: [id])
   parentId  String?
   replies   Review[] @relation("ReviewToReview")
+  isHidden   Boolean  @default(false)
 
   createdAt DateTime @default(now())
  @@map("reviews")
