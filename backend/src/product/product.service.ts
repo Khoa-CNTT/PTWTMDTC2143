@@ -495,6 +495,43 @@ export class ProductService {
     };
   }
 
+  async getAllProducts(limit: number, cursor?: string) {
+    const products = await this.prisma.product.findMany({
+      take: limit,
+      skip: cursor ? 1 : 0,
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        category: true,
+        brand: true,
+        images: true,
+        variants: {
+          include: {
+            images: true,
+            optionValues: {
+              include: {
+                optionValue: {
+                  include: {
+                    option: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const total = await this.prisma.product.count();
+
+    return {
+      products,
+      total,
+      hasMore: products.length === limit,
+      nextCursor: products.length > 0 ? products[products.length - 1].id : null,
+    };
+  }
+
   private async mapProductVariantToResponse(
     variant: Variant & { images?: Image[] }
   ): Promise<VariantResponseDTO> {
@@ -599,42 +636,5 @@ export class ProductService {
       })
     );
     return skuParts.join(' | ');
-  }
-
-  async getAllProducts(limit: number, cursor?: string) {
-    const products = await this.prisma.product.findMany({
-      take: limit,
-      skip: cursor ? 1 : 0,
-      cursor: cursor ? { id: cursor } : undefined,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        category: true,
-        brand: true,
-        images: true,
-        variants: {
-          include: {
-            images: true,
-            optionValues: {
-              include: {
-                optionValue: {
-                  include: {
-                    option: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    const total = await this.prisma.product.count();
-
-    return {
-      products,
-      total,
-      hasMore: products.length === limit,
-      nextCursor: products.length > 0 ? products[products.length - 1].id : null,
-    };
   }
 }

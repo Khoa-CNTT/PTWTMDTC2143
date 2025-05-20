@@ -65,8 +65,16 @@ export class CategoryService {
     return this.toCategoryResponseDto(updatedCategory);
   }
 
-  async findAll(): Promise<CategoryResponseDto[]> {
+  async findAll(
+    limit: number,
+    cursor?: string
+  ): Promise<{ data: CategoryResponseDto[]; nextCursor: string | null }> {
     const categories = await this.prisma.category.findMany({
+      take: limit + 1,
+      ...(cursor && {
+        skip: 1,
+        cursor: { id: cursor },
+      }),
       where: {
         parentId: null,
       },
@@ -81,9 +89,20 @@ export class CategoryService {
           },
         },
       },
+      orderBy: { id: 'asc' },
     });
 
-    return categories.map((category) => this.toCategoryResponseDto(category));
+    let nextCursor: string | null = null;
+    if (categories.length > limit) {
+      const nextCategory = categories.pop();
+      nextCursor = nextCategory?.id || null;
+    }
+
+    const formatted = categories.map((category) =>
+      this.toCategoryResponseDto(category)
+    );
+
+    return { data: formatted, nextCursor };
   }
 
   async findOne(id: string): Promise<CategoryResponseDto> {

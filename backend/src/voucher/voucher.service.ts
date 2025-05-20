@@ -28,10 +28,28 @@ export class VoucherService {
     });
     return VoucherMapper.toDTO(voucher);
   }
+  async findAll(
+    limit: number,
+    cursor?: string
+  ): Promise<{ data: VoucherResponseDTO[]; nextCursor: string | null }> {
+    const vouchers = await this.prisma.voucher.findMany({
+      take: limit + 1,
+      ...(cursor && {
+        skip: 1,
+        cursor: { id: cursor },
+      }),
+      orderBy: { id: 'asc' },
+    });
 
-  async findAll(): Promise<VoucherResponseDTO[]> {
-    const vouchers = await this.prisma.voucher.findMany();
-    return vouchers.map((voucher) => VoucherMapper.toDTO(voucher));
+    let nextCursor: string | null = null;
+    if (vouchers.length > limit) {
+      const nextVoucher = vouchers.pop();
+      nextCursor = nextVoucher?.id || null;
+    }
+
+    const formatted = vouchers.map((voucher) => VoucherMapper.toDTO(voucher));
+
+    return { data: formatted, nextCursor };
   }
 
   async findOne(id: string): Promise<VoucherResponseDTO> {

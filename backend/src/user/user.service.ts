@@ -106,8 +106,17 @@ export class UserService {
     return { message: 'Người dùng đã bị xóa' };
   }
 
-  async getAll(): Promise<UserResponseDto[]> {
+  async getAll(
+    limit: number,
+    cursor?: string
+  ): Promise<{ data: UserResponseDto[]; nextCursor: string | null }> {
     const users = await this.prisma.user.findMany({
+      take: limit + 1,
+      ...(cursor && {
+        skip: 1,
+        cursor: { id: cursor },
+      }),
+      orderBy: { id: 'asc' },
       include: {
         roles: {
           select: {
@@ -117,10 +126,18 @@ export class UserService {
       },
     });
 
-    return users.map((user) => ({
+    let nextCursor: string | null = null;
+    if (users.length > limit) {
+      const nextUser = users.pop();
+      nextCursor = nextUser?.id || null;
+    }
+
+    const formatted = users.map((user) => ({
       ...user,
       roles: user.roles.map((roleItem) => ({ name: roleItem.role.name })),
     }));
+
+    return { data: formatted, nextCursor };
   }
 
   async findOne(id: string): Promise<UserResponseDto> {

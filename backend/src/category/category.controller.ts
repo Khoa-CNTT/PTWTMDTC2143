@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -29,18 +30,21 @@ export class CategoryController {
   }
 
   @Put(':id')
-  @UseInterceptors(FileInterceptor('image')) // Thêm interceptor để xử lý ảnh
+  @UseInterceptors(FileInterceptor('image'))
   async update(
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File, // Lấy file ảnh từ request
+    @UploadedFile() file: Express.Multer.File,
     @Body() categoryUpdateDTO: CategoryUpdateDTO
   ): Promise<CategoryResponseDto> {
-    return this.categoryService.updateCategory(id, categoryUpdateDTO, file); // Truyền file vào service
+    return this.categoryService.updateCategory(id, categoryUpdateDTO, file);
   }
 
   @Get()
-  async findAll(): Promise<CategoryResponseDto[]> {
-    return this.categoryService.findAll();
+  async findAll(
+    @Query('limit') limit: number = 10,
+    @Query('cursor') cursor?: string
+  ): Promise<{ data: CategoryResponseDto[]; nextCursor: string | null }> {
+    return this.categoryService.findAll(limit, cursor);
   }
 
   @Delete(':id')

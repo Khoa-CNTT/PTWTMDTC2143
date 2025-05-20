@@ -6,10 +6,12 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { VoucherService } from './voucher.service';
 import { VoucherCreateDTO } from './dto/voucher-create.dto';
 import { VoucherUpdateDTO } from './dto/voucher-update.dto';
+import { VoucherResponseDTO } from './dto/voucher-response.dto';
 
 @Controller('voucher')
 export class VoucherController {
@@ -21,8 +23,11 @@ export class VoucherController {
   }
 
   @Get()
-  findAll() {
-    return this.voucherService.findAll();
+  async findAll(
+    @Query('limit') limit: number = 10,
+    @Query('cursor') cursor?: string
+  ): Promise<{ data: VoucherResponseDTO[]; nextCursor: string | null }> {
+    return this.voucherService.findAll(limit, cursor);
   }
 
   @Get(':id')

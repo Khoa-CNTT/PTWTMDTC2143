@@ -46,6 +46,51 @@ export class ReviewService {
     return review;
   }
 
+  async findOne(id: string) {
+    const review = await this.prisma.review.findUnique({
+      where: { id },
+      include: { replies: true },
+    });
+    if (!review) throw new NotFoundException('Review not found');
+    return review;
+  }
+
+  private async paginateReviews(options: {
+    limit: number;
+    cursor?: string;
+    filter?: object;
+    orderBy?: object;
+    includeReplies?: boolean;
+  }) {
+    const {
+      limit,
+      cursor,
+      filter = {},
+      orderBy = { createdAt: 'desc' },
+      includeReplies = true,
+    } = options;
+
+    const parsedLimit = parseInt(limit.toString(), 10);
+
+    const reviews = await this.prisma.review.findMany({
+      where: filter,
+      include: includeReplies ? { replies: true } : undefined,
+      orderBy,
+      take: parsedLimit,
+      skip: cursor ? 1 : 0,
+      cursor: cursor ? { id: cursor } : undefined,
+    });
+
+    const total = await this.prisma.review.count({ where: filter });
+
+    return {
+      reviews,
+      total,
+      hasMore: reviews.length === limit,
+      nextCursor: reviews.length > 0 ? reviews[reviews.length - 1].id : null,
+    };
+  }
+
   async findByProduct(productId: string) {
     return this.prisma.review.findMany({
       where: { productId, parentId: null },
@@ -58,12 +103,27 @@ export class ReviewService {
     });
   }
 
-  async findOne(id: string) {
-    const review = await this.prisma.review.findUnique({
-      where: { id },
-      include: { replies: true },
+  async findByUsername(name: string, limit: number, cursor?: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { name: { contains: name } },
     });
-    if (!review) throw new NotFoundException('Review not found');
-    return review;
+
+    if (!user) throw new NotFoundException('User not found');
+
+    return this.paginateReviews({
+      limit,
+      cursor,
+      filter: { userId: user.id },
+      includeReplies: true,
+    });
+  }
+
+  async getAllReviews(limit: number, cursor?: string) {
+    return this.paginateReviews({
+      limit,
+      cursor,
+      filter: {},
+      includeReplies: true,
+    });
   }
 }

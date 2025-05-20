@@ -134,7 +134,7 @@ export class ProductController {
     return this.productService.getProductVariant(variantId);
   }
 
-  @Get('search')
+  @Get('search-by-name')
   async searchProducts(
     @Query('keyword') keyword: string,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,

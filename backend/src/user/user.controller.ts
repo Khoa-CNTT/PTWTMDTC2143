@@ -6,6 +6,7 @@ import {
   Put,
   UseGuards,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -33,10 +34,12 @@ export class UserController {
   async findOne(@Param('id') id: string): Promise<UserResponseDto> {
     return this.UserService.findOne(id);
   }
-
   @Get()
-  async getAllUsers(): Promise<UserResponseDto[]> {
-    return this.UserService.getAll();
+  async getAllUsers(
+    @Query('limit') limit: number = 10,
+    @Query('cursor') cursor?: string
+  ): Promise<{ data: UserResponseDto[]; nextCursor: string | null }> {
+    return this.UserService.getAll(limit, cursor);
   }
 
   @Delete(':id')
