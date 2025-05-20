@@ -7,6 +7,8 @@ import {
   UseGuards,
   Delete,
   Query,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -34,15 +36,24 @@ export class UserController {
   async findOne(@Param('id') id: string): Promise<UserResponseDto> {
     return this.UserService.findOne(id);
   }
+
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   async getAllUsers(
-    @Query('limit') limit: number = 10,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('cursor') cursor?: string
-  ): Promise<{ data: UserResponseDto[]; nextCursor: string | null }> {
+  ): Promise<{
+    users: UserResponseDto[];
+    total: number;
+    nextCursor: string | null;
+  }> {
     return this.UserService.getAll(limit, cursor);
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   async deleteUser(@Param('id') id: string): Promise<{ message: string }> {
     await this.UserService.deleteUser(id);
     return { message: 'User deleted successfully' };

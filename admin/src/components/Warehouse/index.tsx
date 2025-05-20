@@ -1,60 +1,129 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MoreVertical } from 'lucide-react';
+import {
+  warehouseService,
+  Warehouse,
+  WarehouseStatus,
+} from '../../services/warehouseService';
+import { toast } from 'react-hot-toast';
+import { AxiosError } from 'axios';
 
-type WarehouseStatus = 'ACTIVE' | 'INACTIVE';
-
-interface WarehouseItem {
-  name: string;
-  location: string;
-  status: WarehouseStatus;
+interface ErrorResponse {
+  message: string;
 }
-
-const initialWarehouses: WarehouseItem[] = [
-  { name: 'Warehouse A', location: 'Hanoi', status: 'ACTIVE' },
-  { name: 'Warehouse B', location: 'HCM', status: 'INACTIVE' },
-  { name: 'Warehouse C', location: 'Danang', status: 'ACTIVE' },
-];
 
 const statusStyle: Record<WarehouseStatus, string> = {
   ACTIVE: 'bg-green-100 text-green-700',
   INACTIVE: 'bg-red-100 text-red-700',
 };
 
-const Warehouse: React.FC = () => {
-  const [data, setData] = useState<WarehouseItem[]>(initialWarehouses);
-  const [showMenu, setShowMenu] = useState<number | null>(null);
-  const [itemToEdit, setItemToEdit] = useState<{
-    item: WarehouseItem;
-    idx: number;
-  } | null>(null);
+const WarehouseManager: React.FC = () => {
+  const [data, setData] = useState<Warehouse[]>([]);
+  const [showMenu, setShowMenu] = useState<string | null>(null);
+  const [itemToEdit, setItemToEdit] = useState<Warehouse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newItem, setNewItem] = useState<WarehouseItem>({
+  const [newItem, setNewItem] = useState<Omit<Warehouse, 'id'>>({
     name: '',
     location: '',
     status: 'ACTIVE',
   });
 
-  const handleSaveEdit = () => {
+  useEffect(() => {
+    fetchWarehouses();
+  }, []);
+
+  const fetchWarehouses = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const warehouses = await warehouseService.getAllWarehouses();
+      setData(warehouses);
+    } catch (err) {
+      const error = err as AxiosError<ErrorResponse>;
+      const errorMessage =
+        error.response?.data?.message || 'Failed to fetch warehouses';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
     if (!itemToEdit) return;
-    setData((prev) =>
-      prev.map((item, idx) =>
-        idx === itemToEdit.idx ? { ...itemToEdit.item } : item
-      )
-    );
-    setItemToEdit(null);
+
+    try {
+      setLoading(true);
+      const updated = await warehouseService.updateWarehouse(itemToEdit.id, {
+        name: itemToEdit.name,
+        location: itemToEdit.location,
+        status: itemToEdit.status,
+      });
+
+      setData((prev) =>
+        prev.map((item) => (item.id === updated.id ? updated : item))
+      );
+      setItemToEdit(null);
+      toast.success('Warehouse updated successfully');
+    } catch (err) {
+      const error = err as AxiosError<ErrorResponse>;
+      const errorMessage =
+        error.response?.data?.message || 'Failed to update warehouse';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (idx: number) => {
-    setData((prev) => prev.filter((_, i) => i !== idx));
-    setShowMenu(null);
+  const handleDelete = async (id: string) => {
+    try {
+      setLoading(true);
+      await warehouseService.deleteWarehouse(id);
+      setData((prev) => prev.filter((item) => item.id !== id));
+      setShowMenu(null);
+      toast.success('Warehouse deleted successfully');
+    } catch (err) {
+      const error = err as AxiosError<ErrorResponse>;
+      const errorMessage =
+        error.response?.data?.message || 'Failed to delete warehouse';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSaveAdd = () => {
-    setData((prev) => [...prev, newItem]);
-    setShowAddModal(false);
-    setNewItem({ name: '', location: '', status: 'ACTIVE' });
+  const handleAddItem = async () => {
+    try {
+      setLoading(true);
+      const created = await warehouseService.createWarehouse(newItem);
+      setData((prev) => [...prev, created]);
+      setShowAddModal(false);
+      setNewItem({
+        name: '',
+        location: '',
+        status: 'ACTIVE',
+      });
+      toast.success('Warehouse added successfully');
+    } catch (err) {
+      const error = err as AxiosError<ErrorResponse>;
+      const errorMessage =
+        error.response?.data?.message || 'Failed to add warehouse';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading && data.length === 0) {
+    return <div className="p-6 text-center">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-center text-red-600">{error}</div>;
+  }
 
   return (
     <div className="p-4">
@@ -64,6 +133,7 @@ const Warehouse: React.FC = () => {
           <button
             className="bg-blue-500 text-white rounded-lg px-4 py-2"
             onClick={() => setShowAddModal(true)}
+            disabled={loading}
           >
             ADD WAREHOUSE
           </button>
@@ -78,8 +148,8 @@ const Warehouse: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {data.map((item, idx) => (
-              <tr key={idx} className="border-b hover:bg-gray-50">
+            {data.map((item) => (
+              <tr key={item.id} className="border-b hover:bg-gray-50">
                 <td className="px-4 py-2">{item.name}</td>
                 <td className="px-4 py-2">{item.location}</td>
                 <td className="px-4 py-2">
@@ -93,11 +163,14 @@ const Warehouse: React.FC = () => {
                   <div className="relative inline-block text-left">
                     <button
                       className="hover:bg-gray-200 p-2 rounded-full"
-                      onClick={() => setShowMenu(showMenu === idx ? null : idx)}
+                      onClick={() =>
+                        setShowMenu(showMenu === item.id ? null : item.id)
+                      }
+                      disabled={loading}
                     >
                       <MoreVertical className="w-4 h-4 text-gray-500" />
                     </button>
-                    {showMenu === idx && (
+                    {showMenu === item.id && (
                       <>
                         <div
                           className="fixed inset-0 z-10"
@@ -107,16 +180,18 @@ const Warehouse: React.FC = () => {
                         <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-20">
                           <button
                             onClick={() => {
-                              setItemToEdit({ item, idx });
+                              setItemToEdit(item);
                               setShowMenu(null);
                             }}
                             className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100 w-full text-left"
+                            disabled={loading}
                           >
                             Edit
                           </button>
                           <button
-                            onClick={() => handleDelete(idx)}
+                            onClick={() => handleDelete(item.id)}
                             className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
+                            disabled={loading}
                           >
                             Delete
                           </button>
@@ -130,6 +205,7 @@ const Warehouse: React.FC = () => {
           </tbody>
         </table>
       </div>
+
       {itemToEdit && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow-lg w-[400px]">
@@ -139,42 +215,36 @@ const Warehouse: React.FC = () => {
                 <label className="block text-sm mb-1">Name</label>
                 <input
                   className="border rounded px-3 py-2 w-full"
-                  value={itemToEdit.item.name}
+                  value={itemToEdit.name}
                   onChange={(e) =>
-                    setItemToEdit({
-                      ...itemToEdit,
-                      item: { ...itemToEdit.item, name: e.target.value },
-                    })
+                    setItemToEdit({ ...itemToEdit, name: e.target.value })
                   }
+                  disabled={loading}
                 />
               </div>
               <div>
                 <label className="block text-sm mb-1">Location</label>
                 <input
                   className="border rounded px-3 py-2 w-full"
-                  value={itemToEdit.item.location}
+                  value={itemToEdit.location}
                   onChange={(e) =>
-                    setItemToEdit({
-                      ...itemToEdit,
-                      item: { ...itemToEdit.item, location: e.target.value },
-                    })
+                    setItemToEdit({ ...itemToEdit, location: e.target.value })
                   }
+                  disabled={loading}
                 />
               </div>
               <div>
                 <label className="block text-sm mb-1">Status</label>
                 <select
                   className="border rounded px-3 py-2 w-full"
-                  value={itemToEdit.item.status}
+                  value={itemToEdit.status}
                   onChange={(e) =>
                     setItemToEdit({
                       ...itemToEdit,
-                      item: {
-                        ...itemToEdit.item,
-                        status: e.target.value as WarehouseStatus,
-                      },
+                      status: e.target.value as WarehouseStatus,
                     })
                   }
+                  disabled={loading}
                 >
                   <option value="ACTIVE">ACTIVE</option>
                   <option value="INACTIVE">INACTIVE</option>
@@ -185,19 +255,22 @@ const Warehouse: React.FC = () => {
               <button
                 className="px-4 py-2 rounded bg-gray-200"
                 onClick={() => setItemToEdit(null)}
+                disabled={loading}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 rounded bg-blue-600 text-white"
+                className="px-4 py-2 rounded bg-blue-600 text-white disabled:bg-blue-300"
                 onClick={handleSaveEdit}
+                disabled={loading}
               >
-                Save
+                {loading ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>
         </div>
       )}
+
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow-lg w-[400px]">
@@ -211,6 +284,7 @@ const Warehouse: React.FC = () => {
                   onChange={(e) =>
                     setNewItem({ ...newItem, name: e.target.value })
                   }
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -221,6 +295,7 @@ const Warehouse: React.FC = () => {
                   onChange={(e) =>
                     setNewItem({ ...newItem, location: e.target.value })
                   }
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -234,6 +309,7 @@ const Warehouse: React.FC = () => {
                       status: e.target.value as WarehouseStatus,
                     })
                   }
+                  disabled={loading}
                 >
                   <option value="ACTIVE">ACTIVE</option>
                   <option value="INACTIVE">INACTIVE</option>
@@ -244,15 +320,16 @@ const Warehouse: React.FC = () => {
               <button
                 className="px-4 py-2 rounded bg-gray-200"
                 onClick={() => setShowAddModal(false)}
+                disabled={loading}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 rounded bg-blue-600 text-white"
-                onClick={handleSaveAdd}
-                disabled={!newItem.name || !newItem.location}
+                className="px-4 py-2 rounded bg-blue-600 text-white disabled:bg-blue-300"
+                onClick={handleAddItem}
+                disabled={loading || !newItem.name || !newItem.location}
               >
-                Save
+                {loading ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>
@@ -262,4 +339,4 @@ const Warehouse: React.FC = () => {
   );
 };
 
-export default Warehouse;
+export default WarehouseManager;

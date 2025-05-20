@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MdOutlineNavigateNext,
   MdSkipNext,
@@ -6,122 +6,102 @@ import {
   MdSkipPrevious,
 } from 'react-icons/md';
 import { Pencil, Trash2 } from 'lucide-react';
-const attributeOptions = [
-  { name: 'Size', values: ['S', 'M', 'L', 'XL'] },
-  { name: 'Color', values: ['Red', 'Blue', 'Black', 'White'] },
-  { name: 'Material', values: ['Cotton', 'Polyester', 'Silk'] },
-];
+import { variantService, Variant } from '../../services/variantService';
+import { toast } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const allVariants = [
-  {
-    id: 1,
-    product: 'Product A',
-    thumbnail: 'https://i.pravatar.cc/40?img=1',
-    price: 100,
-    status: 'Available',
-    attributes: [
-      { attribute: 'Color', value: 'Red' },
-      { attribute: 'Size', value: 'M' },
-    ],
-  },
-  {
-    id: 2,
-    product: 'Product B',
-    thumbnail: 'https://i.pravatar.cc/40?img=2',
-    price: 120,
-    status: 'Discontinued',
-    attributes: [
-      { attribute: 'Color', value: 'Blue' },
-      { attribute: 'Size', value: 'L' },
-    ],
-  },
-  ...Array.from({ length: 27 }, (_, i) => ({
-    id: i + 3,
-    product: `Product ${String.fromCharCode(67 + i)}`,
-    thumbnail: `https://i.pravatar.cc/40?img=${(i % 10) + 3}`,
-    price: 130 + i * 10,
-    status:
-      i % 3 === 0 ? 'Available' : i % 3 === 1 ? 'Outofstock' : 'Discontinued',
-    attributes: [
-      { attribute: 'Color', value: i % 2 === 0 ? 'Red' : 'Blue' },
-      { attribute: 'Size', value: i % 3 === 0 ? 'M' : 'L' },
-    ],
-  })),
-];
-type EditData = Variant & {
-  images: string[];
-  price: string | number;
-  compareAtPrice?: string | number;
-};
-type Attribute = {
-  attribute: string;
-  value: string;
-};
-
-type Variant = {
-  id: number;
-  product: string;
-  thumbnail: string;
-  price: number;
-  compareAtPrice?: number;
-  status: string;
-  attributes: Attribute[];
-  images?: string[];
-};
-const VariantList = () => {
-  const [variants, setVariants] = useState<Variant[]>(allVariants);
-  const [editData, setEditData] = useState<EditData | null>(null);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-
-  const itemsPerPage = 10;
+const VariantList: React.FC = () => {
+  const [variants, setVariants] = useState<Variant[]>([]);
+  const [editData, setEditData] = useState<Variant | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(variants.length / itemsPerPage);
+  const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  const handlePageChange = (page: number) => setCurrentPage(page);
-  const handleDelete = (id: number) => {
-    setVariants((prev) => prev.filter((v) => v.id !== id));
-    setDeleteId(null);
+  useEffect(() => {
+    fetchVariants();
+  }, [currentPage, pageSize]);
+
+  const fetchVariants = async () => {
+    try {
+      setIsLoading(true);
+      const response = await variantService.getAllVariants(
+        currentPage,
+        pageSize
+      );
+      setVariants(response.variants);
+      setTotalPages(response.totalPages);
+    } catch (error) {
+      console.error('Error fetching variants:', error);
+      toast.error('Lỗi khi tải danh sách biến thể');
+    } finally {
+      setIsLoading(false);
+    }
   };
-  const handleEditSave = () => {
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await variantService.deleteVariant(id);
+      toast.success('Xóa biến thể thành công');
+      fetchVariants();
+    } catch (error) {
+      console.error('Error deleting variant:', error);
+      toast.error('Lỗi khi xóa biến thể');
+    } finally {
+      setDeleteId(null);
+    }
+  };
+
+  const handleEditSave = async () => {
     if (!editData) return;
-    setVariants((prev) =>
-      prev.map((v) =>
-        v.id === editData.id
-          ? {
-              ...v,
-              ...editData,
-              price: Number(editData.price),
-              compareAtPrice: Number(editData.compareAtPrice),
-              thumbnail:
-                editData.images && editData.images.length > 0
-                  ? editData.images[0]
-                  : '',
-            }
-          : v
-      )
-    );
-    setEditData(null);
+    try {
+      const formData = new FormData();
+      formData.append('price', editData.price.toString());
+      if (editData.compareAtPrice) {
+        formData.append('compareAtPrice', editData.compareAtPrice.toString());
+      }
+      formData.append('status', editData.status);
+      formData.append('optionValues', JSON.stringify(editData.attributes));
+
+      await variantService.updateVariant(editData.id, formData);
+      toast.success('Cập nhật biến thể thành công');
+      fetchVariants();
+      setEditData(null);
+    } catch (error) {
+      console.error('Error updating variant:', error);
+      toast.error('Lỗi khi cập nhật biến thể');
+    }
   };
 
   return (
     <div className="p-4">
       <div className="bg-white rounded-lg shadow p-4">
-        <h1 className="text-2xl font-semibold mb-4">Variant List</h1>
+        <h1 className="text-2xl font-semibold mb-4">Danh sách biến thể</h1>
 
         <div className="flex items-center justify-between mb-4">
           <input
             type="text"
-            placeholder="Search Variant"
+            placeholder="Tìm kiếm biến thể"
             className="border rounded px-3 py-2 w-64"
           />
           <div className="flex items-center gap-2">
-            <select className="border rounded px-2 py-1">
-              <option>10</option>
-              <option>25</option>
-              <option>50</option>
+            <select
+              className="border rounded px-2 py-1"
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
             </select>
             <button className="border rounded px-3 py-1 text-sm bg-gray-100">
-              Export
+              Xuất
             </button>
           </div>
         </div>
@@ -129,34 +109,51 @@ const VariantList = () => {
         <table className="w-full text-left text-sm relative">
           <thead>
             <tr className="text-gray-500 border-b">
-              <th className="py-2 px-2">UID</th>
-              <th className="py-2 px-2">PRODUCT</th>
-              <th className="py-2 px-2">PRICE</th>
-              <th className="py-2 px-2">ATTRIBUTE</th>
-              <th className="py-2 px-2 text-center">STATUS</th>
-              <th className="py-2 px-2 ">ACTIONS</th>
+              <th className="py-2 px-2">ID</th>
+              <th className="py-2 px-2">Hình ảnh</th>
+              <th className="py-2 px-2">Sản phẩm</th>
+              <th className="py-2 px-2">Giá</th>
+              <th className="py-2 px-2">Giá so sánh</th>
+              <th className="py-2 px-2">Thuộc tính</th>
+              <th className="py-2 px-2 text-center">Trạng thái</th>
+              <th className="py-2 px-2">Thao tác</th>
             </tr>
           </thead>
           <tbody>
-            {variants
-              .slice(
-                (currentPage - 1) * itemsPerPage,
-                currentPage * itemsPerPage
-              )
-              .map((variant) => (
+            {isLoading ? (
+              <tr>
+                <td colSpan={8} className="text-center py-4">
+                  Đang tải...
+                </td>
+              </tr>
+            ) : variants.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="text-center py-4">
+                  Không tìm thấy biến thể nào
+                </td>
+              </tr>
+            ) : (
+              variants.map((variant) => (
                 <tr key={variant.id} className="border-b">
                   <td className="px-4 py-2">{variant.id}</td>
-                  <td className="px-4 py-2 flex items-center gap-2">
-                    {variant.thumbnail && (
+                  <td className="px-4 py-2">
+                    {variant.images?.[0] && (
                       <img
-                        src={variant.thumbnail}
-                        alt={variant.product}
+                        src={variant.images[0].imageUrl}
+                        alt="Variant thumbnail"
                         className="w-10 h-10 object-cover rounded border"
                       />
                     )}
-                    <span>{variant.product}</span>
                   </td>
-                  <td className="px-4 py-2">${variant.price}</td>
+                  <td className="px-4 py-2">Product {variant.productId}</td>
+                  <td className="px-4 py-2">
+                    {variant.price.toLocaleString('vi-VN')}đ
+                  </td>
+                  <td className="px-4 py-2">
+                    {variant.compareAtPrice
+                      ? variant.compareAtPrice.toLocaleString('vi-VN') + 'đ'
+                      : '-'}
+                  </td>
                   <td className="px-4 py-2">
                     {variant.attributes && variant.attributes.length > 0 ? (
                       variant.attributes.map((attr, idx) => (
@@ -187,18 +184,7 @@ const VariantList = () => {
                   <td className="px-4 py-2 text-blue-600 font-semibold cursor-pointer flex space-x-2">
                     <button
                       className="text-blue-600 hover:text-blue-800"
-                      onClick={() => {
-                        setEditData({
-                          ...variant,
-                          images:
-                            Array.isArray(variant.images) &&
-                            variant.images.length > 0
-                              ? variant.images.filter(Boolean)
-                              : variant.thumbnail
-                                ? [variant.thumbnail]
-                                : [],
-                        });
-                      }}
+                      onClick={() => setEditData(variant)}
                     >
                       <Pencil size={18} />
                     </button>
@@ -210,7 +196,8 @@ const VariantList = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+              ))
+            )}
           </tbody>
         </table>
 
@@ -262,11 +249,12 @@ const VariantList = () => {
           </button>
         </div>
       </div>
+
       {deleteId !== null && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow-lg w-full max-w-xs">
             <div className="mb-4 text-center">
-              <p>Are you sure you want to delete this variant?</p>
+              <p>Bạn có chắc chắn muốn xóa biến thể này?</p>
             </div>
             <div className="flex justify-end gap-2">
               <button
@@ -285,296 +273,55 @@ const VariantList = () => {
           </div>
         </div>
       )}
+
       {editData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="w-full max-w-lg bg-white rounded shadow-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Edit Variant</h2>
+            <h2 className="text-xl font-semibold mb-4">Chỉnh sửa biến thể</h2>
             <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm mb-1">Product</label>
-                  <input
-                    className="border rounded px-3 py-2 w-full"
-                    value={editData.product || ''}
-                    onChange={(e) =>
-                      setEditData({ ...editData, product: e.target.value })
+              <div>
+                <label className="block text-sm mb-1">Giá</label>
+                <input
+                  type="number"
+                  min={0}
+                  className="border rounded px-3 py-2 w-full"
+                  value={editData.price}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    if (!isNaN(value) && value >= 0) {
+                      setEditData({ ...editData, price: value });
                     }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Price</label>
-                  <input
-                    type="number"
-                    min={0}
-                    className="border rounded px-3 py-2 w-full"
-                    value={editData.price || ''}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      if (!isNaN(value) && value >= 0) {
-                        setEditData({ ...editData, price: value });
-                      }
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Compare At Price</label>
-                  <input
-                    type="number"
-                    min={0}
-                    className="border rounded px-3 py-2 w-full"
-                    value={editData.compareAtPrice || ''}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      if (!isNaN(value) && value >= 0) {
-                        setEditData({ ...editData, compareAtPrice: value });
-                      }
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Status</label>
-                  <select
-                    className="border rounded px-3 py-2 w-full"
-                    value={editData.status || ''}
-                    onChange={(e) =>
-                      setEditData({ ...editData, status: e.target.value })
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">Giá so sánh</label>
+                <input
+                  type="number"
+                  min={0}
+                  className="border rounded px-3 py-2 w-full"
+                  value={editData.compareAtPrice || ''}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    if (!isNaN(value) && value >= 0) {
+                      setEditData({ ...editData, compareAtPrice: value });
                     }
-                  >
-                    <option value="Available">Available</option>
-                    <option value="Outofstock">Outofstock</option>
-                    <option value="Discontinued">Discontinued</option>
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className=" block text-sm mb-1">Attributes</label>
-                  {(editData.attributes || []).map(
-                    (attr: Attribute, idx: number) => (
-                      <div key={idx} className="flex gap-2 mb-1">
-                        <select
-                          className="border rounded px-2 py-1 w-1/2"
-                          value={attr.attribute}
-                          onChange={(e) => {
-                            const updated = [...editData.attributes];
-                            updated[idx].attribute = e.target.value;
-                            updated[idx].value = '';
-                            setEditData({ ...editData, attributes: updated });
-                          }}
-                        >
-                          <option value="">Select attribute</option>
-                          {attributeOptions.map((opt) => {
-                            const isUsed = editData.attributes.some(
-                              (a: Attribute, i: number) =>
-                                a.attribute === opt.name && i !== idx
-                            );
-                            return (
-                              <option
-                                key={opt.name}
-                                value={opt.name}
-                                disabled={isUsed}
-                              >
-                                {opt.name}
-                              </option>
-                            );
-                          })}
-                        </select>
-                        <select
-                          className="border rounded px-2 py-1 w-1/2"
-                          value={attr.value}
-                          onChange={(e) => {
-                            const updated = [...editData.attributes];
-                            updated[idx].value = e.target.value;
-                            setEditData({ ...editData, attributes: updated });
-                          }}
-                          disabled={!attr.attribute}
-                        >
-                          <option value="">Select value</option>
-                          {attributeOptions
-                            .find((opt) => opt.name === attr.attribute)
-                            ?.values.map((val) => (
-                              <option key={val} value={val}>
-                                {val}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-                    )
-                  )}
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm mb-1">Images</label>
-                  {editData.images && editData.images.length > 0 && (
-                    <div className="flex items-center gap-4 mt-2 flex-wrap">
-                      <div className="relative border border-dashed border-gray-300 rounded p-2 cursor-pointer">
-                        <img
-                          src={editData.images[0]}
-                          alt="Thumbnail"
-                          className="w-32 h-32 object-cover"
-                          onClick={() =>
-                            document
-                              .getElementById(`edit-image-upload-input-0`)
-                              ?.click()
-                          }
-                        />
-                        <p className="text-sm text-center mt-2">Thumbnail</p>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setEditData((prev) =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    images: prev.images.filter(
-                                      (_, i) => i !== 0
-                                    ),
-                                  }
-                                : prev
-                            )
-                          }
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
-                        >
-                          ✕
-                        </button>
-                        <input
-                          id="edit-image-upload-input-0"
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (ev) => {
-                                setEditData((prev) =>
-                                  prev
-                                    ? {
-                                        ...prev,
-                                        images: prev.images.map((img, i) =>
-                                          i === 0
-                                            ? (ev.target?.result as string)
-                                            : img
-                                        ),
-                                      }
-                                    : prev
-                                );
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                          className="hidden"
-                        />
-                      </div>
-                      {editData.images
-                        .slice(1)
-                        .map((img: string, idx: number) => (
-                          <div
-                            key={idx + 1}
-                            className="relative border border-dashed border-gray-300 rounded p-2 cursor-pointer"
-                          >
-                            <img
-                              src={img}
-                              alt={`Image ${idx + 1}`}
-                              className="w-16 h-16 object-cover"
-                              onClick={() =>
-                                document
-                                  .getElementById(
-                                    `edit-image-upload-input-${idx + 1}`
-                                  )
-                                  ?.click()
-                              }
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setEditData((prev) =>
-                                  prev
-                                    ? {
-                                        ...prev,
-                                        images: prev.images.filter(
-                                          (_, i) => i !== idx + 1
-                                        ),
-                                      }
-                                    : prev
-                                )
-                              }
-                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
-                            >
-                              ✕
-                            </button>
-                            <input
-                              id={`edit-image-upload-input-${idx + 1}`}
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  const reader = new FileReader();
-                                  reader.onload = (ev) => {
-                                    setEditData((prev) =>
-                                      prev
-                                        ? {
-                                            ...prev,
-                                            images: prev.images.map((img, i) =>
-                                              i === 0
-                                                ? (ev.target?.result as string)
-                                                : img
-                                            ),
-                                          }
-                                        : prev
-                                    );
-                                  };
-                                  reader.readAsDataURL(file);
-                                }
-                              }}
-                              className="hidden"
-                            />
-                          </div>
-                        ))}
-                      <div
-                        className="border border-dashed border-gray-300 rounded p-2 flex items-center justify-center cursor-pointer w-16 h-16"
-                        onClick={() =>
-                          document
-                            .getElementById('edit-image-upload-input-add')
-                            ?.click()
-                        }
-                      >
-                        <span className="text-gray-400">Add Image</span>
-                        <input
-                          id="edit-image-upload-input-add"
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={(e) => {
-                            const files = e.target.files;
-                            if (files) {
-                              const readers = Array.from(files).map(
-                                (file) =>
-                                  new Promise<string>((resolve) => {
-                                    const reader = new FileReader();
-                                    reader.onload = (ev) =>
-                                      resolve(ev.target?.result as string);
-                                    reader.readAsDataURL(file);
-                                  })
-                              );
-                              Promise.all(readers).then((images) => {
-                                setEditData((prev) =>
-                                  prev
-                                    ? {
-                                        ...prev,
-                                        images: [
-                                          ...(prev.images || []),
-                                          ...images,
-                                        ],
-                                      }
-                                    : prev
-                                );
-                              });
-                            }
-                          }}
-                          className="hidden"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">Trạng thái</label>
+                <select
+                  className="border rounded px-3 py-2 w-full"
+                  value={editData.status}
+                  onChange={(e) =>
+                    setEditData({ ...editData, status: e.target.value })
+                  }
+                >
+                  <option value="Available">Còn hàng</option>
+                  <option value="Outofstock">Hết hàng</option>
+                  <option value="Discontinued">Ngừng kinh doanh</option>
+                </select>
               </div>
             </div>
 
@@ -583,18 +330,20 @@ const VariantList = () => {
                 onClick={() => setEditData(null)}
                 className="px-4 py-2 border rounded text-gray-600"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 onClick={handleEditSave}
                 className="px-4 py-2 bg-blue-600 text-white rounded"
               >
-                Save
+                Lưu
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
 };

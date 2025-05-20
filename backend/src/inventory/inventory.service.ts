@@ -9,6 +9,14 @@ import { WarehouseStatus } from '@prisma/client';
 export class InventoryService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getAllInventory() {
+    return await this.prisma.inventory.findMany({
+      include: {
+        warehouse: true,
+      },
+    });
+  }
+
   async addProductToWarehouse(inventoryCreateDTO: InventoryCreateDTO) {
     const { variantId, warehouseId, quantity, status } = inventoryCreateDTO;
 

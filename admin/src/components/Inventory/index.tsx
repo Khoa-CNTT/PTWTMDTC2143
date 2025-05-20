@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MoreVertical } from 'lucide-react';
 import {
   MdOutlineNavigateNext,
@@ -6,60 +6,19 @@ import {
   MdOutlineNavigateBefore,
   MdSkipPrevious,
 } from 'react-icons/md';
-type InventoryStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
-
-interface InventoryItem {
-  variantId: string;
-  sku: string;
-  img: string;
-  warehouseId: string;
-  quantity: number;
-  reserved: number;
-  status?: InventoryStatus;
-}
+import {
+  inventoryService,
+  InventoryItem,
+  InventoryStatus,
+} from '../../services/inventoryService';
+import { toast } from 'react-hot-toast';
 
 const Inventory: React.FC = () => {
-  const initialData: InventoryItem[] = [
-    {
-      variantId: 'VAR-001',
-      sku: 'SKU-001',
-      img: 'https://i.pravatar.cc/40?img=11',
-      warehouseId: 'WH-A',
-      quantity: 120,
-      reserved: 30,
-      status: 'IN_STOCK',
-    },
-    {
-      variantId: 'VAR-002',
-      sku: 'SKU-002',
-      img: 'https://i.pravatar.cc/40?img=12',
-      warehouseId: 'WH-B',
-      quantity: 10,
-      reserved: 5,
-      status: 'LOW_STOCK',
-    },
-    {
-      variantId: 'VAR-003',
-      sku: 'SKU-003',
-      img: 'https://i.pravatar.cc/40?img=13',
-      warehouseId: 'WH-C',
-      quantity: 0,
-      reserved: 2,
-      status: 'OUT_OF_STOCK',
-    },
-    {
-      variantId: 'VAR-004',
-      sku: 'SKU-004',
-      img: 'https://i.pravatar.cc/40?img=14',
-      warehouseId: 'WH-A',
-      quantity: 50,
-      reserved: 0,
-    },
-  ];
-
-  const [data, setData] = useState<InventoryItem[]>(initialData);
+  const [data, setData] = useState<InventoryItem[]>([]);
   const [showMenu, setShowMenu] = useState<number | null>(null);
   const [itemToEdit, setItemToEdit] = useState<InventoryItem | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -70,34 +29,80 @@ const Inventory: React.FC = () => {
     currentPage * itemsPerPage
   );
 
+  useEffect(() => {
+    fetchInventory();
+  }, []);
+
+  const fetchInventory = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const inventoryData = await inventoryService.getAllInventory();
+      setData(inventoryData);
+    } catch (err) {
+      setError('Failed to fetch inventory data');
+      toast.error('Failed to fetch inventory data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const statusStyle: Record<InventoryStatus, string> = {
     IN_STOCK: 'bg-green-100 text-green-700',
     LOW_STOCK: 'bg-yellow-100 text-yellow-700',
     OUT_OF_STOCK: 'bg-red-100 text-red-700',
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!itemToEdit) return;
-    setData((prev) =>
-      prev.map((item) =>
-        item.variantId === itemToEdit.variantId &&
-        item.warehouseId === itemToEdit.warehouseId
-          ? { ...item, ...itemToEdit }
-          : item
-      )
-    );
-    setItemToEdit(null);
+
+    try {
+      setLoading(true);
+      const updated = await inventoryService.updateInventoryQuantity({
+        variantId: itemToEdit.variantId,
+        warehouseId: itemToEdit.warehouseId,
+        quantity: itemToEdit.quantity,
+        reserved: itemToEdit.reserved,
+        status: itemToEdit.status,
+      });
+
+      setData((prev) =>
+        prev.map((item) =>
+          item.variantId === updated.variantId &&
+          item.warehouseId === updated.warehouseId
+            ? updated
+            : item
+        )
+      );
+      setItemToEdit(null);
+      toast.success('Inventory updated successfully');
+    } catch (err) {
+      toast.error('Failed to update inventory');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (variantId: string, warehouseId: string) => {
-    setData((prev) =>
-      prev.filter(
-        (item) =>
-          !(item.variantId === variantId && item.warehouseId === warehouseId)
-      )
-    );
-    setShowMenu(null);
+  const handleDelete = async (variantId: string, warehouseId: string) => {
+    try {
+      setLoading(true);
+      // Note: You'll need to add a delete endpoint to your API
+      // await inventoryService.deleteInventory(variantId, warehouseId);
+      setData((prev) =>
+        prev.filter(
+          (item) =>
+            !(item.variantId === variantId && item.warehouseId === warehouseId)
+        )
+      );
+      setShowMenu(null);
+      toast.success('Inventory item deleted successfully');
+    } catch (err) {
+      toast.error('Failed to delete inventory item');
+    } finally {
+      setLoading(false);
+    }
   };
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [newItem, setNewItem] = useState<InventoryItem>({
     variantId: '',
@@ -108,11 +113,51 @@ const Inventory: React.FC = () => {
     reserved: 0,
     status: undefined,
   });
+
+  const handleAddItem = async () => {
+    try {
+      setLoading(true);
+      const created = await inventoryService.addProductToWarehouse({
+        variantId: newItem.variantId,
+        warehouseId: newItem.warehouseId,
+        quantity: newItem.quantity,
+        reserved: newItem.reserved,
+        status: newItem.status,
+      });
+
+      setData((prev) => [...prev, created]);
+      setShowAddModal(false);
+      setNewItem({
+        variantId: '',
+        sku: '',
+        img: 'https://i.pravatar.cc/40?img=15',
+        warehouseId: '',
+        quantity: 0,
+        reserved: 0,
+        status: undefined,
+      });
+      toast.success('Inventory item added successfully');
+    } catch (err) {
+      toast.error('Failed to add inventory item');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const warehouseOptions = [
     { id: 'WH-A', name: 'Warehouse A' },
     { id: 'WH-B', name: 'Warehouse B' },
     { id: 'WH-C', name: 'Warehouse C' },
   ];
+
+  if (loading && data.length === 0) {
+    return <div className="p-6 text-center">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-center text-red-600">{error}</div>;
+  }
+
   return (
     <div className="p-4">
       <div className="bg-white rounded-lg shadow p-4">
@@ -121,6 +166,7 @@ const Inventory: React.FC = () => {
           <button
             className="bg-blue-500 text-white rounded-lg px-4 py-2"
             onClick={() => setShowAddModal(true)}
+            disabled={loading}
           >
             ADD INVENTORY
           </button>
@@ -174,6 +220,7 @@ const Inventory: React.FC = () => {
                     <button
                       className="hover:bg-gray-200 p-2 rounded-full"
                       onClick={() => setShowMenu(showMenu === idx ? null : idx)}
+                      disabled={loading}
                     >
                       <MoreVertical className="w-4 h-4 text-gray-500" />
                     </button>
@@ -191,6 +238,7 @@ const Inventory: React.FC = () => {
                               setShowMenu(null);
                             }}
                             className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100 w-full text-left"
+                            disabled={loading}
                           >
                             Edit
                           </button>
@@ -199,6 +247,7 @@ const Inventory: React.FC = () => {
                               handleDelete(item.variantId, item.warehouseId)
                             }
                             className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
+                            disabled={loading}
                           >
                             Delete
                           </button>
@@ -214,7 +263,7 @@ const Inventory: React.FC = () => {
         <div className="flex justify-end mt-4 space-x-2 items-center">
           <button
             onClick={() => setCurrentPage(1)}
-            disabled={currentPage === 1}
+            disabled={currentPage === 1 || loading}
             className="text-gray-400 disabled:opacity-30"
             title="First page"
           >
@@ -222,7 +271,7 @@ const Inventory: React.FC = () => {
           </button>
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
+            disabled={currentPage === 1 || loading}
             className="text-gray-400 disabled:opacity-30"
             title="Previous page"
           >
@@ -232,6 +281,7 @@ const Inventory: React.FC = () => {
             <button
               key={i + 1}
               onClick={() => setCurrentPage(i + 1)}
+              disabled={loading}
               className={`rounded-full w-8 h-8 flex items-center justify-center ${
                 currentPage === i + 1
                   ? 'bg-blue-600 text-white'
@@ -245,7 +295,7 @@ const Inventory: React.FC = () => {
             onClick={() =>
               setCurrentPage((prev) => Math.min(prev + 1, totalPages))
             }
-            disabled={currentPage === totalPages}
+            disabled={currentPage === totalPages || loading}
             className="text-gray-400 disabled:opacity-30"
             title="Next page"
           >
@@ -253,7 +303,7 @@ const Inventory: React.FC = () => {
           </button>
           <button
             onClick={() => setCurrentPage(totalPages)}
-            disabled={currentPage === totalPages}
+            disabled={currentPage === totalPages || loading}
             className="text-gray-400 disabled:opacity-30"
             title="Last page"
           >
@@ -261,9 +311,10 @@ const Inventory: React.FC = () => {
           </button>
         </div>
       </div>
+
       {itemToEdit && (
-        <div className="fixed inset-0 bg-black bg-opacity-40  flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg w-[500px] ">
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-[500px]">
             <h3 className="text-lg font-semibold mb-4">Edit Inventory Item</h3>
             <div className="space-y-3">
               <div>
@@ -274,6 +325,7 @@ const Inventory: React.FC = () => {
                   onChange={(e) =>
                     setItemToEdit({ ...itemToEdit, variantId: e.target.value })
                   }
+                  disabled={loading}
                 />
               </div>
 
@@ -288,6 +340,7 @@ const Inventory: React.FC = () => {
                       warehouseId: e.target.value,
                     })
                   }
+                  disabled={loading}
                 >
                   <option value="">Select warehouse</option>
                   {warehouseOptions.map((opt) => (
@@ -310,6 +363,7 @@ const Inventory: React.FC = () => {
                       setItemToEdit({ ...itemToEdit, quantity: value });
                     }
                   }}
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -325,6 +379,7 @@ const Inventory: React.FC = () => {
                       setItemToEdit({ ...itemToEdit, reserved: value });
                     }
                   }}
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -338,6 +393,7 @@ const Inventory: React.FC = () => {
                       status: e.target.value as InventoryStatus,
                     })
                   }
+                  disabled={loading}
                 >
                   <option value="">Select status</option>
                   <option value="IN_STOCK">IN STOCK</option>
@@ -350,14 +406,16 @@ const Inventory: React.FC = () => {
               <button
                 className="px-4 py-2 rounded bg-gray-200"
                 onClick={() => setItemToEdit(null)}
+                disabled={loading}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 rounded bg-blue-600 text-white"
+                className="px-4 py-2 rounded bg-blue-600 text-white disabled:bg-blue-300"
                 onClick={handleSaveEdit}
+                disabled={loading}
               >
-                Save
+                {loading ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>
@@ -376,6 +434,7 @@ const Inventory: React.FC = () => {
                   onChange={(e) =>
                     setNewItem({ ...newItem, variantId: e.target.value })
                   }
+                  disabled={loading}
                 />
               </div>
 
@@ -387,6 +446,7 @@ const Inventory: React.FC = () => {
                   onChange={(e) =>
                     setNewItem({ ...newItem, warehouseId: e.target.value })
                   }
+                  disabled={loading}
                 >
                   <option value="">Select warehouse</option>
                   {warehouseOptions.map((opt) => (
@@ -409,6 +469,7 @@ const Inventory: React.FC = () => {
                       setNewItem({ ...newItem, quantity: value });
                     }
                   }}
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -424,6 +485,7 @@ const Inventory: React.FC = () => {
                       setNewItem({ ...newItem, reserved: value });
                     }
                   }}
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -437,6 +499,7 @@ const Inventory: React.FC = () => {
                       status: e.target.value as InventoryStatus,
                     })
                   }
+                  disabled={loading}
                 >
                   <option value="">Select status</option>
                   <option value="IN_STOCK">IN STOCK</option>
@@ -460,25 +523,15 @@ const Inventory: React.FC = () => {
                     status: undefined,
                   });
                 }}
+                disabled={loading}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 rounded bg-blue-600 text-white"
-                onClick={() => {
-                  setData((prev) => [...prev, { ...newItem }]);
-                  setShowAddModal(false);
-                  setNewItem({
-                    variantId: '',
-                    sku: '',
-                    img: 'https://i.pravatar.cc/40?img=15',
-                    warehouseId: '',
-                    quantity: 0,
-                    reserved: 0,
-                    status: undefined,
-                  });
-                }}
+                className="px-4 py-2 rounded bg-blue-600 text-white disabled:bg-blue-300"
+                onClick={handleAddItem}
                 disabled={
+                  loading ||
                   !newItem.variantId ||
                   !newItem.warehouseId ||
                   newItem.quantity < 0 ||
@@ -486,7 +539,7 @@ const Inventory: React.FC = () => {
                   !newItem.status
                 }
               >
-                Save
+                {loading ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>

@@ -1,60 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Pencil, Trash2, Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import { categoryService, Category } from '../../services/categoryList';
+import { toast } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 
-interface Category {
-  id: number;
-  name: string;
-  description: string;
-  parentId?: number | null;
-}
-
-const initialCategories: Category[] = [
-  { id: 1, name: 'Phone', description: 'Smartphone products', parentId: null },
-  {
-    id: 2,
-    name: 'Laptop',
-    description: 'Various laptop models',
-    parentId: null,
-  },
-  {
-    id: 3,
-    name: 'Accessories',
-    description: 'Headphones, chargers, cases...',
-    parentId: null,
-  },
-];
-
-const Category: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
+const CategoryManager: React.FC = () => {
+  const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState('');
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState({ name: '', description: '' });
-  const [parentId, setParentId] = useState<number | null>(null);
+  const [parentId, setParentId] = useState<string | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
     null
   );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSave = () => {
-    if (!newCategory.name.trim()) return;
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
-    if (editingId) {
-      setCategories((prev) =>
-        prev.map((cat) =>
-          cat.id === editingId ? { ...cat, ...newCategory } : cat
-        )
-      );
-      setEditingId(null);
-    } else {
-      const newItem: Category = {
-        id: Date.now(),
-        ...newCategory,
-        parentId,
-      };
-      setCategories((prev) => [...prev, newItem]);
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await categoryService.getAllCategories();
+      setCategories(data);
+    } catch (err) {
+      setError('Failed to fetch categories');
+      toast.error('Failed to fetch categories');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!newCategory.name.trim()) {
+      toast.error('Category name is required');
+      return;
     }
 
-    setNewCategory({ name: '', description: '' });
-    setParentId(null);
+    try {
+      setLoading(true);
+      if (editingId) {
+        const updated = await categoryService.updateCategory(
+          editingId,
+          newCategory
+        );
+        setCategories((prev) =>
+          prev.map((cat) => (cat.id === editingId ? updated : cat))
+        );
+        toast.success('Category updated successfully');
+      } else {
+        const created = await categoryService.createCategory({
+          ...newCategory,
+          parentId,
+        });
+        setCategories((prev) => [...prev, created]);
+        toast.success('Category created successfully');
+      }
+
+      setNewCategory({ name: '', description: '' });
+      setEditingId(null);
+      setParentId(null);
+    } catch (err) {
+      toast.error(
+        editingId ? 'Failed to update category' : 'Failed to create category'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEdit = (cat: Category) => {
@@ -69,9 +84,18 @@ const Category: React.FC = () => {
     setNewCategory({ name: '', description: '' });
   };
 
-  const handleDelete = (id: number) => {
-    setCategories((prev) => prev.filter((c) => c.id !== id));
-    setCategoryToDelete(null);
+  const handleDelete = async (id: string) => {
+    try {
+      setLoading(true);
+      await categoryService.deleteCategory(id);
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+      setCategoryToDelete(null);
+      toast.success('Category deleted successfully');
+    } catch (err) {
+      toast.error('Failed to delete category');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancelDelete = () => {
@@ -82,14 +106,15 @@ const Category: React.FC = () => {
     cat.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const [expandedCategories, setExpandedCategories] = useState<number[]>([]);
-  const toggleCategory = (id: number) => {
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const toggleCategory = (id: string) => {
     setExpandedCategories((prev) =>
       prev.includes(id) ? prev.filter((cid) => cid !== id) : [...prev, id]
     );
   };
+
   const buildTree = (
-    parentId: number | null = null,
+    parentId: string | null = null,
     level = 0
   ): React.ReactNode => {
     return filteredCategories
@@ -152,104 +177,118 @@ const Category: React.FC = () => {
       });
   };
 
+  if (loading && categories.length === 0) {
+    return <div className="p-6 text-center">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-center text-red-600">{error}</div>;
+  }
+
   return (
-    <div className="p-6">
-      <div className="p-6 bg-white shadow-md rounded-lg">
-        <h1 className="text-2xl font-bold mb-6">Category Management</h1>
-        <div className="flex justify-between items-start gap-6">
-          <div className="w-1/3 bg-gray-50 p-4 rounded shadow">
-            <h2 className="text-lg font-semibold mb-3">
-              {editingId ? 'Edit Category' : 'Add New Category'}
-            </h2>
-            {parentId && !editingId && (
-              <p className="text-sm text-gray-600 mb-2">
-                Adding subcategory of:{' '}
-                <strong>
-                  {categories.find((c) => c.id === parentId)?.name}
-                </strong>
-              </p>
-            )}
-            <div className="flex flex-col gap-4">
-              <input
-                type="text"
-                placeholder="Category Name"
-                value={newCategory.name}
-                onChange={(e) =>
-                  setNewCategory({ ...newCategory, name: e.target.value })
-                }
-                className="border rounded px-3 py-2"
-              />
-              <input
-                type="text"
-                placeholder="Description"
-                value={newCategory.description}
-                onChange={(e) =>
-                  setNewCategory({
-                    ...newCategory,
-                    description: e.target.value,
-                  })
-                }
-                className="border rounded px-3 py-2"
-              />
-              <button
-                onClick={handleSave}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
-                {editingId ? 'Update' : 'Add'}
-              </button>
-            </div>
-          </div>
-
-          <div className="w-2/3">
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Search categories..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="px-4 py-2 border rounded w-full"
-              />
-            </div>
-            <div className="space-y-2">
-              {filteredCategories.length === 0 ? (
-                <div className="text-gray-500 text-center py-4">
-                  No categories found.
-                </div>
-              ) : (
-                buildTree()
+    <>
+      <Toaster position="top-right" />
+      <div className="p-6">
+        <div className="p-6 bg-white shadow-md rounded-lg">
+          <h1 className="text-2xl font-bold mb-6">Category Management</h1>
+          <div className="flex justify-between items-start gap-6">
+            <div className="w-1/3 bg-gray-50 p-4 rounded shadow">
+              <h2 className="text-lg font-semibold mb-3">
+                {editingId ? 'Edit Category' : 'Add New Category'}
+              </h2>
+              {parentId && !editingId && (
+                <p className="text-sm text-gray-600 mb-2">
+                  Adding subcategory of:{' '}
+                  <strong>
+                    {categories.find((c) => c.id === parentId)?.name}
+                  </strong>
+                </p>
               )}
+              <div className="flex flex-col gap-4">
+                <input
+                  type="text"
+                  placeholder="Category Name"
+                  value={newCategory.name}
+                  onChange={(e) =>
+                    setNewCategory({ ...newCategory, name: e.target.value })
+                  }
+                  className="border rounded px-3 py-2"
+                />
+                <input
+                  type="text"
+                  placeholder="Description"
+                  value={newCategory.description}
+                  onChange={(e) =>
+                    setNewCategory({
+                      ...newCategory,
+                      description: e.target.value,
+                    })
+                  }
+                  className="border rounded px-3 py-2"
+                />
+                <button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-blue-300"
+                >
+                  {loading ? 'Saving...' : editingId ? 'Update' : 'Add'}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {categoryToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg w-96">
-            <h2 className="text-xl font-semibold mb-4">Confirm Deletion</h2>
-            <p className="mb-4">
-              Are you sure you want to delete the category{' '}
-              <strong>{categoryToDelete.name}</strong>?
-            </p>
-            <div className="flex justify-end space-x-2">
-              <button
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
-                onClick={handleCancelDelete}
-              >
-                Cancel
-              </button>
-              <button
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                onClick={() => handleDelete(categoryToDelete.id)}
-              >
-                Delete
-              </button>
+            <div className="w-2/3">
+              <div className="mb-4">
+                <input
+                  type="text"
+                  placeholder="Search categories..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="px-4 py-2 border rounded w-full"
+                />
+              </div>
+              <div className="space-y-2">
+                {filteredCategories.length === 0 ? (
+                  <div className="text-gray-500 text-center py-4">
+                    No categories found.
+                  </div>
+                ) : (
+                  buildTree()
+                )}
+              </div>
             </div>
           </div>
         </div>
-      )}
-    </div>
+
+        {categoryToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white p-6 rounded shadow-lg w-96">
+              <h2 className="text-xl font-semibold mb-4">Confirm Deletion</h2>
+              <p className="mb-4">
+                Are you sure you want to delete the category{' '}
+                <strong>{categoryToDelete.name}</strong>?
+              </p>
+              <div className="flex justify-end space-x-2">
+                <button
+                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                  onClick={handleCancelDelete}
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-red-300"
+                  onClick={() => handleDelete(categoryToDelete.id)}
+                  disabled={loading}
+                >
+                  {loading ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 
-export default Category;
+export default CategoryManager;

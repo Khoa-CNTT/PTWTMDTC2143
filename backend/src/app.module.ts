@@ -49,7 +49,6 @@ import { ChatboxModule } from './chatbox/chatbox.module';
         },
       }),
     }),
-
     AuthModule,
     UserModule,
     EmailModule,
