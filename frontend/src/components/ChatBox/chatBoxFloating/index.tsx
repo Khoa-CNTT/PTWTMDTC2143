@@ -1,11 +1,9 @@
 import { useState, useRef } from 'react';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
-import Paper from '@mui/material/Paper';
-import Box from '@mui/material/Box';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SendHorizonal, MessageCircle, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { SendHorizonal, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -14,81 +12,166 @@ interface Message {
     name: string;
     image: string;
     price: number;
-    salePrice?: number;
+    compareAt?: number;
     message?: string;
   };
 }
+
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(amount);
+
+const DEFAULT_SUGGESTIONS = [
+  'Sản phẩm nào đang giảm giá?',
+  'Có TV thông minh nào không?',
+  'Tôi muốn mua màn hình 27 inch',
+  'Tìm laptop dưới 20 triệu',
+];
 
 export default function ChatbotFloating() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [typingText, setTypingText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
   const typingTimeout = useRef<NodeJS.Timeout | null>(null);
-  const navigate = useNavigate();
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
-
-    const userMessage: Message = { role: 'user', content: input };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: '',
-          product: {
-            name: 'ASUS ROG Flow Z13 (2023) Gaming Laptop Tablet',
-            image:
-              'https://m.media-amazon.com/images/I/71L2iBSyyOL._AC_SL1500_.jpg',
-            price: 1200,
-            salePrice: 999,
-            message: 'Special offer for you!',
-          },
-        },
-      ]);
-      setTimeout(() => {
-        startTypingEffect(
-          'Bạn có muốn xem thêm thông tin chi tiết về sản phẩm này không?'
-        );
-      }, 800);
-    }, 500);
+  const typeWriter = (text: string, onComplete: () => void) => {
+    let i = 0;
+    setTypingText('');
+    setIsTyping(true);
+    function type() {
+      if (i < text.length) {
+        setTypingText((prev) => prev + text.charAt(i));
+        i++;
+        typingTimeout.current = setTimeout(type, 15);
+      } else {
+        setIsTyping(false);
+        onComplete();
+      }
+    }
+    type();
   };
 
-  const startTypingEffect = (fullText: string) => {
-    setTypingText('');
-    let i = 0;
-    const type = () => {
-      setTypingText((prev) => prev + fullText[i]);
-      i++;
-      if (i < fullText.length) {
-        typingTimeout.current = setTimeout(type, 25);
-      } else {
-        setTimeout(() => {
+  const fetchAnswer = async (question: string) => {
+    try {
+      const res = await fetch('http://localhost:8000/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question }),
+      });
+
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const data = await res.json();
+
+      if (data.message) {
+        await new Promise<void>((resolve) => {
+          typeWriter(data.message, () => {
+            setMessages((prev) => [
+              ...prev,
+              { role: 'assistant', content: data.message },
+            ]);
+            setTypingText('');
+            resolve();
+          });
+        });
+      }
+
+      setIsTyping(true);
+      await new Promise((r) => setTimeout(r, 2000));
+      setIsTyping(false);
+
+      if (Array.isArray(data.data)) {
+        for (const item of data.data) {
+          const { title, sku, price, imageUrl, compareAt } = item;
+          let text = '';
+          if (title && sku) {
+            text += `${title} | ${sku}\n`;
+          } else {
+            if (title) text += `Tên sản phẩm: ${title}\n`;
+            if (sku) text += `SKU: ${sku}\n`;
+          }
+          if (price !== null && price !== undefined) {
+            text += `Giá: ${formatCurrency(price)}\n`;
+          }
+
+          await new Promise((r) => setTimeout(r, 400));
+
           setMessages((prev) => [
             ...prev,
-            { role: 'assistant', content: fullText },
+            {
+              role: 'assistant',
+              content: text.trim(),
+              product: imageUrl
+                ? {
+                    name: title || 'Sản phẩm',
+                    image: imageUrl,
+                    price: price || 0,
+                    compareAt,
+                  }
+                : undefined,
+            },
           ]);
-          setTypingText('');
-        }, 200);
+        }
       }
-    };
-    type();
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: `Lỗi: ${(error as Error).message}` },
+      ]);
+      setIsTyping(false);
+    }
+  };
+
+  const sendMessage = (message?: string) => {
+    const contentToSend = message ?? input;
+    if (!contentToSend.trim()) return;
+
+    const userMessage: Message = { role: 'user', content: contentToSend };
+    setMessages((prev) => [...prev, userMessage]);
+    fetchAnswer(contentToSend);
+    setInput('');
+    setShowSuggestions(false);
   };
 
   return (
     <>
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 bg-gradient-to-tr from-orange-500 to-blue-600 hover:from-blue-700 hover:to-orange-600 text-white p-3 rounded-full shadow-2xl z-50 transition-all duration-200"
-        >
-          <MessageCircle className="w-7 h-7" />
-        </button>
-      )}
+      <motion.button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-10 right-16 rounded-full shadow-2xl z-50 p-0 bg-transparent"
+        aria-label="Open chat"
+        style={{
+          border: 'none',
+          padding: 0,
+          boxShadow: '0 0 8px 2px rgba(255, 165, 0, 0.8)',
+          borderRadius: '9999px',
+        }}
+        animate={{
+          rotate: [0, 15, -15, 15, -15, 0],
+          scale: 1.15,
+          boxShadow: [
+            '0 0 8px 2px rgba(255, 165, 0, 0.8)',
+            '0 0 15px 6px rgba(255, 165, 0, 1)',
+            '0 0 8px 2px rgba(255, 165, 0, 0.8)',
+          ],
+        }}
+        transition={{
+          duration: 0.5,
+          repeat: Infinity,
+          repeatType: 'loop',
+          ease: 'easeInOut',
+        }}
+      >
+        <img
+          src="https://2.bp.blogspot.com/-Wb8LOyIz47g/Zk_2kBqy_lI/AAAAAABybXw/P3FAKItM9JIRASCGD3qkRDrqv56fe9OUgCNcBGAsYHQ/chibi_head.png?imgmax=3000"
+          alt="Chat Avatar"
+          className="w-10 h-10 rounded-full object-cover"
+        />
+      </motion.button>
 
       <AnimatePresence>
         {isOpen && (
@@ -102,186 +185,159 @@ export default function ChatbotFloating() {
               backdropFilter: 'blur(8px)',
             }}
           >
-            <div className="flex justify-between items-center p-4 text-lg font-semibold border-b border-zinc-200 bg-gradient-to-r from-orange-100 to-blue-100 rounded-t-2xl">
-              <span className="flex items-center gap-2">
-                <MessageCircle className="w-6 h-6 text-orange-500" />
-                How can I help you today?
-              </span>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-zinc-500 hover:text-red-500 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
+            <div className="MuiBox-root css-na915g flex flex-col p-4 border-b border-zinc-200 rounded-t-2xl bg-gradient-to-r from-orange-100 to-blue-100">
+              <div className="MuiBox-root css-k008qs flex justify-between items-center mb-3">
+                <div className="MuiTypography-root MuiTypography-body1 css-vcv87t font-semibold text-lg">
+                  Chat với trợ lý ảo
+                </div>
+                <div className="MuiBox-root css-0">
+                  <button
+                    className="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall css-v8rxaa p-1 rounded-full hover:bg-zinc-200"
+                    tabIndex={0}
+                    type="button"
+                    aria-label="minimize"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <X className="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-11fo197 w-5 h-5" />
+                    <span className="MuiTouchRipple-root css-w0pj6f"></span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="MuiBox-root css-d8blkr flex items-center gap-3">
+                <div className="MuiBox-root css-0">
+                  <img
+                    className="MuiBox-root css-smwrjt w-12 h-12 rounded-full"
+                    src="https://2.bp.blogspot.com/-Wb8LOyIz47g/Zk_2kBqy_lI/AAAAAABybXw/P3FAKItM9JIRASCGD3qkRDrqv56fe9OUgCNcBGAsYHQ/chibi_head.png?imgmax=3000"
+                    alt="Avatar nhân viên tư vấn"
+                  />
+                </div>
+                <div className="MuiBox-root css-suglgs flex flex-col">
+                  <div className="MuiBox-root css-yo3zrc text-sm font-medium text-gray-700">
+                    Em ở đây để hỗ trợ cho mình ạ
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <Box
-              sx={{
-                flex: 1,
-                overflowY: 'auto',
-                p: 2,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1.5,
-                background: 'linear-gradient(135deg, #fff7ed 0%, #e0e7ff 100%)',
-              }}
-            >
-              {messages.length === 0 && (
-                <div className="text-center text-gray-400 mt-10 mb-10">
-                  <span>Start a conversation...</span>
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-white">
+              {messages.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`rounded-xl px-4 py-2 max-w-[80%] ${
+                      msg.role === 'user'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-100 text-black'
+                    }`}
+                  >
+                    <pre className="whitespace-pre-wrap text-sm italic">
+                      {msg.content}
+                    </pre>
+
+                    {msg.product && (
+                      <Link
+                        to={`/product/details`}
+                        className="mt-2 space-y-1 block cursor-pointer hover:bg-gray-200 rounded-md p-2"
+                      >
+                        <img
+                          src={msg.product.image}
+                          alt={msg.product.name}
+                          className="w-32 rounded-md shadow-md"
+                        />
+                        <p className="text-base font-bold text-gray-800">
+                          {msg.product.name}
+                        </p>
+                        <div className="text-sm text-gray-600 flex gap-2 items-center">
+                          <span className="font-bold text-black">
+                            {formatCurrency(msg.product.price)}
+                          </span>
+                          {msg.product.compareAt &&
+                            msg.product.compareAt > msg.product.price && (
+                              <span className="line-through text-red-500 text-xs">
+                                {formatCurrency(msg.product.compareAt)}
+                              </span>
+                            )}
+                        </div>
+                        {msg.product.message && (
+                          <p className="text-xs text-green-600">
+                            {msg.product.message}
+                          </p>
+                        )}
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {typingText && (
+                <div className="flex justify-start">
+                  <div className="rounded-xl px-4 py-2 max-w-[80%] bg-gray-100 text-black text-sm whitespace-pre-wrap">
+                    {typingText}
+                  </div>
                 </div>
               )}
 
-              {messages.map((msg, i) =>
-                msg.product ? (
-                  <Box
-                    key={i}
-                    sx={{
-                      alignSelf: 'flex-start',
-                      background: 'linear-gradient(135deg, #fff7ed, #e0f2fe)',
-                      color: '#1e293b',
-                      p: 2,
-                      borderRadius: 3,
-                      maxWidth: '85%',
-                      boxShadow: '0 4px 12px rgba(251, 146, 60, 0.15)',
-                      display: 'flex',
-                      gap: 2,
-                      alignItems: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.25s ease',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #fef3c7, #dbeafe)',
-                        boxShadow: '0 6px 16px rgba(251, 146, 60, 0.25)',
-                        transform: 'translateY(-2px)',
-                      },
-                    }}
-                    onClick={() => navigate('/product-detail')}
-                  >
-                    <img
-                      src={msg.product.image}
-                      alt="product"
-                      className="w-16 h-16 object-contain rounded"
-                    />
-                    <div>
-                      <div className="font-semibold text-base text-blue-800 mb-1">
-                        {msg.product.name}
-                      </div>
-                      {msg.product.message && (
-                        <div className="mb-1 text-sm italic text-slate-600">
-                          {msg.product.message}
-                        </div>
-                      )}
-                      <div className="text-lg font-bold text-red-600">
-                        $
-                        {msg.product.salePrice
-                          ? msg.product.salePrice
-                          : msg.product.price}
-                        {msg.product.salePrice && (
-                          <span className="text-sm text-gray-400 line-through ml-2">
-                            ${msg.product.price}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </Box>
-                ) : (
-                  <Box
-                    key={i}
-                    sx={{
-                      alignSelf:
-                        msg.role === 'user' ? 'flex-end' : 'flex-start',
-                      bgcolor: msg.role === 'user' ? 'primary.main' : '#f1f5f9',
-                      color: msg.role === 'user' ? 'white' : '#1e293b',
-                      p: 1.5,
-                      borderRadius: 2,
-                      maxWidth: '75%',
-                      fontSize: '0.97rem',
-                      boxShadow:
-                        msg.role === 'user'
-                          ? '0 2px 8px 0 rgba(37,99,235,0.08)'
-                          : '0 2px 8px 0 rgba(251,146,60,0.08)',
-                    }}
-                  >
-                    {msg.content}
-                  </Box>
-                )
+              {isTyping && !typingText && (
+                <div className="flex justify-start flex-col space-y-2 max-w-[80%]">
+                  <div className="h-4 w-full bg-gray-300 rounded animate-pulse"></div>
+                  <div className="h-4 w-4/5 bg-gray-300 rounded animate-pulse"></div>
+                  <div className="h-4 w-3/4 bg-gray-300 rounded animate-pulse"></div>
+                </div>
               )}
+            </div>
 
-              {typingText && (
-                <Box
-                  sx={{
-                    alignSelf: 'flex-start',
-                    bgcolor: '#f1f5f9',
-                    color: '#1e293b',
-                    p: 1.5,
-                    borderRadius: 2,
-                    maxWidth: '75%',
-                    fontSize: '0.97rem',
-                    fontStyle: 'italic',
-                    opacity: 0.9,
-                  }}
-                >
-                  {typingText}
-                </Box>
-              )}
-            </Box>
+            {showSuggestions && !isTyping && (
+              <div className="flex flex-col gap-2 p-3 border-t border-zinc-200 bg-gray-50">
+                {DEFAULT_SUGGESTIONS.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => sendMessage(suggestion)}
+                    className="text-sm text-left bg-white px-3 italic py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-100 transition"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
 
-            <Paper
-              component="form"
+            {/* Input box */}
+            <form
               onSubmit={(e) => {
                 e.preventDefault();
-                sendMessage();
+                if (!isTyping) sendMessage();
               }}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                p: 1.5,
-                borderTop: '1px solid #e5e7eb',
-                bgcolor: '#f8fafc',
-                borderBottomLeftRadius: 16,
-                borderBottomRightRadius: 16,
-              }}
-              elevation={0}
+              className="flex items-center gap-2 p-3 border-t border-zinc-200"
             >
               <TextField
-                variant="outlined"
                 fullWidth
+                variant="outlined"
                 size="small"
-                placeholder="Type your message..."
+                placeholder="Nhập câu hỏi..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                InputProps={{
-                  sx: {
-                    bgcolor: 'white',
-                    input: { color: '#1e293b' },
-                    borderRadius: 2,
-                    fontSize: '1rem',
-                  },
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (!isTyping) sendMessage();
+                  }
                 }}
+                disabled={isTyping}
               />
+
               <IconButton
-                onClick={sendMessage}
-                sx={{
-                  color: 'white',
-                  ml: 1,
-                  bgcolor: 'linear-gradient(135deg, #fb923c 0%, #2563eb 100%)',
-                  background:
-                    'linear-gradient(135deg, #fb923c 0%, #2563eb 100%)',
-                  '&:hover': {
-                    bgcolor:
-                      'linear-gradient(135deg, #2563eb 0%, #fb923c 100%)',
-                    background:
-                      'linear-gradient(135deg, #2563eb 0%, #fb923c 100%)',
-                  },
-                  borderRadius: 2,
-                  boxShadow: '0 2px 8px 0 rgba(37,99,235,0.15)',
-                  transition: 'all 0.2s',
+                color="primary"
+                onClick={() => {
+                  if (!isTyping) sendMessage();
                 }}
+                aria-label="Send message"
+                disabled={isTyping || !input.trim()}
               >
-                <SendHorizonal className="w-5 h-5" />
+                <SendHorizonal />
               </IconButton>
-            </Paper>
+            </form>
           </motion.div>
         )}
       </AnimatePresence>
