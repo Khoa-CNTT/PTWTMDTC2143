@@ -17,17 +17,14 @@ export class OrderService {
   async create(userId: string, dto: CreateOrderDTO): Promise<OrderResponseDTO> {
     const variantIds = dto.items.map((item) => item.variantId);
 
-    // Lấy thông tin variants từ database
     const variants = await this.prisma.variant.findMany({
       where: { id: { in: variantIds } },
     });
 
-    // Kiểm tra xem các variant có tồn tại không
     if (variants.length !== dto.items.length) {
       throw new NotFoundException('Some variants not found');
     }
 
-    // Tạo các order items
     const orderItems = await Promise.all(
       dto.items.map(async (item) => {
         const variant = variants.find((v) => v.id === item.variantId);
@@ -39,7 +36,6 @@ export class OrderService {
         if (!product) throw new NotFoundException('Product not found');
         const category = product.category;
 
-        // Lấy các discount áp dụng cho product và category
         const productDiscounts = await this.prisma.productDiscount.findMany({
           where: { productId: product.id },
           include: { discount: true },
@@ -55,14 +51,12 @@ export class OrderService {
           ...categoryDiscounts.map((cd) => cd.discount),
         ];
 
-        // Tính toán giá gốc và giảm giá cho từng item
         let discountedPrice = variant.price;
-        const originalPrice = variant.price; // Giá gốc
+        const originalPrice = variant.price;
 
         let isDiscountApplied = false;
 
         for (const discount of discounts) {
-          // Kiểm tra xem discount có còn hiệu lực không
           if (
             discount.status === 'ACTIVE' &&
             new Date() >= discount.startDate &&
@@ -70,10 +64,9 @@ export class OrderService {
           ) {
             if (
               discount.applyType === 'PRODUCT' ||
-              discount.applyType === 'ALL' // Giảm giá cho tất cả sản phẩm
+              discount.applyType === 'ALL'
             ) {
               isDiscountApplied = true;
-              // Áp dụng discount cho variant
               if (discount.type === 'PERCENTAGE') {
                 discountedPrice -= (discountedPrice * discount.discount) / 100;
               } else if (discount.type === 'FIXED_AMOUNT') {
@@ -83,28 +76,24 @@ export class OrderService {
           }
         }
 
-        // Nếu không có discount hợp lệ, sử dụng giá gốc
         if (!isDiscountApplied) {
           discountedPrice = originalPrice;
         }
 
-        // Tính tổng tiền cho item (quantity * discountedPrice)
         const price = discountedPrice * item.quantity;
         return {
           variantId: item.variantId,
           quantity: item.quantity,
           unitPrice: originalPrice,
           price,
-          discount: originalPrice - discountedPrice, // Chênh lệch giá trị giảm
+          discount: originalPrice - discountedPrice,
         };
       })
     );
 
-    // Tính tổng tiền cho đơn hàng (cộng dồn tất cả các order items)
     let total = orderItems.reduce((sum, item) => sum + item.price, 0);
     let voucherDiscount = 0;
 
-    // Kiểm tra voucher và áp dụng
     if (dto.voucherId) {
       const voucher = await this.prisma.voucher.findUnique({
         where: { id: dto.voucherId },
@@ -140,7 +129,6 @@ export class OrderService {
         throw new BadRequestException('You have already used this voucher');
       }
 
-      // Tính toán voucher discount
       voucherDiscount = this.calculateVoucherDiscount(
         voucher.type,
         voucher.discountValue,
@@ -148,15 +136,13 @@ export class OrderService {
         voucher.maxDiscount
       );
 
-      // Voucher không thể giảm quá tổng giá trị của đơn hàng
       if (voucherDiscount > total) {
         voucherDiscount = total;
       }
 
-      total -= voucherDiscount; // Cập nhật tổng tiền sau khi áp dụng voucher
+      total -= voucherDiscount;
     }
 
-    // Thực hiện tạo đơn hàng, cập nhật giỏ hàng, và cập nhật voucher nếu có
     const [order] = await this.prisma.$transaction([
       this.prisma.order.create({
         data: {
@@ -229,13 +215,33 @@ export class OrderService {
     return 0;
   }
 
-  async getAll(userId: string): Promise<OrderResponseDTO[]> {
+  async getAll(
+    userId: string,
+    limit: number,
+    cursor?: string
+  ): Promise<{ data: OrderResponseDTO[]; nextCursor: string | null }> {
     const orders = await this.prisma.order.findMany({
       where: { userId },
-      include: { items: true },
+      take: limit + 1,
+      ...(cursor && {
+        skip: 1,
+        cursor: { id: cursor },
+      }),
+      orderBy: { id: 'asc' },
+      include: {
+        items: true,
+      },
     });
 
-    return orders.map((order) => OrderMapper.toOrderDTO(order));
+    let nextCursor: string | null = null;
+    if (orders.length > limit) {
+      const nextItem = orders.pop();
+      nextCursor = nextItem?.id || null;
+    }
+
+    const formatted = orders.map((order) => OrderMapper.toOrderDTO(order));
+
+    return { data: formatted, nextCursor };
   }
 
   async getById(userId: string, id: string): Promise<OrderResponseDTO> {

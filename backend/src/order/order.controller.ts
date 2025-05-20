@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -27,8 +28,12 @@ export class OrderController {
   }
 
   @Get()
-  getOrders(@Req() req: { user: { id: string } }) {
-    return this.orderService.getAll(req.user.id);
+  getOrders(
+    @Req() req: { user: { id: string } },
+    @Query('limit') limit: number = 10,
+    @Query('cursor') cursor?: string
+  ) {
+    return this.orderService.getAll(req.user.id, limit, cursor);
   }
 
   @Get(':id')
