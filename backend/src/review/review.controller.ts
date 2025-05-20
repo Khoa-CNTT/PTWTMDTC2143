@@ -7,10 +7,12 @@ import {
   UploadedFiles,
   UseInterceptors,
   Query,
+  Patch,
 } from '@nestjs/common';
 import { ReviewService } from './review.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { HideReviewDto } from './dto/hide-review.dto';
 
 @Controller('reviews')
 export class ReviewController {
@@ -50,5 +52,10 @@ export class ReviewController {
     @Query('cursor') cursor?: string
   ) {
     return this.reviewService.getAllReviews(limit, cursor);
+  }
+
+  @Patch(':id/hide')
+  hideReview(@Param('id') id: string, @Body() dto: HideReviewDto) {
+    return this.reviewService.hideReview(id, dto);
   }
 }

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { ImageService } from 'src/image/image.service';
+import { HideReviewDto } from './dto/hide-review.dto';
 
 @Injectable()
 export class ReviewService {
@@ -124,6 +125,18 @@ export class ReviewService {
       cursor,
       filter: {},
       includeReplies: true,
+    });
+  }
+
+  async hideReview(id: string, dto: HideReviewDto) {
+    const review = await this.prisma.review.findUnique({ where: { id } });
+    if (!review) {
+      throw new NotFoundException('Review not found');
+    }
+
+    return this.prisma.review.update({
+      where: { id },
+      data: { isHidden: dto.isHidden },
     });
   }
 }
