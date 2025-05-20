@@ -24,7 +24,7 @@ import { ReviewModule } from './review/review.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { GlobalRoleGuard } from './auth/guards/global-role.guard';
 import { APP_GUARD } from '@nestjs/core';
-import { ChatboxModule } from './chatbox/chatbox.module';
+import { ChatboxModule } from '../../../ChatBoxAI/chatbox/chatbox.module';
 
 @Module({
   imports: [
