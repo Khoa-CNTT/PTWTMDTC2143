@@ -1,110 +1,126 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Pencil, Trash2, Plus } from 'lucide-react';
-
-interface Promotion {
-  id: number;
-  name: string;
-  description: string;
-  discount: number;
-  startDate: string;
-  endDate: string;
-  status: string;
-  type: 'discount' | 'voucher';
-}
-
-const initialPromotions: Promotion[] = [
-  {
-    id: 1,
-    name: 'Summer Promotion 2025',
-    description: 'Summer discount for all products',
-    discount: 20,
-    startDate: '2025-06-01',
-    endDate: '2025-06-30',
-    status: 'Active',
-    type: 'discount',
-  },
-  {
-    id: 2,
-    name: 'Black Friday',
-    description: 'Year-end super sale',
-    discount: 50,
-    startDate: '2025-11-25',
-    endDate: '2025-11-29',
-    status: 'Inactive',
-    type: 'voucher',
-  },
-];
+import {
+  discountService,
+  Discount,
+  DiscountCreateDTO,
+} from '../../services/discountService';
+import { ApplyType, DiscountStatus, DiscountType } from '@prisma/client';
 
 const PromoManager: React.FC = () => {
-  const [promotions, setPromotions] = useState<Promotion[]>(initialPromotions);
+  const [discounts, setDiscounts] = useState<Discount[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(
+  const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
+  const [deletingDiscount, setDeletingDiscount] = useState<Discount | null>(
     null
   );
-  const [deletingPromotion, setDeletingPromotion] = useState<Promotion | null>(
-    null
-  );
-  const [typeFilter, setTypeFilter] = useState<'all' | 'discount' | 'voucher'>(
-    'all'
-  );
-  const filteredPromotions = promotions.filter(
-    (p) =>
-      (typeFilter === 'all' || p.type === typeFilter) &&
-      p.name.toLowerCase().includes(search.toLowerCase())
-  );
-  const [addingPromotion, setAddingPromotion] = useState(false);
-  const [newPromotion, setNewPromotion] = useState<Promotion>({
-    id: Date.now(),
-    name: '',
-    description: '',
+  const [typeFilter, setTypeFilter] = useState<'all' | DiscountType>('all');
+  const [addingDiscount, setAddingDiscount] = useState(false);
+  const [newDiscount, setNewDiscount] = useState<DiscountCreateDTO>({
     discount: 0,
+    type: DiscountType.PERCENTAGE,
     startDate: '',
     endDate: '',
-    status: 'Active',
-    type: 'discount',
+    status: DiscountStatus.ACTIVE,
+    applyType: ApplyType.ALL,
   });
 
-  const handleAddClick = () => {
-    setAddingPromotion(true);
+  useEffect(() => {
+    fetchDiscounts();
+  }, []);
+
+  const fetchDiscounts = async () => {
+    try {
+      setLoading(true);
+      const response = await discountService.getAllDiscounts();
+      setDiscounts(response);
+    } catch (err) {
+      setError('Failed to fetch discounts');
+      console.error('Error fetching discounts:', err);
+    } finally {
+      setLoading(false);
+    }
   };
-  const handleAddSave = () => {
-    setPromotions((prev) => [...prev, newPromotion]);
-    setAddingPromotion(false);
-    setNewPromotion({
-      id: Date.now(),
-      name: '',
-      description: '',
-      discount: 0,
-      startDate: '',
-      endDate: '',
-      status: 'Active',
-      type: 'voucher',
-    });
+
+  const filteredDiscounts = discounts.filter(
+    (d) =>
+      (typeFilter === 'all' || d.type === typeFilter) &&
+      d.discount.toString().includes(search)
+  );
+
+  const handleAddClick = () => {
+    setAddingDiscount(true);
+  };
+
+  const handleAddSave = async () => {
+    try {
+      const createdDiscount = await discountService.createDiscount(newDiscount);
+      setDiscounts((prev) => [...prev, createdDiscount]);
+      setAddingDiscount(false);
+      setNewDiscount({
+        discount: 0,
+        type: DiscountType.PERCENTAGE,
+        startDate: '',
+        endDate: '',
+        status: DiscountStatus.ACTIVE,
+        applyType: ApplyType.ALL,
+      });
+    } catch (err) {
+      console.error('Error creating discount:', err);
+      setError('Failed to create discount');
+    }
   };
 
   const handleAddCancel = () => {
-    setAddingPromotion(false);
-  };
-  const handleEditClick = (promo: Promotion) => {
-    setEditingPromotion(promo);
+    setAddingDiscount(false);
   };
 
-  const handleSave = () => {
-    if (editingPromotion) {
-      setPromotions((prev) =>
-        prev.map((p) => (p.id === editingPromotion.id ? editingPromotion : p))
-      );
-      setEditingPromotion(null);
+  const handleEditClick = (discount: Discount) => {
+    setEditingDiscount(discount);
+  };
+
+  const handleSave = async () => {
+    if (editingDiscount) {
+      try {
+        const updatedDiscount = await discountService.updateDiscount(
+          editingDiscount.id,
+          {
+            discount: editingDiscount.discount,
+            type: editingDiscount.type,
+            startDate: editingDiscount.startDate,
+            endDate: editingDiscount.endDate,
+            status: editingDiscount.status,
+            applyType: editingDiscount.applyType,
+            categories: editingDiscount.categories,
+            products: editingDiscount.products,
+          }
+        );
+        setDiscounts((prev) =>
+          prev.map((d) => (d.id === updatedDiscount.id ? updatedDiscount : d))
+        );
+        setEditingDiscount(null);
+      } catch (err) {
+        console.error('Error updating discount:', err);
+        setError('Failed to update discount');
+      }
     }
   };
 
   const handleCancel = () => {
-    setEditingPromotion(null);
+    setEditingDiscount(null);
   };
 
-  const handleDelete = (id: number) => {
-    setPromotions((prev) => prev.filter((promo) => promo.id !== id));
-    setDeletingPromotion(null);
+  const handleDelete = async (id: string) => {
+    try {
+      await discountService.deleteDiscount(id);
+      setDiscounts((prev) => prev.filter((d) => d.id !== id));
+      setDeletingDiscount(null);
+    } catch (err) {
+      console.error('Error deleting discount:', err);
+      setError('Failed to delete discount');
+    }
   };
 
   const Badge = ({ text, color }: { text: string; color: string }) => (
@@ -113,23 +129,31 @@ const PromoManager: React.FC = () => {
     </span>
   );
 
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
+
   return (
     <div className="p-4">
       <div className="p-6 bg-white shadow-md rounded-lg">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-semibold">Promotion Management</h1>
+          <h1 className="text-2xl font-semibold">Discount Management</h1>
           <button
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
             onClick={handleAddClick}
           >
             <Plus size={20} />
-            Add Promotion
+            Add Discount
           </button>
         </div>
         <div className="mb-4 flex gap-4">
           <input
             type="text"
-            placeholder="Search promotions..."
+            placeholder="Search discounts..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -137,13 +161,13 @@ const PromoManager: React.FC = () => {
           <select
             value={typeFilter}
             onChange={(e) =>
-              setTypeFilter(e.target.value as 'all' | 'discount' | 'voucher')
+              setTypeFilter(e.target.value as 'all' | DiscountType)
             }
             className="px-3 py-2 border rounded"
           >
             <option value="all">All Types</option>
-            <option value="discount">Discount</option>
-            <option value="voucher">Voucher</option>
+            <option value={DiscountType.PERCENTAGE}>Percentage</option>
+            <option value={DiscountType.FIXED_AMOUNT}>Fixed Amount</option>
           </select>
         </div>
 
@@ -151,38 +175,40 @@ const PromoManager: React.FC = () => {
           <table className="w-full table-auto border-collapse border border-gray-300">
             <thead className="bg-gray-100">
               <tr>
-                <th className="border px-4 py-2">Name</th>
-                <th className="border px-4 py-2">Description</th>
-                <th className="border px-4 py-2">Discount (%)</th>
+                <th className="border px-4 py-2">Discount</th>
+                <th className="border px-4 py-2">Type</th>
                 <th className="border px-4 py-2">Start Date</th>
                 <th className="border px-4 py-2">End Date</th>
-                <th className="border px-4 py-2">Type</th>
+                <th className="border px-4 py-2">Apply To</th>
                 <th className="border px-4 py-2">Status</th>
                 <th className="border px-4 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredPromotions.map((promo) => (
-                <tr key={promo.id} className="hover:bg-gray-50">
-                  <td className="border px-4 py-2">{promo.name}</td>
-                  <td className="border px-4 py-2">{promo.description}</td>
-                  <td className="border px-4 py-2 text-center">
-                    {promo.discount}%
+              {filteredDiscounts.map((discount) => (
+                <tr key={discount.id} className="hover:bg-gray-50">
+                  <td className="border px-4 py-2">
+                    {discount.type === DiscountType.PERCENTAGE
+                      ? `${discount.discount}%`
+                      : `$${discount.discount}`}
+                  </td>
+                  <td className="border px-4 py-2 capitalize">
+                    {discount.type.toLowerCase()}
                   </td>
                   <td className="border px-4 py-2 text-center">
-                    {promo.startDate}
+                    {new Date(discount.startDate).toLocaleDateString()}
                   </td>
                   <td className="border px-4 py-2 text-center">
-                    {promo.endDate}
+                    {new Date(discount.endDate).toLocaleDateString()}
                   </td>
-                  <td className="border px-4 py-2 text-center capitalize">
-                    {promo.type}
+                  <td className="border px-4 py-2 capitalize">
+                    {discount.applyType.toLowerCase()}
                   </td>
                   <td className="border px-4 py-2 text-center">
                     <Badge
-                      text={promo.status}
+                      text={discount.status}
                       color={
-                        promo.status === 'Active'
+                        discount.status === DiscountStatus.ACTIVE
                           ? 'bg-green-100 text-green-600'
                           : 'bg-red-200 text-gray-500'
                       }
@@ -191,23 +217,23 @@ const PromoManager: React.FC = () => {
                   <td className="border px-4 py-2 text-center space-x-2">
                     <button
                       className="text-blue-600 hover:text-blue-800"
-                      onClick={() => handleEditClick(promo)}
+                      onClick={() => handleEditClick(discount)}
                     >
                       <Pencil size={18} />
                     </button>
                     <button
                       className="text-red-600 hover:text-red-800"
-                      onClick={() => setDeletingPromotion(promo)}
+                      onClick={() => setDeletingDiscount(discount)}
                     >
                       <Trash2 size={18} />
                     </button>
                   </td>
                 </tr>
               ))}
-              {filteredPromotions.length === 0 && (
+              {filteredDiscounts.length === 0 && (
                 <tr>
                   <td colSpan={7} className="text-center py-4 text-gray-500">
-                    No promotions found.
+                    No discounts found.
                   </td>
                 </tr>
               )}
@@ -215,55 +241,48 @@ const PromoManager: React.FC = () => {
           </table>
         </div>
       </div>
-      {addingPromotion && (
+
+      {addingDiscount && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center"
           style={{ zIndex: 9999 }}
         >
           <div className="bg-white p-6 rounded shadow-lg w-[500px]">
-            <h2 className="text-xl font-semibold mb-4">Add Promotion</h2>
-            <div className="grid grid-cols-2 gap-4 ">
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Name</label>
-                <input
-                  type="text"
-                  value={newPromotion.name}
-                  onChange={(e) =>
-                    setNewPromotion({ ...newPromotion, name: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+            <h2 className="text-xl font-semibold mb-4">Add Discount</h2>
+            <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">
-                  Discount (%)
+                  Discount
                 </label>
                 <input
                   type="number"
-                  value={newPromotion.discount}
+                  value={newDiscount.discount}
                   onChange={(e) =>
-                    setNewPromotion({
-                      ...newPromotion,
+                    setNewDiscount({
+                      ...newDiscount,
                       discount: Number(e.target.value),
                     })
                   }
                   className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <div className="mb-4 md:col-span-2">
-                <label className="block text-sm font-medium mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={newPromotion.description}
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Type</label>
+                <select
+                  value={newDiscount.type}
                   onChange={(e) =>
-                    setNewPromotion({
-                      ...newPromotion,
-                      description: e.target.value,
+                    setNewDiscount({
+                      ...newDiscount,
+                      type: e.target.value as DiscountType,
                     })
                   }
                   className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                >
+                  <option value={DiscountType.PERCENTAGE}>Percentage</option>
+                  <option value={DiscountType.FIXED_AMOUNT}>
+                    Fixed Amount
+                  </option>
+                </select>
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">
@@ -271,65 +290,65 @@ const PromoManager: React.FC = () => {
                 </label>
                 <input
                   type="date"
-                  value={newPromotion.startDate}
+                  value={newDiscount.startDate}
                   onChange={(e) =>
-                    setNewPromotion({
-                      ...newPromotion,
+                    setNewDiscount({
+                      ...newDiscount,
                       startDate: e.target.value,
                     })
                   }
                   className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">
                   End Date
                 </label>
                 <input
                   type="date"
-                  value={newPromotion.endDate}
+                  value={newDiscount.endDate}
                   onChange={(e) =>
-                    setNewPromotion({
-                      ...newPromotion,
+                    setNewDiscount({
+                      ...newDiscount,
                       endDate: e.target.value,
                     })
                   }
                   className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Type</label>
+                <label className="block text-sm font-medium mb-1">
+                  Apply To
+                </label>
                 <select
-                  value={newPromotion.type}
+                  value={newDiscount.applyType}
                   onChange={(e) =>
-                    setNewPromotion({
-                      ...newPromotion,
-                      type: e.target.value as 'discount' | 'voucher',
+                    setNewDiscount({
+                      ...newDiscount,
+                      applyType: e.target.value as ApplyType,
                     })
                   }
                   className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="discount">Discount</option>
-                  <option value="voucher">Voucher</option>
+                  <option value={ApplyType.ALL}>All Products</option>
+                  <option value={ApplyType.CATEGORY}>Categories</option>
+                  <option value={ApplyType.PRODUCT}>Products</option>
                 </select>
               </div>
-
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">Status</label>
                 <select
-                  value={newPromotion.status}
+                  value={newDiscount.status}
                   onChange={(e) =>
-                    setNewPromotion({
-                      ...newPromotion,
-                      status: e.target.value,
+                    setNewDiscount({
+                      ...newDiscount,
+                      status: e.target.value as DiscountStatus,
                     })
                   }
                   className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value={DiscountStatus.ACTIVE}>Active</option>
+                  <option value={DiscountStatus.INACTIVE}>Inactive</option>
                 </select>
               </div>
             </div>
@@ -350,88 +369,26 @@ const PromoManager: React.FC = () => {
           </div>
         </div>
       )}
-      {editingPromotion && (
+
+      {editingDiscount && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center"
           style={{ zIndex: 9999 }}
         >
           <div className="bg-white p-6 rounded shadow-lg w-[500px]">
-            <h2 className="text-xl font-semibold mb-4">Edit Promotion</h2>
-            <div className="grid grid-cols-2 gap-4 ">
-              <div className="mb-4 ">
-                <label className="block text-sm font-medium mb-1">Name</label>
-                <input
-                  type="text"
-                  value={editingPromotion.name}
-                  onChange={(e) =>
-                    setEditingPromotion({
-                      ...editingPromotion,
-                      name: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+            <h2 className="text-xl font-semibold mb-4">Edit Discount</h2>
+            <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">
-                  Discount (%)
+                  Discount
                 </label>
                 <input
                   type="number"
-                  value={editingPromotion.discount}
+                  value={editingDiscount.discount}
                   onChange={(e) =>
-                    setEditingPromotion({
-                      ...editingPromotion,
+                    setEditingDiscount({
+                      ...editingDiscount,
                       discount: Number(e.target.value),
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="mb-4 md:col-span-2">
-                <label className="block text-sm font-medium mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={editingPromotion.description}
-                  onChange={(e) =>
-                    setEditingPromotion({
-                      ...editingPromotion,
-                      description: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={editingPromotion.startDate}
-                  onChange={(e) =>
-                    setEditingPromotion({
-                      ...editingPromotion,
-                      startDate: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  value={editingPromotion.endDate}
-                  onChange={(e) =>
-                    setEditingPromotion({
-                      ...editingPromotion,
-                      endDate: e.target.value,
                     })
                   }
                   className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -440,37 +397,89 @@ const PromoManager: React.FC = () => {
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">Type</label>
                 <select
-                  value={editingPromotion.type}
+                  value={editingDiscount.type}
                   onChange={(e) =>
-                    setEditingPromotion({
-                      ...editingPromotion,
-                      type: e.target.value as 'discount' | 'voucher',
+                    setEditingDiscount({
+                      ...editingDiscount,
+                      type: e.target.value as DiscountType,
                     })
                   }
                   className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="discount">Discount</option>
-                  <option value="voucher">Voucher</option>
+                  <option value={DiscountType.PERCENTAGE}>Percentage</option>
+                  <option value={DiscountType.FIXED_AMOUNT}>
+                    Fixed Amount
+                  </option>
+                </select>
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={editingDiscount.startDate}
+                  onChange={(e) =>
+                    setEditingDiscount({
+                      ...editingDiscount,
+                      startDate: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={editingDiscount.endDate}
+                  onChange={(e) =>
+                    setEditingDiscount({
+                      ...editingDiscount,
+                      endDate: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  Apply To
+                </label>
+                <select
+                  value={editingDiscount.applyType}
+                  onChange={(e) =>
+                    setEditingDiscount({
+                      ...editingDiscount,
+                      applyType: e.target.value as ApplyType,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={ApplyType.ALL}>All Products</option>
+                  <option value={ApplyType.CATEGORY}>Categories</option>
+                  <option value={ApplyType.PRODUCT}>Products</option>
                 </select>
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">Status</label>
                 <select
-                  value={editingPromotion.status}
+                  value={editingDiscount.status}
                   onChange={(e) =>
-                    setEditingPromotion({
-                      ...editingPromotion,
-                      status: e.target.value,
+                    setEditingDiscount({
+                      ...editingDiscount,
+                      status: e.target.value as DiscountStatus,
                     })
                   }
                   className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value={DiscountStatus.ACTIVE}>Active</option>
+                  <option value={DiscountStatus.INACTIVE}>Inactive</option>
                 </select>
               </div>
             </div>
-
             <div className="flex justify-end space-x-2">
               <button
                 className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
@@ -489,24 +498,23 @@ const PromoManager: React.FC = () => {
         </div>
       )}
 
-      {deletingPromotion && (
+      {deletingDiscount && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
           <div className="bg-white p-6 rounded shadow-lg w-96">
             <h2 className="text-xl font-semibold mb-4">Confirm Deletion</h2>
             <p className="mb-4">
-              Are you sure you want to delete the promotion{' '}
-              <strong>{deletingPromotion.name}</strong>?
+              Are you sure you want to delete this discount?
             </p>
             <div className="flex justify-end space-x-2">
               <button
                 className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
-                onClick={() => setDeletingPromotion(null)}
+                onClick={() => setDeletingDiscount(null)}
               >
                 Cancel
               </button>
               <button
                 className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                onClick={() => handleDelete(deletingPromotion.id)}
+                onClick={() => handleDelete(deletingDiscount.id)}
               >
                 Delete
               </button>
