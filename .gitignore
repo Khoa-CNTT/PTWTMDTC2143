@@ -50,11 +50,12 @@ cypress/downloads/
 !.yarn/sdks
 !.yarn/versions
 
+*.env
 /backend/.env
 
 /backend/dist/
 
-*.env
-/backend/src/chatboxai/.env
+
+
 
 node_modules
