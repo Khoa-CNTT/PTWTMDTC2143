@@ -15,7 +15,6 @@ import { CartModule } from './cart/cart.module';
 import { OrderModule } from './order/order.module';
 import { VoucherModule } from './voucher/voucher.module';
 import { DiscountModule } from './discount/discount.module';
-import { OpenaiModule } from './openai/openai.module';
 import { ImageService } from './image/image.service';
 import { ImageModule } from './image/image.module';
 import jwtConfig from './auth/config/jwt.config';
@@ -25,6 +24,7 @@ import { ReviewModule } from './review/review.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { GlobalRoleGuard } from './auth/guards/global-role.guard';
 import { APP_GUARD } from '@nestjs/core';
+import { ChatboxModule } from './chatbox/chatbox.module';
 
 @Module({
   imports: [
@@ -49,6 +49,7 @@ import { APP_GUARD } from '@nestjs/core';
         },
       }),
     }),
+
     AuthModule,
     UserModule,
     EmailModule,
@@ -61,11 +62,11 @@ import { APP_GUARD } from '@nestjs/core';
     OrderModule,
     VoucherModule,
     DiscountModule,
-    OpenaiModule,
     ImageModule,
     VnpayModule,
     WishlistModule,
     ReviewModule,
+    ChatboxModule,
   ],
   controllers: [AppController],
   providers: [

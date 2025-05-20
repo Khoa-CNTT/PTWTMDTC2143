@@ -164,4 +164,5 @@ export const PublicRoutes = [
   { path: '/email/send-otp', method: 'POST' },
   { path: '/email/verify-otp', method: 'POST' },
   { path: '/email/resend-otp', method: 'POST' },
+  { path: '/query', method: 'POST' },
 ];
