@@ -6,10 +6,12 @@ import {
   Param,
   Patch,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { DiscountService } from './discount.service';
 import { DiscountCreateDTO } from './dto/discount-create.dto';
 import { DiscountUpdateDTO } from './dto/discount-update.dto';
+import { DiscountResponseDTO } from './dto/discount-response.dto';
 
 @Controller('discounts')
 export class DiscountController {
@@ -21,8 +23,11 @@ export class DiscountController {
   }
 
   @Get()
-  findAll() {
-    return this.discountService.findAll();
+  async findAll(
+    @Query('limit') limit: number = 10,
+    @Query('cursor') cursor?: string
+  ): Promise<{ data: DiscountResponseDTO[]; nextCursor: string | null }> {
+    return this.discountService.findAll(limit, cursor);
   }
 
   @Get(':id')

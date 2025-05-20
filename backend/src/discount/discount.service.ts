@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { DiscountUpdateDTO } from './dto/discount-update.dto';
 import { DiscountMapper } from './discount.mapper';
 import { DiscountCreateDTO } from './dto/discount-create.dto';
+import { DiscountResponseDTO } from './dto/discount-response.dto';
 
 @Injectable()
 export class DiscountService {
@@ -41,15 +42,34 @@ export class DiscountService {
     return DiscountMapper.toDTO(discount);
   }
 
-  async findAll() {
+  async findAll(
+    limit: number,
+    cursor?: string
+  ): Promise<{ data: DiscountResponseDTO[]; nextCursor: string | null }> {
     const discounts = await this.prisma.discount.findMany({
+      take: limit + 1,
+      ...(cursor && {
+        skip: 1,
+        cursor: { id: cursor },
+      }),
       include: {
         categories: { include: { category: true } },
         products: { include: { product: true } },
       },
+      orderBy: { id: 'asc' },
     });
 
-    return discounts.map((discount) => DiscountMapper.toDTO(discount));
+    let nextCursor: string | null = null;
+    if (discounts.length > limit) {
+      const nextDiscount = discounts.pop();
+      nextCursor = nextDiscount?.id || null;
+    }
+
+    const formatted = discounts.map((discount) =>
+      DiscountMapper.toDTO(discount)
+    );
+
+    return { data: formatted, nextCursor };
   }
 
   async findOne(id: string) {
@@ -76,7 +96,7 @@ export class DiscountService {
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
         status: dto.status,
         applyType: dto.applyType,
-        // Xóa rồi tạo lại quan hệ nếu có
+
         categories: dto.categories
           ? {
               deleteMany: {},
