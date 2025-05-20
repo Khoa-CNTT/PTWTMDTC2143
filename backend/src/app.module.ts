@@ -24,7 +24,8 @@ import { ReviewModule } from './review/review.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { GlobalRoleGuard } from './auth/guards/global-role.guard';
 import { APP_GUARD } from '@nestjs/core';
-import { ChatboxModule } from '../../../ChatBoxAI/chatbox/chatbox.module';
+import { PaypalModule } from './paypal/paypal.module';
+import { ReturnModule } from './return/return.module';
 
 @Module({
   imports: [
@@ -65,7 +66,8 @@ import { ChatboxModule } from '../../../ChatBoxAI/chatbox/chatbox.module';
     VnpayModule,
     WishlistModule,
     ReviewModule,
-    ChatboxModule,
+    PaypalModule,
+    ReturnModule,
   ],
   controllers: [AppController],
   providers: [

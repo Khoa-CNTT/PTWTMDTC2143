@@ -38,7 +38,7 @@ export class ReviewController {
 
   @Get('product/:productId')
   async getByProduct(@Param('productId') productId: string) {
-    return this.reviewService.findByProduct(productId); // Không phân trang ở đây
+    return this.reviewService.findByProduct(productId);
   }
 
   @Get(':id')
