@@ -238,6 +238,14 @@ export class OrderService {
     return orders.map((order) => OrderMapper.toOrderDTO(order));
   }
 
+  async getAllOrders(): Promise<OrderResponseDTO[]> {
+    const orders = await this.prisma.order.findMany({
+      include: { items: true },
+    });
+
+    return orders.map((order) => OrderMapper.toOrderDTO(order));
+  }
+
   async getById(userId: string, id: string): Promise<OrderResponseDTO> {
     const order = await this.prisma.order.findUnique({
       where: { id },

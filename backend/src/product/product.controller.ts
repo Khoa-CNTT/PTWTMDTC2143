@@ -26,10 +26,14 @@ import {
   FilesInterceptor,
 } from '@nestjs/platform-express';
 import { OptionCreateDTO } from './dto/option-create.dto';
+import { ImageService } from '../image/image.service';
 
 @Controller('product')
 export class ProductController {
-  constructor(private productService: ProductService) {}
+  constructor(
+    private productService: ProductService,
+    private imageService: ImageService
+  ) {}
 
   @Get()
   async getAllProducts(
@@ -75,16 +79,26 @@ export class ProductController {
     return this.productService.updateProduct(productId, dto);
   }
 
-  @UseInterceptors(FileFieldsInterceptor([{ name: 'images', maxCount: 10 }]))
-  @Post(':productId/variants')
+  @Post(':id/variants')
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'images', maxCount: 5 }]))
   async createVariant(
-    @Param('productId', ParseUUIDPipe) productId: string,
+    @Param('id') productId: string,
     @Body() dto: VariantCreateDTO,
     @UploadedFiles() files: { images?: Express.Multer.File[] }
-  ) {
-    dto.images = files.images || [];
+  ): Promise<VariantResponseDTO> {
+    if (files?.images?.length) {
+      const imagePromises = files.images.map(async (file, index) => {
+        const imageUrl = await this.imageService.uploadImage(file, 'variants');
+        return {
+          imageUrl,
+          isThumbnail: index === 0,
+        };
+      });
+      dto.images = await Promise.all(imagePromises);
+    }
     return this.productService.createVariant(productId, dto);
   }
+
   @Put(':variantId/variants')
   @UseInterceptors(FileFieldsInterceptor([{ name: 'newImages', maxCount: 10 }]))
   async updateVariant(
@@ -127,11 +141,12 @@ export class ProductController {
     );
   }
 
-  @Get('variants/:variantId')
-  async getProductVariant(
-    @Param('variantId', ParseUUIDPipe) variantId: string
+  @Get(':productId/variants/:variantId')
+  getProductVariant(
+    @Param('productId') productId: string,
+    @Param('variantId') variantId: string
   ): Promise<VariantResponseDTO> {
-    return this.productService.getProductVariant(variantId);
+    return this.productService.getProductVariant(productId, variantId);
   }
 
   @Get('search')
@@ -141,5 +156,22 @@ export class ProductController {
     @Query('cursor') cursor?: string
   ) {
     return this.productService.searchProductsByName(keyword, limit, cursor);
+  }
+
+  @Get(':productId/variants')
+  async getProductVariants(
+    @Param('productId', ParseUUIDPipe) productId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe) pageSize: number
+  ) {
+    return this.productService.getProductVariants(productId, page, pageSize);
+  }
+
+  @Get('variants')
+  async getAllVariants(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe) pageSize: number
+  ) {
+    return this.productService.getAllVariants(page, pageSize);
   }
 }

@@ -16,23 +16,16 @@ const UserList = () => {
   const [showMenu, setShowMenu] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [totalUsers, setTotalUsers] = useState(0);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const itemsPerPage = 10;
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (page: number) => {
     try {
       setIsLoading(true);
-      const response = await userService.getAllUsers(
-        10,
-        nextCursor || undefined
-      );
-      if (Array.isArray(response)) {
-        setUsers(response);
-        setTotalUsers(response.length);
-        setNextCursor(null);
-      } else if (response && response.users) {
+      const response = await userService.getAllUsers(itemsPerPage);
+      if (response && response.users) {
         setUsers(response.users);
         setTotalUsers(response.total);
         setNextCursor(response.nextCursor);
@@ -47,11 +40,11 @@ const UserList = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [nextCursor]);
+  }, []);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    fetchUsers(currentPage);
+  }, [currentPage, fetchUsers]);
 
   const handleView = (userId: string) => {
     navigate(`/user-details/${userId}`);
@@ -86,9 +79,26 @@ const UserList = () => {
     }
   };
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = async (page: number) => {
     setCurrentPage(page);
     setShowMenu(null);
+    try {
+      setIsLoading(true);
+      const response = await userService.getAllUsers(
+        itemsPerPage,
+        nextCursor || undefined
+      );
+      if (response && response.users) {
+        setUsers(response.users);
+        setTotalUsers(response.total);
+        setNextCursor(response.nextCursor);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setError('Failed to fetch users');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -248,14 +258,14 @@ const UserList = () => {
         {users && users.length > 0 && (
           <div className="flex justify-end mt-4 space-x-2 items-center">
             <button
-              onClick={() => setCurrentPage(1)}
+              onClick={() => handlePageChange(1)}
               disabled={currentPage === 1}
               className="text-gray-400 disabled:opacity-30"
             >
               <MdSkipPrevious />
             </button>
             <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
               disabled={currentPage === 1}
               className="text-gray-400 disabled:opacity-30"
             >
@@ -281,8 +291,11 @@ const UserList = () => {
 
             <button
               onClick={() =>
-                setCurrentPage((prev) =>
-                  Math.min(prev + 1, Math.ceil(totalUsers / itemsPerPage))
+                handlePageChange(
+                  Math.min(
+                    currentPage + 1,
+                    Math.ceil(totalUsers / itemsPerPage)
+                  )
                 )
               }
               disabled={currentPage === Math.ceil(totalUsers / itemsPerPage)}
@@ -292,7 +305,7 @@ const UserList = () => {
             </button>
             <button
               onClick={() =>
-                setCurrentPage(Math.ceil(totalUsers / itemsPerPage))
+                handlePageChange(Math.ceil(totalUsers / itemsPerPage))
               }
               disabled={currentPage === Math.ceil(totalUsers / itemsPerPage)}
               className="text-gray-400 disabled:opacity-30"

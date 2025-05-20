@@ -26,6 +26,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { GlobalRoleGuard } from './auth/guards/global-role.guard';
 import { APP_GUARD } from '@nestjs/core';
 
+
 @Module({
   imports: [
     ConfigModule.forRoot({

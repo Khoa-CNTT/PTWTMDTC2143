@@ -9,7 +9,7 @@ import {
   IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { VariantOptionValue, VariantStatus, WeightUnit } from '@prisma/client';
+import { VariantStatus, WeightUnit } from '@prisma/client';
 
 export class VariantImageUpdateDTO {
   @IsUUID()
@@ -25,8 +25,9 @@ export class VariantUpdateDTO {
   price: number;
 
   @IsNumber()
+  @IsOptional()
   @IsPositive()
-  compareAtPrice: number;
+  compareAtPrice?: number;
 
   @IsNumber()
   @IsPositive()
@@ -44,11 +45,11 @@ export class VariantUpdateDTO {
   @IsEnum(VariantStatus)
   status: VariantStatus;
 
-  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  optionValues?: VariantOptionValue[];
+  @Type(() => VariantOptionValueDTO)
+  @IsOptional()
+  optionValues?: VariantOptionValueDTO[];
 
   @IsOptional()
   @IsArray()
@@ -56,12 +57,17 @@ export class VariantUpdateDTO {
   @Type(() => VariantImageUpdateDTO)
   oldImages?: VariantImageUpdateDTO[];
 
-  @IsOptional()
   @IsArray()
+  @IsOptional()
   newImages?: Express.Multer.File[];
 
-  @IsOptional()
   @IsArray()
+  @IsOptional()
   @IsUUID('4', { each: true })
   replaceIds?: string[];
+}
+
+export class VariantOptionValueDTO {
+  @IsString()
+  optionValueId: string;
 }

@@ -1,42 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Pencil, Trash2, Plus } from 'lucide-react';
-
-interface Promotion {
-  id: number;
-  name: string;
-  description: string;
-  discount: number;
-  startDate: string;
-  endDate: string;
-  status: string;
-  type: 'discount' | 'voucher';
-}
-
-const initialPromotions: Promotion[] = [
-  {
-    id: 1,
-    name: 'Summer Promotion 2025',
-    description: 'Summer discount for all products',
-    discount: 20,
-    startDate: '2025-06-01',
-    endDate: '2025-06-30',
-    status: 'Active',
-    type: 'discount',
-  },
-  {
-    id: 2,
-    name: 'Black Friday',
-    description: 'Year-end super sale',
-    discount: 50,
-    startDate: '2025-11-25',
-    endDate: '2025-11-29',
-    status: 'Inactive',
-    type: 'voucher',
-  },
-];
+import { promoService, Promotion } from '../../services/promoService';
 
 const PromoManager: React.FC = () => {
-  const [promotions, setPromotions] = useState<Promotion[]>(initialPromotions);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [search, setSearch] = useState('');
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(
     null
@@ -47,74 +14,179 @@ const PromoManager: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<'all' | 'discount' | 'voucher'>(
     'all'
   );
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPromotions, setTotalPromotions] = useState(0);
+  const itemsPerPage = 10;
+
+  const fetchPromotions = useCallback(
+    async (page: number) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await promoService.getAllPromotions(
+          itemsPerPage,
+          undefined,
+          typeFilter === 'all' ? undefined : typeFilter
+        );
+
+        // Log API response data
+        console.log('API Response:', {
+          promotions: response.promotions,
+          total: response.total,
+          typeFilter,
+          page,
+        });
+
+        // Log individual promotions for detailed inspection
+        response.promotions.forEach((promo, index) => {
+          console.log(`Promotion ${index + 1}:`, {
+            id: promo.id,
+            name: promo.name,
+            type: promo.type,
+            status: promo.status,
+            discount: promo.discount,
+            startDate: promo.startDate,
+            endDate: promo.endDate,
+            applyType: promo.applyType,
+            categories: promo.categories,
+            products: promo.products,
+            code: promo.code,
+            minOrderValue: promo.minOrderValue,
+            maxDiscountValue: promo.maxDiscountValue,
+            usageLimit: promo.usageLimit,
+            usedCount: promo.usedCount,
+            isPublic: promo.isPublic,
+          });
+        });
+
+        setPromotions(response.promotions);
+        setTotalPromotions(response.total);
+      } catch (err) {
+        console.error('Error fetching promotions:', err);
+        setError('Failed to fetch promotions');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [typeFilter]
+  );
+
+  useEffect(() => {
+    fetchPromotions(currentPage);
+  }, [currentPage, fetchPromotions]);
+
   const filteredPromotions = promotions.filter(
     (p) =>
-      (typeFilter === 'all' || p.type === typeFilter) &&
-      p.name.toLowerCase().includes(search.toLowerCase())
+      p.name?.toLowerCase().includes(search.toLowerCase()) ||
+      p.code?.toLowerCase().includes(search.toLowerCase())
   );
-  const [addingPromotion, setAddingPromotion] = useState(false);
-  const [newPromotion, setNewPromotion] = useState<Promotion>({
-    id: Date.now(),
-    name: '',
-    description: '',
-    discount: 0,
-    startDate: '',
-    endDate: '',
-    status: 'Active',
-    type: 'discount',
-  });
 
   const handleAddClick = () => {
-    setAddingPromotion(true);
-  };
-  const handleAddSave = () => {
-    setPromotions((prev) => [...prev, newPromotion]);
-    setAddingPromotion(false);
-    setNewPromotion({
-      id: Date.now(),
+    setEditingPromotion({
+      id: '',
       name: '',
       description: '',
       discount: 0,
       startDate: '',
       endDate: '',
-      status: 'Active',
-      type: 'voucher',
+      status: 'ACTIVE',
+      type: 'discount',
     });
   };
 
-  const handleAddCancel = () => {
-    setAddingPromotion(false);
-  };
-  const handleEditClick = (promo: Promotion) => {
-    setEditingPromotion(promo);
-  };
+  const handleSave = async () => {
+    if (!editingPromotion) return;
 
-  const handleSave = () => {
-    if (editingPromotion) {
-      setPromotions((prev) =>
-        prev.map((p) => (p.id === editingPromotion.id ? editingPromotion : p))
-      );
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      if (editingPromotion.id) {
+        const updated = await promoService.updatePromotion(
+          editingPromotion.id,
+          editingPromotion
+        );
+        setPromotions((prev) =>
+          prev.map((p) => (p.id === updated.id ? updated : p))
+        );
+      } else {
+        const created = await promoService.createPromotion(editingPromotion);
+        setPromotions((prev) => [...prev, created]);
+      }
+
       setEditingPromotion(null);
+    } catch (err) {
+      console.error('Error saving promotion:', err);
+      setError('Failed to save promotion');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleCancel = () => {
-    setEditingPromotion(null);
+  const handleDelete = async (id: string, type: 'discount' | 'voucher') => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      await promoService.deletePromotion(id, type);
+      setPromotions((prev) => prev.filter((p) => p.id !== id));
+      setDeletingPromotion(null);
+    } catch (err) {
+      console.error('Error deleting promotion:', err);
+      setError('Failed to delete promotion');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDelete = (id: number) => {
-    setPromotions((prev) => prev.filter((promo) => promo.id !== id));
-    setDeletingPromotion(null);
+  // const handleStatusChange = async (
+  //   id: string,
+  //   currentStatus: 'ACTIVE' | 'INACTIVE' | 'EXPIRED',
+  //   type: 'discount' | 'voucher'
+  // ) => {
+  //   try {
+  //     setIsLoading(true);
+  //     setError(null);
+  //     const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+  //     const updated = await promoService.updatePromotionStatus(
+  //       id,
+  //       newStatus,
+  //       type
+  //     );
+  //     setPromotions((prev) =>
+  //       prev.map((p) => (p.id === updated.id ? updated : p))
+  //     );
+  //   } catch (err) {
+  //     console.error('Error updating promotion status:', err);
+  //     setError('Failed to update promotion status');
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
   };
 
-  const Badge = ({ text, color }: { text: string; color: string }) => (
-    <span className={`px-2 py-1 text-xs rounded-full font-medium ${color}`}>
-      {text}
-    </span>
-  );
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-gray-600">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4">
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>
+      )}
+
       <div className="p-6 bg-white shadow-md rounded-lg">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-semibold">Promotion Management</h1>
@@ -126,10 +198,11 @@ const PromoManager: React.FC = () => {
             Add Promotion
           </button>
         </div>
+
         <div className="mb-4 flex gap-4">
           <input
             type="text"
-            placeholder="Search promotions..."
+            placeholder="Search by name or code..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -151,47 +224,81 @@ const PromoManager: React.FC = () => {
           <table className="w-full table-auto border-collapse border border-gray-300">
             <thead className="bg-gray-100">
               <tr>
+                <th className="border px-4 py-2">ID/Code</th>
                 <th className="border px-4 py-2">Name</th>
                 <th className="border px-4 py-2">Description</th>
-                <th className="border px-4 py-2">Discount (%)</th>
+                <th className="border px-4 py-2">Discount</th>
                 <th className="border px-4 py-2">Start Date</th>
                 <th className="border px-4 py-2">End Date</th>
                 <th className="border px-4 py-2">Type</th>
                 <th className="border px-4 py-2">Status</th>
+                <th className="border px-4 py-2">Details</th>
                 <th className="border px-4 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredPromotions.map((promo) => (
                 <tr key={promo.id} className="hover:bg-gray-50">
+                  <td className="border px-4 py-2">{promo.code || promo.id}</td>
                   <td className="border px-4 py-2">{promo.name}</td>
                   <td className="border px-4 py-2">{promo.description}</td>
                   <td className="border px-4 py-2 text-center">
                     {promo.discount}%
+                    {promo.maxDiscountValue && (
+                      <div className="text-xs text-gray-500">
+                        Max: {promo.maxDiscountValue.toLocaleString()}đ
+                      </div>
+                    )}
                   </td>
                   <td className="border px-4 py-2 text-center">
-                    {promo.startDate}
+                    {formatDate(promo.startDate)}
                   </td>
                   <td className="border px-4 py-2 text-center">
-                    {promo.endDate}
+                    {formatDate(promo.endDate)}
                   </td>
                   <td className="border px-4 py-2 text-center capitalize">
                     {promo.type}
                   </td>
                   <td className="border px-4 py-2 text-center">
-                    <Badge
-                      text={promo.status}
-                      color={
-                        promo.status === 'Active'
-                          ? 'bg-green-100 text-green-600'
-                          : 'bg-red-200 text-gray-500'
-                      }
-                    />
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-semibold ${
+                        promo.status === 'ACTIVE'
+                          ? 'bg-green-100 text-green-700'
+                          : promo.status === 'EXPIRED'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-gray-200 text-gray-500'
+                      }`}
+                    >
+                      {promo.status}
+                    </span>
+                  </td>
+                  <td className="border px-4 py-2">
+                    {promo.type === 'voucher' ? (
+                      <div className="text-sm">
+                        <div>Min: {promo.minOrderValue?.toLocaleString()}đ</div>
+                        <div>
+                          Used: {promo.usedCount}/{promo.usageLimit}
+                        </div>
+                        {promo.isPublic !== undefined && (
+                          <div>{promo.isPublic ? 'Public' : 'Private'}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-sm">
+                        <div>Apply: {promo.applyType}</div>
+                        {promo.categories && promo.categories.length > 0 && (
+                          <div>Categories: {promo.categories.length}</div>
+                        )}
+                        {promo.products && promo.products.length > 0 && (
+                          <div>Products: {promo.products.length}</div>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="border px-4 py-2 text-center space-x-2">
                     <button
                       className="text-blue-600 hover:text-blue-800"
-                      onClick={() => handleEditClick(promo)}
+                      onClick={() => setEditingPromotion(promo)}
                     >
                       <Pencil size={18} />
                     </button>
@@ -206,7 +313,7 @@ const PromoManager: React.FC = () => {
               ))}
               {filteredPromotions.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-4 text-gray-500">
+                  <td colSpan={10} className="text-center py-4 text-gray-500">
                     No promotions found.
                   </td>
                 </tr>
@@ -215,154 +322,22 @@ const PromoManager: React.FC = () => {
           </table>
         </div>
       </div>
-      {addingPromotion && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center"
-          style={{ zIndex: 9999 }}
-        >
-          <div className="bg-white p-6 rounded shadow-lg w-[500px]">
-            <h2 className="text-xl font-semibold mb-4">Add Promotion</h2>
-            <div className="grid grid-cols-2 gap-4 ">
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Name</label>
-                <input
-                  type="text"
-                  value={newPromotion.name}
-                  onChange={(e) =>
-                    setNewPromotion({ ...newPromotion, name: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Discount (%)
-                </label>
-                <input
-                  type="number"
-                  value={newPromotion.discount}
-                  onChange={(e) =>
-                    setNewPromotion({
-                      ...newPromotion,
-                      discount: Number(e.target.value),
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="mb-4 md:col-span-2">
-                <label className="block text-sm font-medium mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={newPromotion.description}
-                  onChange={(e) =>
-                    setNewPromotion({
-                      ...newPromotion,
-                      description: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={newPromotion.startDate}
-                  onChange={(e) =>
-                    setNewPromotion({
-                      ...newPromotion,
-                      startDate: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  value={newPromotion.endDate}
-                  onChange={(e) =>
-                    setNewPromotion({
-                      ...newPromotion,
-                      endDate: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Type</label>
-                <select
-                  value={newPromotion.type}
-                  onChange={(e) =>
-                    setNewPromotion({
-                      ...newPromotion,
-                      type: e.target.value as 'discount' | 'voucher',
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="discount">Discount</option>
-                  <option value="voucher">Voucher</option>
-                </select>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Status</label>
-                <select
-                  value={newPromotion.status}
-                  onChange={(e) =>
-                    setNewPromotion({
-                      ...newPromotion,
-                      status: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <button
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
-                onClick={handleAddCancel}
-              >
-                Cancel
-              </button>
-              <button
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                onClick={handleAddSave}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {editingPromotion && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center"
           style={{ zIndex: 9999 }}
         >
           <div className="bg-white p-6 rounded shadow-lg w-[500px]">
-            <h2 className="text-xl font-semibold mb-4">Edit Promotion</h2>
-            <div className="grid grid-cols-2 gap-4 ">
-              <div className="mb-4 ">
+            <h2 className="text-xl font-semibold mb-4">
+              {editingPromotion.id ? 'Edit' : 'Add'} Promotion
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">Name</label>
                 <input
                   type="text"
-                  value={editingPromotion.name}
+                  value={editingPromotion.name || ''}
                   onChange={(e) =>
                     setEditingPromotion({
                       ...editingPromotion,
@@ -393,7 +368,7 @@ const PromoManager: React.FC = () => {
                   Description
                 </label>
                 <textarea
-                  value={editingPromotion.description}
+                  value={editingPromotion.description || ''}
                   onChange={(e) =>
                     setEditingPromotion({
                       ...editingPromotion,
@@ -403,7 +378,6 @@ const PromoManager: React.FC = () => {
                   className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">
                   Start Date
@@ -420,7 +394,6 @@ const PromoManager: React.FC = () => {
                   className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">
                   End Date
@@ -460,21 +433,24 @@ const PromoManager: React.FC = () => {
                   onChange={(e) =>
                     setEditingPromotion({
                       ...editingPromotion,
-                      status: e.target.value,
+                      status: e.target.value as
+                        | 'ACTIVE'
+                        | 'INACTIVE'
+                        | 'EXPIRED',
                     })
                   }
                   className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
+                  <option value="EXPIRED">Expired</option>
                 </select>
               </div>
             </div>
-
             <div className="flex justify-end space-x-2">
               <button
                 className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
-                onClick={handleCancel}
+                onClick={() => setEditingPromotion(null)}
               >
                 Cancel
               </button>
@@ -495,7 +471,10 @@ const PromoManager: React.FC = () => {
             <h2 className="text-xl font-semibold mb-4">Confirm Deletion</h2>
             <p className="mb-4">
               Are you sure you want to delete the promotion{' '}
-              <strong>{deletingPromotion.name}</strong>?
+              <strong>
+                {deletingPromotion.name || deletingPromotion.code}
+              </strong>
+              ?
             </p>
             <div className="flex justify-end space-x-2">
               <button
@@ -506,7 +485,9 @@ const PromoManager: React.FC = () => {
               </button>
               <button
                 className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                onClick={() => handleDelete(deletingPromotion.id)}
+                onClick={() =>
+                  handleDelete(deletingPromotion.id, deletingPromotion.type)
+                }
               >
                 Delete
               </button>

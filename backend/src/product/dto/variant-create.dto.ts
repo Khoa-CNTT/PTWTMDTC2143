@@ -1,27 +1,38 @@
 import {
   IsNumber,
-  IsPositive,
+  // IsPositive,
   IsEnum,
   IsString,
   IsOptional,
   IsArray,
   ValidateNested,
-  ArrayNotEmpty,
+  // ArrayNotEmpty,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { VariantOptionValue, VariantStatus, WeightUnit } from '@prisma/client';
+import { VariantStatus, WeightUnit } from '@prisma/client';
+
+export class VariantImageCreateDTO {
+  @IsString()
+  imageUrl: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isThumbnail?: boolean;
+}
 
 export class VariantCreateDTO {
+  @IsString()
+  sku: string;
+
   @IsNumber()
-  @IsPositive()
   price: number;
 
   @IsNumber()
-  @IsPositive()
-  compareAtPrice: number;
+  @IsOptional()
+  compareAtPrice?: number;
 
   @IsNumber()
-  @IsPositive()
   weight: number;
 
   @IsEnum(WeightUnit)
@@ -37,12 +48,18 @@ export class VariantCreateDTO {
   status: VariantStatus;
 
   @IsArray()
-  @ArrayNotEmpty()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  optionValues: VariantOptionValue[];
+  @Type(() => VariantOptionValueDTO)
+  optionValues: VariantOptionValueDTO[];
 
-  @IsOptional()
   @IsArray()
-  images?: Express.Multer.File[];
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => VariantImageCreateDTO)
+  images?: VariantImageCreateDTO[];
+}
+
+export class VariantOptionValueDTO {
+  @IsString()
+  optionValueId: string;
 }

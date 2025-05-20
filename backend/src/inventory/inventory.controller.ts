@@ -8,6 +8,11 @@ import { InventoryService } from './inventory.service';
 export class InventoryController {
   constructor(private inventoryService: InventoryService) {}
 
+  @Get()
+  async getAllInventory() {
+    return await this.inventoryService.getAllInventory();
+  }
+
   @Post()
   async addProductToWarehouse(@Body() inventoryCreateDTO: InventoryCreateDTO) {
     return await this.inventoryService.addProductToWarehouse(

@@ -1,15 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ProductResponseDTO } from './dto/product-response.dto';
 import { Product } from './interfaces/product.interface';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Variant } from './interfaces/variant.interface';
+// import { Variant } from './interfaces/variant.interface';
 import { ProductCreateDTO } from './dto/product-create.dto';
 import { VariantCreateDTO } from './dto/variant-create.dto';
 import { VariantResponseDTO } from './dto/variant-response.dto';
 import { VariantUpdateDTO } from './dto/variant-update.dto';
 import { ImageService } from 'src/image/image.service';
 import { ProductUpdateDTO } from './dto/product-update.dto';
-import { Image } from '@prisma/client';
+// import { Image } from '@prisma/client';
+// import { ImageResponseDTO } from './dto/image-response.dto';
 
 @Injectable()
 export class ProductService {
@@ -185,161 +186,136 @@ export class ProductService {
 
   async createVariant(
     productId: string,
-    variantCreateDTO: VariantCreateDTO
+    dto: VariantCreateDTO
   ): Promise<VariantResponseDTO> {
-    const optionValueIds = variantCreateDTO.optionValues.map(
-      (val) => val.optionValueId
-    );
-    const uniqueOptionValueIds = [...new Set(optionValueIds)];
-
-    if (optionValueIds.length !== uniqueOptionValueIds.length) {
-      throw new Error('Option values cannot be duplicated.');
-    }
-
     const variant = await this.prisma.variant.create({
       data: {
-        sku: await this.generateSku(productId, optionValueIds),
-        price: variantCreateDTO.price,
-        compareAtPrice: variantCreateDTO.compareAtPrice,
-        weight: variantCreateDTO.weight,
-        weightUnit: variantCreateDTO.weightUnit,
-        dimensions: variantCreateDTO.dimensions,
-        description: variantCreateDTO.description,
-        status: variantCreateDTO.status,
-        productId,
+        product: { connect: { id: productId } },
+        sku: dto.sku || `SKU-${Date.now()}`, // Generate SKU if not provided
+        price: dto.price,
+        compareAtPrice: dto.compareAtPrice,
+        weight: dto.weight,
+        weightUnit: dto.weightUnit,
+        dimensions: dto.dimensions,
+        description: dto.description,
+        status: dto.status,
+        optionValues: {
+          create: dto.optionValues.map((ov) => ({
+            optionValue: { connect: { id: ov.optionValueId } },
+          })),
+        },
+        images: {
+          create:
+            dto.images?.map((img) => ({
+              imageUrl: img.imageUrl,
+              isThumbnail: img.isThumbnail || false,
+            })) || [],
+        },
       },
-    });
-
-    const variantOptionValues = optionValueIds.map((optionValueId) => ({
-      variantId: variant.id,
-      optionValueId,
-    }));
-
-    await this.prisma.variantOptionValue.createMany({
-      data: variantOptionValues,
-    });
-
-    if (variantCreateDTO.images?.length) {
-      for (const file of variantCreateDTO.images) {
-        const imageUrl = await this.imageService.uploadImage(file, 'variants');
-
-        await this.prisma.image.create({
-          data: {
-            imageUrl,
-            isThumbnail: false,
-            variantId: variant.id,
-          },
-        });
-      }
-    }
-
-    const fullVariant = await this.prisma.variant.findUnique({
-      where: { id: variant.id },
-      include: {
-        optionValues: true,
-        images: true,
-      },
-    });
-
-    return this.mapProductVariantToResponse(fullVariant);
-  }
-
-  async updateVariant(
-    variantId: string,
-    dto: VariantUpdateDTO
-  ): Promise<VariantResponseDTO> {
-    const {
-      price,
-      compareAtPrice,
-      weight,
-      weightUnit,
-      dimensions,
-      description,
-      status,
-      optionValues,
-      newImages = [],
-      replaceIds = [],
-    } = dto;
-
-    await this.prisma.variant.update({
-      where: { id: variantId },
-      data: {
-        price,
-        compareAtPrice,
-        weight,
-        weightUnit,
-        dimensions,
-        description,
-        status,
-      },
-    });
-
-    if (optionValues?.length) {
-      await this.prisma.variantOptionValue.deleteMany({ where: { variantId } });
-      await this.prisma.variantOptionValue.createMany({
-        data: optionValues.map((val) => ({
-          variantId,
-          optionValueId: val.optionValueId,
-        })),
-      });
-
-      const variant = await this.prisma.variant.findUnique({
-        where: { id: variantId },
-        select: { productId: true },
-      });
-
-      if (variant?.productId) {
-        const sku = await this.generateSku(
-          variant.productId,
-          optionValues.map((v) => v.optionValueId)
-        );
-        await this.prisma.variant.update({
-          where: { id: variantId },
-          data: { sku },
-        });
-      }
-    }
-
-    const existingImages = await this.prisma.image.findMany({
-      where: { variantId },
-    });
-
-    const isReplaceValid =
-      newImages.length && replaceIds.length === newImages.length;
-    if (isReplaceValid) {
-      for (let i = 0; i < newImages.length; i++) {
-        const targetId = replaceIds[i];
-        const file = newImages[i];
-
-        const oldImage = existingImages.find((img) => img.id === targetId);
-        if (!oldImage) continue;
-
-        const imageUrl = await this.imageService.uploadImage(file, 'variants');
-        await this.imageService.deleteImageByUrl(oldImage.imageUrl);
-        await this.prisma.image.delete({ where: { id: oldImage.id } });
-
-        await this.prisma.image.create({
-          data: {
-            imageUrl,
-            variantId,
-          },
-        });
-      }
-    }
-
-    const updatedVariant = await this.prisma.variant.findUnique({
-      where: { id: variantId },
       include: {
         optionValues: {
           include: {
-            optionValue: { include: { option: true } },
+            optionValue: {
+              include: {
+                option: true,
+              },
+            },
           },
         },
         images: true,
       },
     });
 
-    return this.mapProductVariantToResponse(updatedVariant);
+    return {
+      id: variant.id,
+      sku: variant.sku,
+      price: variant.price,
+      compareAtPrice: variant.compareAtPrice,
+      weight: variant.weight,
+      weightUnit: variant.weightUnit,
+      dimensions: variant.dimensions,
+      description: variant.description,
+      status: variant.status,
+      attributes: variant.optionValues.map((vov) => ({
+        attribute: vov.optionValue.option.name,
+        value: vov.optionValue.value,
+      })),
+      images: variant.images.map((img) => ({
+        id: img.id,
+        imageUrl: img.imageUrl,
+        isThumbnail: img.isThumbnail,
+      })),
+    };
+  }
+
+  async updateVariant(
+    variantId: string,
+    dto: VariantUpdateDTO
+  ): Promise<VariantResponseDTO> {
+    const variant = await this.prisma.variant.update({
+      where: {
+        id: variantId,
+      },
+      data: {
+        price: dto.price,
+        compareAtPrice: dto.compareAtPrice,
+        status: dto.status,
+        optionValues: {
+          deleteMany: {},
+          create: dto.optionValues?.map((ov) => ({
+            optionValue: {
+              connect: {
+                id: ov.optionValueId,
+              },
+            },
+          })),
+        },
+        images: {
+          deleteMany: {
+            id: {
+              in: dto.replaceIds || [],
+            },
+          },
+          create: dto.newImages?.map((file) => ({
+            imageUrl: file.path,
+            isThumbnail: false,
+          })),
+        },
+      },
+      include: {
+        images: true,
+        optionValues: {
+          include: {
+            optionValue: {
+              include: {
+                option: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return {
+      id: variant.id,
+      sku: variant.sku,
+      price: variant.price,
+      compareAtPrice: variant.compareAtPrice,
+      weight: variant.weight,
+      weightUnit: variant.weightUnit,
+      dimensions: variant.dimensions,
+      description: variant.description,
+      status: variant.status,
+      attributes: variant.optionValues.map((vov) => ({
+        attribute: vov.optionValue.option.name,
+        value: vov.optionValue.value,
+      })),
+      images: variant.images.map((img) => ({
+        id: img.id,
+        imageUrl: img.imageUrl,
+        isThumbnail: img.isThumbnail,
+      })),
+    };
   }
 
   async getProductsByCategory(
@@ -418,9 +394,15 @@ export class ProductService {
     return { data: formatted, nextCursor };
   }
 
-  async getProductVariant(variantId: string): Promise<VariantResponseDTO> {
+  async getProductVariant(
+    productId: string,
+    variantId: string
+  ): Promise<VariantResponseDTO> {
     const variant = await this.prisma.variant.findUnique({
-      where: { id: variantId },
+      where: {
+        id: variantId,
+        productId,
+      },
       include: {
         optionValues: {
           include: {
@@ -431,14 +413,34 @@ export class ProductService {
             },
           },
         },
+        images: true,
       },
     });
 
     if (!variant) {
-      throw new Error(`Variant with id ${variantId} not found`);
+      throw new NotFoundException('Variant not found');
     }
 
-    return this.mapProductVariantToResponse(variant);
+    return {
+      id: variant.id,
+      sku: variant.sku,
+      price: variant.price,
+      compareAtPrice: variant.compareAtPrice,
+      weight: variant.weight,
+      weightUnit: variant.weightUnit,
+      dimensions: variant.dimensions,
+      description: variant.description,
+      status: variant.status,
+      attributes: variant.optionValues.map((vov) => ({
+        attribute: vov.optionValue.option.name,
+        value: vov.optionValue.value,
+      })),
+      images: variant.images.map((img) => ({
+        id: img.id,
+        imageUrl: img.imageUrl,
+        isThumbnail: img.isThumbnail,
+      })),
+    };
   }
 
   private async mapProductToResponse(
@@ -495,112 +497,6 @@ export class ProductService {
     };
   }
 
-  private async mapProductVariantToResponse(
-    variant: Variant & { images?: Image[] }
-  ): Promise<VariantResponseDTO> {
-    const variantOptionValues = await this.prisma.variantOptionValue.findMany({
-      where: { variantId: variant.id },
-      include: {
-        optionValue: {
-          include: {
-            option: true,
-          },
-        },
-      },
-    });
-
-    const product = await this.prisma.product.findUnique({
-      where: { id: variant.productId },
-      include: {
-        category: true,
-      },
-    });
-
-    const productDiscounts = await this.prisma.productDiscount.findMany({
-      where: { productId: product.id },
-      include: { discount: true },
-    });
-
-    const categoryDiscounts = await this.prisma.categoryDiscount.findMany({
-      where: { categoryId: product.categoryId },
-      include: { discount: true },
-    });
-
-    const discounts = [
-      ...productDiscounts.map((pd) => pd.discount),
-      ...categoryDiscounts.map((cd) => cd.discount),
-    ];
-
-    let discountedPrice = variant.price;
-    const finalPrice = variant.price;
-    for (const discount of discounts) {
-      if (
-        discount.status === 'ACTIVE' &&
-        new Date() >= discount.startDate &&
-        new Date() <= discount.endDate
-      ) {
-        if (discount.applyType === 'PRODUCT' || discount.applyType === 'ALL') {
-          if (discount.type === 'PERCENTAGE') {
-            discountedPrice -= (discountedPrice * discount.discount) / 100;
-          } else if (discount.type === 'FIXED_AMOUNT') {
-            discountedPrice -= discount.discount;
-          }
-        }
-      }
-    }
-
-    return {
-      id: variant.id,
-      sku: variant.sku,
-      price: finalPrice,
-      discountedPrice: discountedPrice,
-      compareAtPrice: variant.compareAtPrice,
-      weight: variant.weight,
-      weightUnit: variant.weightUnit,
-      dimensions: variant.dimensions,
-      description: variant.description,
-      status: variant.status,
-      optionValues: variantOptionValues.map((vov) => ({
-        id: vov.optionValue.id,
-        value: vov.optionValue.value,
-        optionId: vov.optionValue.optionId,
-        optionName: vov.optionValue.option.name,
-      })),
-      images:
-        variant.images?.map((img) => ({
-          id: img.id,
-          imageUrl: img.imageUrl,
-          isThumbnail: img.isThumbnail,
-        })) || [],
-    };
-  }
-
-  private async generateSku(
-    productId: string,
-    optionValues: string[]
-  ): Promise<string> {
-    const options = await this.prisma.option.findMany({
-      where: { productId },
-      include: {
-        values: true,
-      },
-    });
-
-    const skuParts = await Promise.all(
-      optionValues.map(async (optionValueId) => {
-        const optionValue = await this.prisma.optionValue.findUnique({
-          where: { id: optionValueId },
-        });
-
-        const option = options.find((o) =>
-          o.values.some((v) => v.id === optionValueId)
-        );
-        return `${option.name}-${optionValue?.value}`;
-      })
-    );
-    return skuParts.join(' | ');
-  }
-
   async getAllProducts(limit: number, cursor?: string) {
     const products = await this.prisma.product.findMany({
       take: limit,
@@ -636,5 +532,128 @@ export class ProductService {
       hasMore: products.length === limit,
       nextCursor: products.length > 0 ? products[products.length - 1].id : null,
     };
+  }
+
+  async getAllVariants(page: number, pageSize: number) {
+    const skip = (page - 1) * pageSize;
+    const [variants, total] = await Promise.all([
+      this.prisma.variant.findMany({
+        skip,
+        take: pageSize,
+        include: {
+          images: true,
+          optionValues: {
+            include: {
+              optionValue: {
+                include: {
+                  option: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          id: 'desc',
+        },
+      }),
+      this.prisma.variant.count(),
+    ]);
+
+    const totalPages = Math.ceil(total / pageSize);
+
+    return {
+      variants: variants.map((variant) => ({
+        id: variant.id,
+        sku: variant.sku,
+        price: variant.price,
+        compareAtPrice: variant.compareAtPrice,
+        weight: variant.weight,
+        weightUnit: variant.weightUnit,
+        dimensions: variant.dimensions,
+        description: variant.description,
+        status: variant.status,
+        attributes: variant.optionValues.map((vov) => ({
+          attribute: vov.optionValue.option.name,
+          value: vov.optionValue.value,
+        })),
+        images: variant.images.map((img) => ({
+          id: img.id,
+          imageUrl: img.imageUrl,
+          isThumbnail: img.isThumbnail,
+        })),
+      })),
+      total,
+      page,
+      totalPages,
+    };
+  }
+
+  async getProductVariants(productId: string, page: number, pageSize: number) {
+    const skip = (page - 1) * pageSize;
+    const [variants, total] = await Promise.all([
+      this.prisma.variant.findMany({
+        where: {
+          productId,
+        },
+        skip,
+        take: pageSize,
+        include: {
+          images: true,
+          optionValues: {
+            include: {
+              optionValue: {
+                include: {
+                  option: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          id: 'desc',
+        },
+      }),
+      this.prisma.variant.count({
+        where: {
+          productId,
+        },
+      }),
+    ]);
+
+    const totalPages = Math.ceil(total / pageSize);
+
+    return {
+      variants: variants.map((variant) => ({
+        id: variant.id,
+        sku: variant.sku,
+        price: variant.price,
+        compareAtPrice: variant.compareAtPrice,
+        weight: variant.weight,
+        weightUnit: variant.weightUnit,
+        dimensions: variant.dimensions,
+        description: variant.description,
+        status: variant.status,
+        attributes: variant.optionValues.map((vov) => ({
+          attribute: vov.optionValue.option.name,
+          value: vov.optionValue.value,
+        })),
+        images: variant.images.map((img) => ({
+          id: img.id,
+          imageUrl: img.imageUrl,
+          isThumbnail: img.isThumbnail,
+        })),
+      })),
+      total,
+      page,
+      totalPages,
+    };
+  }
+
+  async deleteVariant(variantId: string): Promise<void> {
+    await this.prisma.variant.delete({
+      where: {
+        id: variantId,
+      },
+    });
   }
 }

@@ -1,33 +1,5 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3000';
-
-// Get token from localStorage
-const getAuthToken = () => {
-  return localStorage.getItem('token');
-};
-
-// Create axios instance with default config
-const axiosInstance = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add request interceptor to add token to all requests
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = getAuthToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+import axiosInstance from './axios.config';
+import { authService } from './auth.service';
 
 export interface User {
   id: string;
@@ -39,7 +11,6 @@ export interface User {
   updatedAt: string;
   isVerified: boolean;
   roles: Array<{ name: string }>;
-  // Additional fields for display
   avatar?: string;
   country?: string;
   orders?: number;
@@ -49,37 +20,80 @@ export interface User {
 export interface UserListResponse {
   users: User[];
   total: number;
-  hasMore: boolean;
   nextCursor: string | null;
 }
 
-export const userService = {
-  getAllUsers: async (
+class UserService {
+  async getAllUsers(
     limit: number = 10,
     cursor?: string
-  ): Promise<UserListResponse> => {
-    const response = await axiosInstance.get('/user', {
-      params: { limit, cursor },
-    });
-    return response.data;
-  },
+  ): Promise<UserListResponse> {
+    if (!authService.isAuthenticated()) {
+      throw new Error('User is not authenticated');
+    }
+    try {
+      const response = await axiosInstance.get('/user', {
+        params: { limit, cursor },
+      });
+      // Đảm bảo trả về đúng định dạng FE mong muốn
+      if (Array.isArray(response.data)) {
+        return {
+          users: response.data,
+          total: response.data.length,
+          nextCursor: null,
+        };
+      }
+      return {
+        users: response.data.users || [],
+        total: response.data.total || 0,
+        nextCursor: response.data.nextCursor || null,
+      };
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
+  }
 
-  getUserById: async (id: string): Promise<User> => {
-    const response = await axiosInstance.get(`/user/${id}`);
-    return response.data;
-  },
+  async getUserById(id: string): Promise<User> {
+    if (!authService.isAuthenticated()) {
+      throw new Error('User is not authenticated');
+    }
+    try {
+      const response = await axiosInstance.get(`/user/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      throw error;
+    }
+  }
 
-  updateUserStatus: async (
+  async updateUserStatus(
     id: string,
     status: 'ACTIVE' | 'INACTIVE'
-  ): Promise<User> => {
-    const response = await axiosInstance.patch(`/user/${id}/status`, {
-      status,
-    });
-    return response.data;
-  },
+  ): Promise<User> {
+    if (!authService.isAuthenticated()) {
+      throw new Error('User is not authenticated');
+    }
+    try {
+      const response = await axiosInstance.put(`/user/${id}`, { status });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      throw error;
+    }
+  }
 
-  deleteUser: async (id: string): Promise<void> => {
-    await axiosInstance.delete(`/user/${id}`);
-  },
-};
+  async deleteUser(id: string): Promise<void> {
+    if (!authService.isAuthenticated()) {
+      throw new Error('User is not authenticated');
+    }
+    try {
+      await axiosInstance.delete(`/user/${id}`);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
+  }
+}
+
+export const userService = new UserService();

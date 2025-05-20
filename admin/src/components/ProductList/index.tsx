@@ -5,6 +5,7 @@ import { FaUser, FaShoppingCart } from 'react-icons/fa';
 import { IoBagHandleOutline } from 'react-icons/io5';
 import Rating from '@mui/material/Rating';
 import { productService, Product } from '../../services/productService';
+import { toast } from 'react-toastify';
 
 const ProductList = () => {
   const [compareAtPrice, setCompareAtPrice] = useState('');
@@ -20,6 +21,9 @@ const ProductList = () => {
   const [, setSelectedVariantProduct] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | undefined>();
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const [editData, setEditData] = useState({
     id: '',
@@ -36,15 +40,36 @@ const ProductList = () => {
     fetchProducts();
   }, []);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (cursor?: string) => {
     try {
       setIsLoading(true);
-      const response = await productService.getAllProducts();
-      setProducts(response.products);
+      const response = await productService.getAllProducts(10, cursor);
+      if (cursor) {
+        setProducts((prev) => [...prev, ...response.products]);
+      } else {
+        setProducts(response.products);
+      }
+      setNextCursor(response.nextCursor);
+      setHasMore(!!response.nextCursor);
     } catch (error) {
       console.error('Error fetching products:', error);
+      toast.error('Lỗi khi tải danh sách sản phẩm');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (!hasMore || isLoadingMore) return;
+
+    try {
+      setIsLoadingMore(true);
+      await fetchProducts(nextCursor);
+    } catch (error) {
+      console.error('Error loading more products:', error);
+      toast.error('Lỗi khi tải thêm sản phẩm');
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -364,7 +389,7 @@ const ProductList = () => {
               </tr>
             </thead>
             <tbody>
-              {isLoading ? (
+              {isLoading && !products.length ? (
                 <tr>
                   <td colSpan={9} className="text-center py-4">
                     Loading...
@@ -438,6 +463,18 @@ const ProductList = () => {
               )}
             </tbody>
           </table>
+
+          {hasMore && (
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={loadMore}
+                disabled={isLoadingMore}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 disabled:bg-blue-300 disabled:cursor-not-allowed"
+              >
+                {isLoadingMore ? 'Đang tải...' : 'Tải thêm'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

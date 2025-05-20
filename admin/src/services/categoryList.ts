@@ -1,68 +1,102 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3000';
+import axiosInstance from './axios.config';
+import { authService } from './auth.service';
 
 export interface Category {
   id: string;
   name: string;
-  image: string;
-  parentId?: string;
+  description: string;
+  image?: string;
+  parentId?: string | null;
 }
 
-export const categoryService = {
-  // Get all categories
-  getAllCategories: async (): Promise<Category[]> => {
+class CategoryService {
+  async getAllCategories(): Promise<Category[]> {
+    if (!authService.isAuthenticated()) {
+      throw new Error('User is not authenticated');
+    }
+
     try {
-      const response = await axios.get(`${API_URL}/category`);
+      const response = await axiosInstance.get('/category');
       return response.data;
     } catch (error) {
       console.error('Error fetching categories:', error);
       throw error;
     }
-  },
+  }
 
-  // Get category by ID
-  getCategoryById: async (id: string): Promise<Category> => {
+  async getCategoryById(id: string): Promise<Category> {
+    if (!authService.isAuthenticated()) {
+      throw new Error('User is not authenticated');
+    }
+
     try {
-      const response = await axios.get(`${API_URL}/category-list/${id}`);
+      const response = await axiosInstance.get(`/category/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching category ${id}:`, error);
       throw error;
     }
-  },
+  }
 
-  // Delete category
-  deleteCategory: async (id: string): Promise<void> => {
+  async createCategory(category: Omit<Category, 'id'>): Promise<Category> {
+    if (!authService.isAuthenticated()) {
+      throw new Error('User is not authenticated');
+    }
+
     try {
-      await axios.delete(`${API_URL}/category-list/${id}`);
+      const response = await axiosInstance.post('/category', category);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating category:', error);
+      throw error;
+    }
+  }
+
+  async updateCategory(
+    id: string,
+    category: Partial<Category>
+  ): Promise<Category> {
+    if (!authService.isAuthenticated()) {
+      throw new Error('User is not authenticated');
+    }
+
+    try {
+      const response = await axiosInstance.put(`/category/${id}`, category);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating category ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteCategory(id: string): Promise<void> {
+    if (!authService.isAuthenticated()) {
+      throw new Error('User is not authenticated');
+    }
+
+    try {
+      await axiosInstance.delete(`/category/${id}`);
     } catch (error) {
       console.error(`Error deleting category ${id}:`, error);
       throw error;
     }
-  },
+  }
 
-  // Get subcategories
-  getSubCategories: async (id: string): Promise<Category[]> => {
+  async getSubCategories(parentId: string): Promise<Category[]> {
+    if (!authService.isAuthenticated()) {
+      throw new Error('User is not authenticated');
+    }
+
     try {
-      const response = await axios.get(
-        `${API_URL}/category/subcategories/${id}`
+      const response = await axiosInstance.get(
+        `/category/subcategories/${parentId}`
       );
       return response.data;
     } catch (error) {
-      console.error(`Error fetching subcategories for ${id}:`, error);
+      console.error(`Error fetching subcategories for ${parentId}:`, error);
       throw error;
     }
-  },
+  }
+}
 
-  // Get parent category
-  getParentCategory: async (id: string): Promise<Category> => {
-    try {
-      const response = await axios.get(`${API_URL}/category/parent/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching parent category for ${id}:`, error);
-      throw error;
-    }
-  },
-};
+export const categoryService = new CategoryService();
