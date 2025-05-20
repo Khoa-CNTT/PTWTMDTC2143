@@ -121,7 +121,10 @@ export default function ChatbotFloating() {
     } catch (error) {
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: `Lỗi: ${(error as Error).message}` },
+        {
+          role: 'assistant',
+          content: `Hệ thống đang trong quá trình bảo trì. Xin vui lòng quay lại sau.`,
+        },
       ]);
       setIsTyping(false);
     }
