@@ -127,7 +127,7 @@ const ProductDetail: React.FC = () => {
   };
   return (
     <>
-      <div className="container mx-auto p-6 flex gap-10 border-1 rounded-[30px] bg-gray-200">
+      <div className="container mx-auto p-6 flex gap-10 border-1 rounded-[30px] bg-white">
         <div className="flex flex-col">
           <img
             src={selectedImage}
@@ -280,7 +280,7 @@ const ProductDetail: React.FC = () => {
         </div>
       </div>
       <div className="mt-10">
-        <div className="container flex flex-col lg:flex-row ">
+        <div className="container flex flex-col lg:flex-row bg-white">
           <div className="bg-orange-500 text-white p-6 rounded-lg w-full h-min lg:w-1/4">
             <h1 className="text-5xl font-bold">
               4.0 <span className="text-xl">/5</span>
