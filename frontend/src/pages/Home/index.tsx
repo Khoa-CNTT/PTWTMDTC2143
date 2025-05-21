@@ -12,53 +12,55 @@ import ChatbotFloating from '../../components/ChatBox/chatBoxFloating';
 const Home: React.FC = () => {
   return (
     <>
-      <HomeSlider />
-      <Category />
-      <div className="p-6">
-        <div className="bg-red-500 pb-3 rounded shadow-md">
-          <div className="container">
-            <h3 className="text-[30px] font-[500] text-white">Best Deal</h3>
-            <BestDeal />
+      <div className="max-w-screen-xl mx-auto">
+        <HomeSlider />
+        <Category />
+        <div className="p-6">
+          <div className="bg-red-500 pb-3 rounded-[20px] shadow-md">
+            <div className="container">
+              <h3 className="text-[30px] font-[500] text-white">Best Deal</h3>
+              <BestDeal />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="p-6">
-        <div className="bg-yellow-300 pb-3 rounded shadow-md">
-          <div className="container">
-            <h3 className="mt-20 text-[30px] font-[500]">
-              Top 10 Selected Products On the Week
-            </h3>
-            <TopSelect />
+        <div className="p-6">
+          <div className="bg-yellow-300 pb-3 rounded-[20px] shadow-md">
+            <div className="container">
+              <h3 className="mt-20 text-[30px] font-[500]">
+                Top 10 Selected Products On the Week
+              </h3>
+              <TopSelect />
+            </div>
           </div>
         </div>
-      </div>
-      <div className="p-6">
-        <div className="bg-gray-200 pb-3 rounded shadow-md">
-          <div className="container">
-            <h3 className="mt-20 text-[30px] font-[500]">Popula Search</h3>
-            <PopularSearch />
+        <div className="p-6">
+          <div className="bg-gray-200 pb-3 rounded-[20px] shadow-md">
+            <div className="container">
+              <h3 className="mt-20 text-[30px] font-[500]">Popula Search</h3>
+              <PopularSearch />
+            </div>
           </div>
         </div>
-      </div>
-      <div className="p-6">
-        <div className="bg-gray-200 pb-3 rounded shadow-md">
-          <div className="container">
-            <h3 className="mt-20 text-[30px] font-[500] flex items-center">
-              <FaFireAlt className="me-2 text-red-500" />
-              Hot Sale
-            </h3>
-            <HotSale />
+        <div className="p-6">
+          <div className="bg-gray-200 pb-3 rounded-[20px] shadow-md">
+            <div className="container">
+              <h3 className="mt-20 text-[30px] font-[500] flex items-center">
+                <FaFireAlt className="me-2 text-red-500" />
+                Hot Sale
+              </h3>
+              <HotSale />
+            </div>
           </div>
         </div>
-      </div>
-      <div className="p-6">
-        <div className="bg-gray-200 pb-3 rounded shadow-md">
-          <div className="container">
-            <h3 className="mt-20 text-[30px] font-[500] flex items-center">
-              Recently Viewed
-            </h3>
-            <RecentlyViewed />
+        <div className="p-6">
+          <div className="bg-gray-200 pb-3 rounded-[20px] shadow-md">
+            <div className="container">
+              <h3 className="mt-20 text-[30px] font-[500] flex items-center">
+                Recently Viewed
+              </h3>
+              <RecentlyViewed />
+            </div>
           </div>
         </div>
       </div>
