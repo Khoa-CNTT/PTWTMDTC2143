@@ -57,10 +57,10 @@ const Header: React.FC = () => {
       padding: '0 4px',
     },
   }));
-
+  const { logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
-
+  const [isHoveringUser, setIsHoveringUser] = useState(false);
   return (
     <header
       className={`z-[1000] w-full transition ${isOpen ? 'shadow-lg bg-blue-50' : 'bg-white'} sticky top-0`}
@@ -113,7 +113,12 @@ const Header: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={`mt-3 px-4 py-2 rounded-md whitespace-nowrap flex items-center gap-2 transition ${isOpen ? 'bg-blue-600 text-white' : 'bg-gray-400 text-white'}`}
+              className={`mt-3 px-5 py-2 rounded-md whitespace-nowrap flex items-center gap-2 font-semibold transition-colors duration-300
+    ${
+      isOpen
+        ? 'bg-blue-600 text-white hover:bg-blue-700'
+        : 'bg-blue-300 text-blue-800 hover:bg-blue-400'
+    }`}
             >
               <CiViewList />
               Category
@@ -144,7 +149,6 @@ const Header: React.FC = () => {
                       </li>
                     ))}
                   </ul>
-
                   {hoveredCategory === 'phone' && (
                     <div className="flex-1 p-4 ">
                       <div className="w-[900px] grid grid-cols-5 gap-4 text-sm">
@@ -1321,63 +1325,72 @@ const Header: React.FC = () => {
               </Button>
             </div> */}
             <ul className="flex items-center justify-end gap-0 lg:gap-3 w-full">
-              <li>
-                <Button
-                  onClick={handleWishlistClick}
-                  className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
-                  startIcon={
-                    <StyledBadge badgeContent={2} color="secondary">
-                      <FaHeart className="text-xl text-pink-500" />
-                    </StyledBadge>
-                  }
-                >
-                  <div className="info flex flex-col">
-                    <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
-                      Wishlist
-                    </h4>
-                    <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
-                      2 items
-                    </span>
-                  </div>
-                </Button>
-              </li>
-              <li>
-                <Button
-                  onClick={handleCartClick}
-                  className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
-                  startIcon={
-                    <StyledBadge badgeContent={4} color="secondary">
-                      <ShoppingCartIcon />
-                    </StyledBadge>
-                  }
-                >
-                  <div className="info flex flex-col">
-                    <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
-                      Cart
-                    </h4>
-                    <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
-                      $150.000
-                    </span>
-                  </div>
-                </Button>
-              </li>
+              {isAuthenticated && (
+                <>
+                  <li>
+                    <Button
+                      onClick={handleWishlistClick}
+                      className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
+                      startIcon={
+                        <StyledBadge badgeContent={2} color="secondary">
+                          <FaHeart className="text-xl text-pink-500" />
+                        </StyledBadge>
+                      }
+                    >
+                      <div className="info flex flex-col">
+                        <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
+                          Wishlist
+                        </h4>
+                        <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
+                          2 items
+                        </span>
+                      </div>
+                    </Button>
+                  </li>
+                  <li>
+                    <Button
+                      onClick={handleCartClick}
+                      className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
+                      startIcon={
+                        <StyledBadge badgeContent={4} color="secondary">
+                          <ShoppingCartIcon />
+                        </StyledBadge>
+                      }
+                    >
+                      <div className="info flex flex-col">
+                        <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
+                          Cart
+                        </h4>
+                        <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
+                          $150.000
+                        </span>
+                      </div>
+                    </Button>
+                  </li>
+                  <div className="h-6 w-[1px] bg-gray-300"></div>
+                </>
+              )}
 
-              <div className="h-6 w-[1px] bg-gray-300"></div>
-              <li>
+              <li
+                onMouseEnter={() => setIsHoveringUser(true)}
+                onMouseLeave={() => setIsHoveringUser(false)}
+                className="relative"
+              >
                 <Button
                   onClick={handleUserClick}
                   className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
                 >
                   {isAuthenticated ? user?.name || 'Profile' : 'Đăng nhập'}
-                  {/* <FaUserCheck className="text-2xl text-gray-700" />
-                  <div className="info flex flex-col">
-                    <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">User</h4>
-
-                    <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
-                      Messiu
-                    </span>
-                  </div> */}
                 </Button>
+
+                {isAuthenticated && isHoveringUser && (
+                  <div
+                    onClick={logout}
+                    className="absolute top-full left-0 mt-1 bg-white border rounded shadow-lg px-4 py-2 text-sm text-red-500 hover:bg-gray-100 cursor-pointer z-50"
+                  >
+                    Đăng xuất
+                  </div>
+                )}
               </li>
             </ul>
           </div>
