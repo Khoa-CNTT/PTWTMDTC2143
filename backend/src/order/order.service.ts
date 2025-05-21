@@ -8,11 +8,25 @@ import { CreateOrderDTO } from './dto/order-create.dto';
 import { OrderResponseDTO } from './dto/order-response.dto';
 import { OrderMapper } from './order.mapper';
 import { UpdateOrderStatusDTO } from './dto/order-update-status.dto';
-import { VoucherStatus, VoucherType } from '@prisma/client';
+import { DiscountService } from 'src/discount/discount.service';
+import { VoucherService } from 'src/voucher/voucher.service';
+import { CartService } from 'src/cart/cart.service';
+import { OrderItemResponseDTO } from './dto/order-item-response.dto';
+import { PaypalService } from 'src/paypal/paypal.service';
+import { PaymentService } from 'src/payment/payment.service';
+import { InvoiceService } from 'src/invoice/invoice.service';
 
 @Injectable()
 export class OrderService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private discountService: DiscountService,
+    private voucherService: VoucherService,
+    private cartService: CartService,
+    private paypalService: PaypalService,
+    private paymentService: PaymentService,
+    private invoiceService: InvoiceService
+  ) {}
 
   async create(userId: string, dto: CreateOrderDTO): Promise<OrderResponseDTO> {
     const variantIds = dto.items.map((item) => item.variantId);
@@ -22,129 +36,65 @@ export class OrderService {
     });
 
     if (variants.length !== dto.items.length) {
-      throw new NotFoundException('Some variants not found');
+      throw new NotFoundException('Một số variant không tồn tại');
     }
 
-    const orderItems = await Promise.all(
-      dto.items.map(async (item) => {
-        const variant = variants.find((v) => v.id === item.variantId);
-        const product = await this.prisma.product.findUnique({
-          where: { id: variant.productId },
-          include: { category: true },
-        });
+    // Tính từng item
+    const orderItems: Omit<OrderItemResponseDTO, 'id'>[] = [];
 
-        if (!product) throw new NotFoundException('Product not found');
-        const category = product.category;
+    let total = 0;
 
-        const productDiscounts = await this.prisma.productDiscount.findMany({
-          where: { productId: product.id },
-          include: { discount: true },
-        });
-
-        const categoryDiscounts = await this.prisma.categoryDiscount.findMany({
-          where: { categoryId: category.id },
-          include: { discount: true },
-        });
-
-        const discounts = [
-          ...productDiscounts.map((pd) => pd.discount),
-          ...categoryDiscounts.map((cd) => cd.discount),
-        ];
-
-        let discountedPrice = variant.price;
-        const originalPrice = variant.price;
-
-        let isDiscountApplied = false;
-
-        for (const discount of discounts) {
-          if (
-            discount.status === 'ACTIVE' &&
-            new Date() >= discount.startDate &&
-            new Date() <= discount.endDate
-          ) {
-            if (
-              discount.applyType === 'PRODUCT' ||
-              discount.applyType === 'ALL'
-            ) {
-              isDiscountApplied = true;
-              if (discount.type === 'PERCENTAGE') {
-                discountedPrice -= (discountedPrice * discount.discount) / 100;
-              } else if (discount.type === 'FIXED_AMOUNT') {
-                discountedPrice -= discount.discount;
-              }
-            }
-          }
-        }
-
-        if (!isDiscountApplied) {
-          discountedPrice = originalPrice;
-        }
-
-        const price = discountedPrice * item.quantity;
-        return {
-          variantId: item.variantId,
-          quantity: item.quantity,
-          unitPrice: originalPrice,
-          price,
-          discount: originalPrice - discountedPrice,
-        };
-      })
-    );
-
-    let total = orderItems.reduce((sum, item) => sum + item.price, 0);
-    let voucherDiscount = 0;
-
-    if (dto.voucherId) {
-      const voucher = await this.prisma.voucher.findUnique({
-        where: { id: dto.voucherId },
+    for (const item of dto.items) {
+      const variant = variants.find((v) => v.id === item.variantId);
+      const product = await this.prisma.product.findUnique({
+        where: { id: variant.productId },
+        include: { category: true },
       });
 
-      if (!voucher || voucher.status !== VoucherStatus.ACTIVE) {
-        throw new NotFoundException('Voucher is not valid or inactive');
-      }
+      if (!product) throw new NotFoundException('Product không tồn tại');
 
-      const now = new Date();
-      if (voucher.startDate > now || voucher.endDate < now) {
-        throw new BadRequestException('Voucher is not in valid date range');
-      }
-
-      if (voucher.minPrice && total < voucher.minPrice) {
-        throw new BadRequestException(
-          `Order total must be at least ${voucher.minPrice}`
+      const discountedPrice =
+        await this.discountService.calculateDiscountedPrice(
+          variant,
+          product,
+          product.category
         );
-      }
 
-      if (voucher.usageLimit > 0 && voucher.usedCount >= voucher.usageLimit) {
-        throw new BadRequestException('Voucher has reached its usage limit');
-      }
+      const unitPrice = variant.price;
+      const price = discountedPrice * item.quantity;
+      const discountAmount = unitPrice - discountedPrice;
 
-      const hasUsed = await this.prisma.voucherUsage.findFirst({
-        where: {
-          userId,
-          voucherId: voucher.id,
-        },
+      total += price;
+
+      orderItems.push({
+        variantId: item.variantId,
+        quantity: item.quantity,
+        unitPrice,
+        price,
+        discount: discountAmount,
       });
+    }
 
-      if (hasUsed) {
-        throw new BadRequestException('You have already used this voucher');
-      }
-
-      voucherDiscount = this.calculateVoucherDiscount(
-        voucher.type,
-        voucher.discountValue,
-        total,
-        voucher.maxDiscount
+    // Voucher
+    let voucherDiscount = 0;
+    if (dto.voucherId) {
+      const voucher = await this.voucherService.validateVoucher(
+        userId,
+        dto.voucherId,
+        total
       );
 
-      if (voucherDiscount > total) {
-        voucherDiscount = total;
-      }
+      voucherDiscount = this.voucherService.calculateVoucherDiscount(
+        voucher,
+        total
+      );
 
       total -= voucherDiscount;
     }
 
-    const [order] = await this.prisma.$transaction([
-      this.prisma.order.create({
+    // Transaction
+    const order = await this.prisma.$transaction(async (tx) => {
+      const createdOrder = await tx.order.create({
         data: {
           userId,
           fullName: dto.fullName,
@@ -160,59 +110,45 @@ export class OrderService {
           voucherId: dto.voucherId,
           voucherDiscount,
           items: {
-            create: orderItems,
+            create: orderItems.map((i) => ({
+              variantId: i.variantId,
+              quantity: i.quantity,
+              unitPrice: i.unitPrice,
+              price: i.price,
+              discount: i.discount,
+            })),
           },
         },
         include: { items: true },
-      }),
+      });
 
-      this.prisma.cartItem.deleteMany({
-        where: {
-          cart: { userId },
-          isSelected: true,
-        },
-      }),
+      await this.cartService.clearSelectedItems(userId, tx);
+      await this.cartService.resetCartTotal(userId, tx);
 
-      this.prisma.cart.update({
-        where: { userId },
-        data: { totalAmount: 0 },
-      }),
+      if (dto.voucherId) {
+        await this.voucherService.applyVoucherUsage(userId, dto.voucherId, tx);
+      }
 
-      ...(dto.voucherId
-        ? [
-            this.prisma.voucher.update({
-              where: { id: dto.voucherId },
-              data: {
-                usedCount: { increment: 1 },
-              },
-            }),
-            this.prisma.voucherUsage.create({
-              data: {
-                userId,
-                voucherId: dto.voucherId,
-              },
-            }),
-          ]
-        : []),
-    ]);
+      return createdOrder;
+    });
 
-    return OrderMapper.toOrderDTO(order);
-  }
-
-  private calculateVoucherDiscount(
-    type: VoucherType,
-    value: number,
-    total: number,
-    maxDiscount?: number | null
-  ): number {
-    if (type === VoucherType.PERCENTAGE) {
-      const discount = (value / 100) * total;
-      return maxDiscount ? Math.min(discount, maxDiscount) : discount;
-    }
-    if (type === VoucherType.FIXED_AMOUNT) {
-      return value;
-    }
-    return 0;
+    return {
+      id: order.id,
+      userId: order.userId,
+      fullName: order.fullName,
+      phone: order.phone,
+      total: order.total,
+      voucherDiscount: order.voucherDiscount,
+      status: order.status,
+      items: order.items,
+      streetAddress: order.streetAddress,
+      ward: order.ward,
+      district: order.district,
+      city: order.city,
+      province: order.province,
+      country: order.country,
+      paymentMethod: order.paymentMethod,
+    };
   }
 
   async getAll(
@@ -285,5 +221,192 @@ export class OrderService {
     });
 
     return OrderMapper.toOrderDTO(updated);
+  }
+
+  async createPaypalOrder(userId: string, dto: CreateOrderDTO) {
+    const variantIds = dto.items.map((item) => item.variantId);
+    const variants = await this.prisma.variant.findMany({
+      where: { id: { in: variantIds } },
+    });
+
+    if (variants.length !== dto.items.length) {
+      throw new NotFoundException('Một số variant không tồn tại');
+    }
+
+    let total = 0;
+    for (const item of dto.items) {
+      const variant = variants.find((v) => v.id === item.variantId);
+      const product = await this.prisma.product.findUnique({
+        where: { id: variant.productId },
+        include: { category: true },
+      });
+
+      const discountedPrice =
+        await this.discountService.calculateDiscountedPrice(
+          variant,
+          product,
+          product.category
+        );
+      total += discountedPrice * item.quantity;
+    }
+
+    if (dto.voucherId) {
+      const voucher = await this.voucherService.validateVoucher(
+        userId,
+        dto.voucherId,
+        total
+      );
+      const voucherDiscount = this.voucherService.calculateVoucherDiscount(
+        voucher,
+        total
+      );
+      total -= voucherDiscount;
+    }
+
+    const paypalOrder = await this.paypalService.createOrder(total.toFixed(2));
+    return { paypalOrderId: paypalOrder.id };
+  }
+
+  async createOrderAndPaypalOrder(userId: string, dto: CreateOrderDTO) {
+    const variantIds = dto.items.map((i) => i.variantId);
+    const variants = await this.prisma.variant.findMany({
+      where: { id: { in: variantIds } },
+    });
+    if (variants.length !== dto.items.length)
+      throw new NotFoundException('Variant không tồn tại');
+
+    let total = 0;
+    const orderItemsData = [];
+    for (const item of dto.items) {
+      const variant = variants.find((v) => v.id === item.variantId);
+      const product = await this.prisma.product.findUnique({
+        where: { id: variant.productId },
+        include: { category: true },
+      });
+      const discountedPrice =
+        await this.discountService.calculateDiscountedPrice(
+          variant,
+          product,
+          product.category
+        );
+      const unitPrice = variant.price;
+      const price = discountedPrice * item.quantity;
+      const discount = unitPrice - discountedPrice;
+      total += price;
+
+      orderItemsData.push({
+        variantId: item.variantId,
+        quantity: item.quantity,
+        unitPrice,
+        price,
+        discount,
+      });
+    }
+
+    let voucherDiscount = 0;
+    if (dto.voucherId) {
+      const voucher = await this.voucherService.validateVoucher(
+        userId,
+        dto.voucherId,
+        total
+      );
+      voucherDiscount = this.voucherService.calculateVoucherDiscount(
+        voucher,
+        total
+      );
+      total -= voucherDiscount;
+    }
+
+    const createdOrder = await this.prisma.order.create({
+      data: {
+        userId,
+        fullName: dto.fullName,
+        phone: dto.phone,
+        streetAddress: dto.streetAddress,
+        ward: dto.ward,
+        district: dto.district,
+        city: dto.city,
+        province: dto.province,
+        country: dto.country,
+        status: 'PENDING',
+        total,
+        voucherId: dto.voucherId,
+        voucherDiscount,
+        paymentMethod: 'PAYPAL',
+        items: {
+          create: orderItemsData,
+        },
+      },
+      include: { items: true },
+    });
+
+    const paypalOrder = await this.paypalService.createOrder(total.toFixed(2));
+    const approvalUrl = paypalOrder.links.find(
+      (link) => link.rel === 'approve'
+    )?.href;
+
+    return {
+      orderId: createdOrder.id,
+      paypalOrderId: paypalOrder.id,
+      approvalUrl,
+    };
+  }
+
+  async confirmPaypalPayment(
+    userId: string,
+    orderId: string,
+    paypalOrderId: string
+  ) {
+    const capture = await this.paypalService.captureOrder(paypalOrderId);
+    if (!capture || capture.status !== 'COMPLETED') {
+      throw new BadRequestException('Thanh toán PayPal thất bại');
+    }
+
+    const updatedOrder = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: 'PROCESSING',
+        },
+        include: { items: true },
+      });
+
+      await this.cartService.clearSelectedItems(userId, tx);
+      await this.cartService.resetCartTotal(userId, tx);
+
+      if (order.voucherId) {
+        await this.voucherService.applyVoucherUsage(
+          userId,
+          order.voucherId,
+          tx
+        );
+      }
+
+      await this.paymentService.createPaymentWithTx(tx, {
+        orderId: order.id,
+        userId,
+        amount: order.total,
+        method: 'PAYPAL',
+        paymentStatus: 'COMPLETED',
+        transactionDetails: capture,
+      });
+
+      return order;
+    });
+
+    const payment = await this.prisma.payment.findFirst({
+      where: { orderId },
+      include: { transactions: true },
+    });
+    const transaction = payment.transactions[0];
+
+    await this.invoiceService.createInvoice({
+      userId,
+      transactionId: transaction.id,
+      orderItems: updatedOrder.items,
+      totalAmount: updatedOrder.total,
+    });
+
+    return updatedOrder;
   }
 }

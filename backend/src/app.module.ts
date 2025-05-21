@@ -26,6 +26,8 @@ import { GlobalRoleGuard } from './auth/guards/global-role.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { PaypalModule } from './paypal/paypal.module';
 import { ReturnModule } from './return/return.module';
+import { InvoiceModule } from './invoice/invoice.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -68,6 +70,8 @@ import { ReturnModule } from './return/return.module';
     ReviewModule,
     PaypalModule,
     ReturnModule,
+    InvoiceModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [

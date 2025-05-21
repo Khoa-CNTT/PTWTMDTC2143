@@ -1,4 +1,4 @@
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, PaymentMethod } from '@prisma/client';
 import { OrderItemResponseDTO } from './order-item-response.dto';
 
 export class OrderResponseDTO {
@@ -16,4 +16,5 @@ export class OrderResponseDTO {
   province: string;
   country: string;
   items: OrderItemResponseDTO[];
+  paymentMethod: PaymentMethod;
 }

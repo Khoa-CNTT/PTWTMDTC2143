@@ -129,4 +129,42 @@ export class DiscountService {
     });
     return { message: 'Discount deleted successfully' };
   }
+
+  async calculateDiscountedPrice(variant, product, category): Promise<number> {
+    const productDiscounts = await this.prisma.productDiscount.findMany({
+      where: { productId: product.id },
+      include: { discount: true },
+    });
+
+    const categoryDiscounts = await this.prisma.categoryDiscount.findMany({
+      where: { categoryId: category.id },
+      include: { discount: true },
+    });
+
+    const discounts = [
+      ...productDiscounts.map((pd) => pd.discount),
+      ...categoryDiscounts.map((cd) => cd.discount),
+    ];
+
+    let discountedPrice = variant.price;
+    const now = new Date();
+
+    for (const discount of discounts) {
+      if (
+        discount.status === 'ACTIVE' &&
+        now >= discount.startDate &&
+        now <= discount.endDate
+      ) {
+        if (discount.applyType === 'PRODUCT' || discount.applyType === 'ALL') {
+          if (discount.type === 'PERCENTAGE') {
+            discountedPrice -= (discountedPrice * discount.discount) / 100;
+          } else if (discount.type === 'FIXED_AMOUNT') {
+            discountedPrice -= discount.discount;
+          }
+        }
+      }
+    }
+
+    return discountedPrice < 0 ? 0 : discountedPrice;
+  }
 }
