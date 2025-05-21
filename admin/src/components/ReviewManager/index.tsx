@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import {
   MdOutlineNavigateNext,
@@ -7,72 +7,41 @@ import {
   MdSkipPrevious,
 } from 'react-icons/md';
 import { FaRegEye, FaRegEyeSlash } from 'react-icons/fa';
-interface Review {
-  id: number;
-  name: string;
-  email: string;
-  avatar: string;
-  rating: number;
-  content: string;
-  date: string;
-  approved: boolean;
-}
+import reviewService, { Review } from '../../services/reviewService';
 
-const initialReviews: Review[] = [
-  {
-    id: 1,
-    name: 'Cristine Easom',
-    email: 'ceasomw@theguardian.com',
-    avatar: 'https://i.pravatar.cc/40?img=1',
-    rating: 4,
-    content: 'Good service, quality product.',
-    date: '2025-05-01',
-    approved: true,
-  },
-  {
-    id: 2,
-    name: 'Cristine Easom',
-    email: 'ceasomw@theguardian.com',
-    avatar: 'https://i.pravatar.cc/40?img=1',
-    rating: 3,
-    content: 'Product is okay, delivery was a bit slow.',
-    date: '2025-04-30',
-    approved: true,
-  },
-  {
-    id: 3,
-    name: 'Cristine Easom',
-    email: 'ceasomw@theguardian.com',
-    avatar: 'https://i.pravatar.cc/40?img=1',
-    rating: 5,
-    content: 'Very satisfied, will support next time.',
-    date: '2025-04-29',
-    approved: true,
-  },
-  ...Array.from({ length: 28 }, (_, i) => ({
-    id: 4 + i,
-    name: `Customer ${i + 1}`,
-    email: `email${i + 1}@example.com`,
-    avatar: `https://i.pravatar.cc/40?img=${(i % 70) + 1}`,
-    rating: parseInt((Math.random() * 5).toFixed(1)),
-    content: `This is a sample review from Customer ${i + 1}.`,
-    date: `2025-05-${String(i + 1).padStart(2, '0')}`,
-    approved: Math.random() > 0.3,
-  })),
-];
-
-const ReviewManager: React.FC = () => {
-  const [reviews, setReviews] = useState<Review[]>(initialReviews);
+const ReviewManager = () => {
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [search, setSearch] = useState('');
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
   const [reviewToDelete, setReviewToDelete] = useState<Review | null>(null);
   const [reviewToToggle, setReviewToToggle] = useState<Review | null>(null);
+  // const [isLoading, setIsLoading] = useState(false);
+  // const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const res = await reviewService.getAllReviews(); // Không truyền limit, lấy toàn bộ
+        setReviews(res.reviews);
+      } catch (err) {
+        console.error('Failed to fetch reviews:', err);
+      }
+    };
+
+    fetchReviews();
+  }, []);
+
+  // Tính lại totalPages dựa trên filtered thay vì reviews
   const totalPages = Math.ceil(reviews.length / itemsPerPage);
-  const handleDelete = (id: number) => {
-    setReviews((prev) => prev.filter((r) => r.id !== id));
-    setReviewToDelete(null);
+  const handleDelete = async (id: number) => {
+    try {
+      await reviewService.deleteReview(id);
+      setReviews((prev) => prev.filter((r) => r.id !== id));
+      setReviewToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete review:', err);
+    }
   };
   const handleCancelDelete = () => {
     setReviewToDelete(null);
@@ -88,8 +57,24 @@ const ReviewManager: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const filtered = reviews.filter((r) =>
-    r.name.toLowerCase().includes(search.toLowerCase())
+  const handleToggleApprove = async (review: Review) => {
+    try {
+      await reviewService.hideReview(review.id, !review.approved);
+      setReviews((prev) =>
+        prev.map((r) =>
+          r.id === review.id ? { ...r, approved: !r.approved } : r
+        )
+      );
+      setReviewToToggle(null);
+    } catch (err) {
+      console.error('Failed to toggle review status:', err);
+    }
+  };
+
+  const filtered = reviews.filter(
+    (r) =>
+      r.userId.toLowerCase().includes(search.toLowerCase()) ||
+      r.content.toLowerCase().includes(search.toLowerCase())
   );
 
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -157,7 +142,7 @@ const ReviewManager: React.FC = () => {
                   </td>
                   <td className="py-2 px-2 space-x-2">
                     <button
-                      onClick={() => setReviewToToggle(r)}
+                      onClick={() => handleToggleApprove(r)}
                       className="text-gray-500 hover:text-blue-600"
                       title={r.approved ? 'Hide review' : 'Show review'}
                     >

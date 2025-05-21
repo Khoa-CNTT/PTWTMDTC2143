@@ -1,15 +1,24 @@
 import axiosInstance from './axios.config';
+import { Product } from './productService';
 
 export interface Variant {
   id: string;
-  productId: string;
+  sku: string;
   price: number;
   compareAtPrice?: number;
+  weight?: number;
+  weightUnit?: string;
+  dismensions?: string;
+  description?: string;
+  optionValues?: string[];
+  product: Product;
+  productId: string;
+
   status: string;
-  attributes: {
-    attribute: string;
-    value: string;
-  }[];
+  inventory?: string[];
+  cartItem?: string[];
+  orderItem?: string[];
+  wishlistItem?: string[];
   images?: { id: string; imageUrl: string }[];
 }
 
@@ -46,16 +55,6 @@ export interface VariantUpdateDTO {
 }
 
 class VariantService {
-  async getAllVariants(
-    page: number = 1,
-    pageSize: number = 10
-  ): Promise<VariantResponse> {
-    const response = await axiosInstance.get('/product/variants', {
-      params: { page, pageSize },
-    });
-    return response.data;
-  }
-
   async getVariantsByProduct(
     productId: string,
     page: number = 1,
@@ -100,6 +99,21 @@ class VariantService {
 
   async deleteVariant(id: string): Promise<void> {
     await axiosInstance.delete(`/product/variants/${id}`);
+  }
+
+  async getAllVariants(
+    page: number = 1,
+    pageSize: number = 10
+  ): Promise<VariantResponse> {
+    try {
+      const response = await axiosInstance.get('/product/variants', {
+        params: { page, pageSize },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching variants:', error);
+      throw error;
+    }
   }
 }
 

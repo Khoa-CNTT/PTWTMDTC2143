@@ -66,18 +66,18 @@ export class CategoryService {
   }
 
   async findAll(
-    limit: number,
+    limit: string,
     cursor?: string
   ): Promise<{ data: CategoryResponseDto[]; nextCursor: string | null }> {
     const categories = await this.prisma.category.findMany({
-      take: limit + 1,
+      take: parseInt(limit) + 1,
       ...(cursor && {
         skip: 1,
         cursor: { id: cursor },
       }),
-      where: {
-        parentId: null,
-      },
+      // where: {
+      //   parentId: null,
+      // },
       include: {
         subCategories: {
           include: {
@@ -93,7 +93,7 @@ export class CategoryService {
     });
 
     let nextCursor: string | null = null;
-    if (categories.length > limit) {
+    if (categories.length > parseInt(limit)) {
       const nextCategory = categories.pop();
       nextCursor = nextCategory?.id || null;
     }

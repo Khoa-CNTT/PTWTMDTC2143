@@ -29,11 +29,11 @@ export class VoucherService {
     return VoucherMapper.toDTO(voucher);
   }
   async findAll(
-    limit: number,
+    limit: string,
     cursor?: string
   ): Promise<{ data: VoucherResponseDTO[]; nextCursor: string | null }> {
     const vouchers = await this.prisma.voucher.findMany({
-      take: limit + 1,
+      take: parseInt(limit) + 1,
       ...(cursor && {
         skip: 1,
         cursor: { id: cursor },
@@ -42,7 +42,7 @@ export class VoucherService {
     });
 
     let nextCursor: string | null = null;
-    if (vouchers.length > limit) {
+    if (vouchers.length > parseInt(limit)) {
       const nextVoucher = vouchers.pop();
       nextCursor = nextVoucher?.id || null;
     }

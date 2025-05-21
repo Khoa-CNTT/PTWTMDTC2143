@@ -24,7 +24,7 @@ export class VoucherController {
 
   @Get()
   async findAll(
-    @Query('limit') limit: number = 10,
+    @Query('limit') limit: string = '10',
     @Query('cursor') cursor?: string
   ): Promise<{ data: VoucherResponseDTO[]; nextCursor: string | null }> {
     return this.voucherService.findAll(limit, cursor);

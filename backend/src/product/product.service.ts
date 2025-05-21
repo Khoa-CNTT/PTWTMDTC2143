@@ -532,6 +532,32 @@ export class ProductService {
     };
   }
 
+  async getAllVariants(limit: number = 50, cursor?: string) {
+    const variants = await this.prisma.variant.findMany({
+      take: limit,
+      skip: cursor ? 1 : 0,
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: { id: 'desc' },
+      include: {
+        images: true,
+        optionValues: true,
+        product: true,
+      },
+    });
+
+    const total = await this.prisma.variant.count();
+    const mappedVariants = await Promise.all(
+      variants.map((variant) => this.mapProductVariantToResponse(variant))
+    );
+
+    return {
+      variants: mappedVariants,
+      total,
+      hasMore: variants.length === limit,
+      nextCursor: variants.length > 0 ? variants[variants.length - 1].id : null,
+    };
+  }
+
   private async mapProductVariantToResponse(
     variant: Variant & { images?: Image[] }
   ): Promise<VariantResponseDTO> {

@@ -1,24 +1,21 @@
 import {
   IsString,
-  IsNumber,
   IsArray,
   IsOptional,
   IsUUID,
   ValidateNested,
-  Min,
-  Max,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { OptionCreateDTO } from './option-create.dto';
 
 export class ProductCreateDTO {
   @IsString()
   title: string;
 
-  @IsNumber()
-  @Min(0)
-  @Max(5)
-  rating: number;
+  // @IsNumber()
+  // @Min(0)
+  // @Max(5)
+  // rating: number;
 
   @IsString()
   description: string;
@@ -36,5 +33,17 @@ export class ProductCreateDTO {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => OptionCreateDTO)
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed: unknown = JSON.parse(value);
+        if (Array.isArray(parsed)) return parsed as OptionCreateDTO[];
+        return [];
+      } catch {
+        return [];
+      }
+    }
+    return Array.isArray(value) ? (value as OptionCreateDTO[]) : [];
+  })
   options: OptionCreateDTO[];
 }

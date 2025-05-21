@@ -11,6 +11,8 @@ import {
   InventoryItem,
   InventoryStatus,
 } from '../../services/inventoryService';
+import { warehouseService, Warehouse } from '../../services/warehouseService';
+import { variantService, Variant } from '../../services/variantService';
 import { toast } from 'react-hot-toast';
 
 const Inventory: React.FC = () => {
@@ -19,6 +21,8 @@ const Inventory: React.FC = () => {
   const [itemToEdit, setItemToEdit] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [variants, setVariants] = useState<Variant[]>([]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -31,6 +35,8 @@ const Inventory: React.FC = () => {
 
   useEffect(() => {
     fetchInventory();
+    fetchWarehouses();
+    fetchVariants();
   }, []);
 
   const fetchInventory = async () => {
@@ -44,6 +50,26 @@ const Inventory: React.FC = () => {
       toast.error('Failed to fetch inventory data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchWarehouses = async () => {
+    try {
+      const data = await warehouseService.getAllWarehouses();
+      setWarehouses(data);
+    } catch (err) {
+      toast.error('Failed to fetch warehouses');
+    }
+  };
+
+  const fetchVariants = async () => {
+    try {
+      const res = await variantService.getAllVariants();
+      console.log('variants', res.variants);
+
+      setVariants(res.variants);
+    } catch (err) {
+      // Xử lý lỗi nếu cần
     }
   };
 
@@ -144,11 +170,8 @@ const Inventory: React.FC = () => {
     }
   };
 
-  const warehouseOptions = [
-    { id: 'WH-A', name: 'Warehouse A' },
-    { id: 'WH-B', name: 'Warehouse B' },
-    { id: 'WH-C', name: 'Warehouse C' },
-  ];
+  // Thay warehouseOptions bằng dữ liệu thực tế
+  // const warehouseOptions = [ ... ]
 
   if (loading && data.length === 0) {
     return <div className="p-6 text-center">Loading...</div>;
@@ -330,22 +353,46 @@ const Inventory: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm mb-1">Warehouse</label>
+                <label className="block mb-1">Warehouse</label>
                 <select
                   className="border rounded px-3 py-2 w-full"
-                  value={itemToEdit.warehouseId}
+                  value={itemToEdit?.warehouseId || ''}
                   onChange={(e) =>
-                    setItemToEdit({
-                      ...itemToEdit,
-                      warehouseId: e.target.value,
-                    })
+                    setItemToEdit(
+                      itemToEdit
+                        ? { ...itemToEdit, warehouseId: e.target.value }
+                        : null
+                    )
                   }
-                  disabled={loading}
+                  disabled={loading || !itemToEdit}
                 >
                   <option value="">Select warehouse</option>
-                  {warehouseOptions.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.name}
+                  {warehouses.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-1">Variant</label>
+                <select
+                  className="border rounded px-3 py-2 w-full"
+                  value={itemToEdit?.variantId || ''}
+                  onChange={(e) =>
+                    setItemToEdit(
+                      itemToEdit
+                        ? { ...itemToEdit, variantId: e.target.value }
+                        : null
+                    )
+                  }
+                  disabled={loading || !itemToEdit}
+                >
+                  <option value="">Select variant</option>
+                  {variants.map((variant) => (
+                    <option key={variant.id} value={variant.id}>
+                      {variant.id} -{' '}
+                      {variant.attributes.map((a) => a.value).join(', ')}
                     </option>
                   ))}
                 </select>
@@ -439,7 +486,7 @@ const Inventory: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm mb-1">Warehouse</label>
+                <label className="block mb-1">Warehouse</label>
                 <select
                   className="border rounded px-3 py-2 w-full"
                   value={newItem.warehouseId}
@@ -449,9 +496,27 @@ const Inventory: React.FC = () => {
                   disabled={loading}
                 >
                   <option value="">Select warehouse</option>
-                  {warehouseOptions.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.name}
+                  {warehouses.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-1">Variant</label>
+                <select
+                  className="border rounded px-3 py-2 w-full"
+                  value={newItem.variantId}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, variantId: e.target.value })
+                  }
+                  disabled={loading}
+                >
+                  <option value="">Select Variant</option>
+                  {variants?.map((variant) => (
+                    <option key={variant.id} value={variant.id}>
+                      {variants.map((data) => data.sku)}
                     </option>
                   ))}
                 </select>

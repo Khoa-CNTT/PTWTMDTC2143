@@ -4,7 +4,8 @@ import {
   productService,
   ProductCreateDTO,
 } from '../../services/productService';
-import { categoryService, Category } from '../../services/categoryService';
+// import { categoryService, Category } from '../../services/categoryService';
+import { categoryService, Category } from '../../services/categoryList';
 import { brandService, Brand } from '../../services/brandService';
 import './index.css';
 
@@ -35,6 +36,8 @@ const ProductUpload = () => {
           categoryService.getAllCategories(),
           brandService.getAllBrands(),
         ]);
+        console.log(categoriesData);
+        console.log(brandsData);
         setCategories(categoriesData);
         setBrands(brandsData);
       } catch (error) {
@@ -44,6 +47,10 @@ const ProductUpload = () => {
 
     fetchData();
   }, []);
+
+  // useEffect(() => {
+  //   if (categories) console.log(categories);
+  // }, [categories]);
 
   const handleAddVariant = () => {
     if (newAttribute.trim()) {
@@ -93,16 +100,36 @@ const ProductUpload = () => {
   const handleSubmit = async () => {
     try {
       setIsLoading(true);
+
+      // Validate required fields
+      if (
+        !formData.title ||
+        !formData.description ||
+        !formData.categoryId ||
+        !formData.brandId
+      ) {
+        alert('Please fill in all required fields');
+        return;
+      }
+
+      if (variants.length === 0) {
+        alert('Please add at least one variant');
+        return;
+      }
+
+      // Format variants to match the expected structure
+      const formattedVariants = variants.map((variant) => ({
+        name: variant.attribute,
+        values: variant.values.filter((value) => value.trim() !== ''),
+      }));
+
       const productData: ProductCreateDTO = {
         title: formData.title,
         description: formData.description,
         categoryId: formData.categoryId,
         brandId: formData.brandId,
         images: uploadedImages,
-        options: variants.map((variant) => ({
-          name: variant.attribute,
-          values: variant.values,
-        })),
+        options: formattedVariants,
       };
 
       console.log('Product Data:', productData);

@@ -24,7 +24,7 @@ export class DiscountController {
 
   @Get()
   async findAll(
-    @Query('limit') limit: number = 10,
+    @Query('limit') limit: string = '10',
     @Query('cursor') cursor?: string
   ): Promise<{ data: DiscountResponseDTO[]; nextCursor: string | null }> {
     return this.discountService.findAll(limit, cursor);

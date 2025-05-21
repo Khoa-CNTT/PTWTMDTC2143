@@ -98,52 +98,61 @@ class PromoService {
         type === 'voucher' ? { data: [] } : axiosInstance.get('/discounts'),
       ]);
 
-      // Log raw responses
-      console.log('Raw API responses:', {
-        vouchers: vouchersResponse.data,
-        discounts: discountsResponse.data,
-      });
+      // Always treat .data as array
+      const vouchersArr = Array.isArray(vouchersResponse.data)
+        ? vouchersResponse.data
+        : vouchersResponse.data?.vouchers || [];
+      const discountsArr = Array.isArray(discountsResponse.data)
+        ? discountsResponse.data
+        : discountsResponse.data?.discounts || [];
 
       // Transform vouchers data
-      const vouchers = ((vouchersResponse.data as Voucher[]) || []).map((v) => {
-        console.log('Processing voucher:', v);
-        return {
-          id: v.id,
-          name: v.code, // Use code as name for vouchers
-          description: `Voucher ${v.code}`,
-          discount: v.discount,
-          startDate: v.startDate,
-          endDate: v.endDate,
-          status: v.status,
-          type: 'voucher' as const,
-          code: v.code,
-          minOrderValue: v.minSpend,
-          maxDiscountValue: v.maxDiscount,
-          usageLimit: v.usageLimit,
-          usedCount: v.usedCount,
-          isPublic: true,
-        };
-      });
+      const vouchers = vouchersArr.map((v: Voucher) => ({
+        id: v.id || '',
+        name: v.code || '',
+        description: '', // Voucher không có description
+        discount: v.discount ?? 0,
+        discountValue: undefined, // Không có
+        startDate: v.startDate || '',
+        endDate: v.endDate || '',
+        status: v.status || '',
+        type: 'voucher',
+        code: v.code || '',
+        minOrderValue: v.minSpend ?? 0,
+        minPrice: undefined, // Không có
+        maxDiscountValue: v.maxDiscount ?? 0,
+        maxDiscount: v.maxDiscount ?? 0,
+        usageLimit: v.usageLimit ?? 0,
+        usedCount: v.usedCount ?? 0,
+        applyType: undefined, // Không có
+        categories: [], // Không có
+        products: [], // Không có
+        isPublic: undefined, // Không có
+      }));
 
       // Transform discounts data
-      const discounts = ((discountsResponse.data as Discount[]) || []).map(
-        (d) => {
-          console.log('Processing discount:', d);
-          return {
-            id: d.id,
-            name: `Discount ${d.id}`,
-            description: d.description,
-            discount: d.discount,
-            startDate: d.startDate,
-            endDate: d.endDate,
-            status: d.status,
-            type: 'discount' as const,
-            applyType: d.applyType || 'ALL',
-            categories: d.categories || [],
-            products: d.products || [],
-          };
-        }
-      );
+      const discounts = discountsArr.map((d: Discount) => ({
+        id: d.id || '',
+        name: d.name || '',
+        description: d.description || '',
+        discount: d.discount ?? 0,
+        discountValue: undefined, // Không có
+        startDate: d.startDate || '',
+        endDate: d.endDate || '',
+        status: d.status || '',
+        type: 'discount',
+        code: undefined, // Không có
+        minOrderValue: d.minSpend ?? 0,
+        minPrice: undefined, // Không có
+        maxDiscountValue: d.maxDiscount ?? 0,
+        maxDiscount: d.maxDiscount ?? 0,
+        usageLimit: undefined, // Không có
+        usedCount: undefined, // Không có
+        applyType: d.applyType || '',
+        categories: d.categories || [],
+        products: d.products || [],
+        isPublic: undefined, // Không có
+      }));
 
       // Log transformed data
       console.log('Transformed data:', {
@@ -310,31 +319,127 @@ class PromoService {
     page: number = 1,
     pageSize: number = 10
   ): Promise<DiscountResponse> {
-    const response = await axiosInstance.get('/discount', {
+    const response = await axiosInstance.get('/discounts', {
       params: { page, pageSize },
     });
     return response.data;
   }
 
   async getDiscountById(id: string): Promise<Discount> {
-    const response = await axiosInstance.get(`/discount/${id}`);
+    const response = await axiosInstance.get(`/discounts/${id}`);
     return response.data;
   }
 
   async createDiscount(
     data: Omit<Discount, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<Discount> {
-    const response = await axiosInstance.post('/discount', data);
+    const response = await axiosInstance.post('/discounts', data);
     return response.data;
   }
 
   async updateDiscount(id: string, data: Partial<Discount>): Promise<Discount> {
-    const response = await axiosInstance.put(`/discount/${id}`, data);
+    const response = await axiosInstance.put(`/discounts/${id}`, data);
     return response.data;
   }
 
   async deleteDiscount(id: string): Promise<void> {
-    await axiosInstance.delete(`/discount/${id}`);
+    await axiosInstance.delete(`/discounts/${id}`);
+  }
+
+  // Lấy tất cả voucher, map về Promotion[]
+  async getAllVouchersMapped(
+    limit: number = 10,
+    cursor?: string
+  ): Promise<PromotionListResponse> {
+    if (!authService.isAuthenticated()) {
+      throw new Error('User is not authenticated');
+    }
+    try {
+      const response = await axiosInstance.get('/voucher', {
+        params: { limit, cursor },
+      });
+      const vouchersArr = Array.isArray(response.data)
+        ? response.data
+        : response.data?.vouchers || [];
+      const promotions: Promotion[] = vouchersArr.map((v: Voucher) => ({
+        id: v.id || '',
+        name: v.code || '',
+        description: '',
+        discount: v.discount ?? 0,
+        discountValue: undefined,
+        startDate: v.startDate || '',
+        endDate: v.endDate || '',
+        status: v.status || '',
+        type: 'voucher',
+        code: v.code || '',
+        minOrderValue: v.minSpend ?? 0,
+        minPrice: undefined,
+        maxDiscountValue: v.maxDiscount ?? 0,
+        maxDiscount: v.maxDiscount ?? 0,
+        usageLimit: v.usageLimit ?? 0,
+        usedCount: v.usedCount ?? 0,
+        applyType: undefined,
+        categories: [],
+        products: [],
+        isPublic: undefined,
+      }));
+      return {
+        promotions,
+        total: response.data?.total ?? promotions.length,
+        nextCursor: null,
+      };
+    } catch (error) {
+      console.error('Error fetching vouchers:', error);
+      throw error;
+    }
+  }
+
+  // Lấy tất cả discount, map về Promotion[]
+  async getAllDiscountsMapped(
+    limit: number = 10,
+    cursor?: string
+  ): Promise<PromotionListResponse> {
+    if (!authService.isAuthenticated()) {
+      throw new Error('User is not authenticated');
+    }
+    try {
+      const response = await axiosInstance.get('/discounts', {
+        params: { limit, cursor },
+      });
+      const discountsArr = Array.isArray(response.data)
+        ? response.data
+        : response.data?.discounts || [];
+      const promotions: Promotion[] = discountsArr.map((d: Discount) => ({
+        id: d.id || '',
+        name: d.name || '',
+        description: d.description || '',
+        discount: d.discount ?? 0,
+        discountValue: undefined,
+        startDate: d.startDate || '',
+        endDate: d.endDate || '',
+        status: d.status || '',
+        type: 'discount',
+        code: undefined,
+        minOrderValue: d.minSpend ?? 0,
+        minPrice: undefined,
+        maxDiscountValue: d.maxDiscount ?? 0,
+        maxDiscount: d.maxDiscount ?? 0,
+        usageLimit: undefined,
+        usedCount: undefined,
+        applyType: d.applyType || '',
+        categories: d.categories || [],
+        products: d.products || [],
+        isPublic: undefined,
+      }));
+      return {
+        promotions,
+        total: response.data?.total ?? promotions.length,
+        nextCursor: null,
+      };
+    } catch (error) {
+      console.error('Error fetching discounts:', error);
+      throw error;
+    }
   }
 }
 

@@ -43,11 +43,11 @@ export class DiscountService {
   }
 
   async findAll(
-    limit: number,
+    limit: string,
     cursor?: string
   ): Promise<{ data: DiscountResponseDTO[]; nextCursor: string | null }> {
     const discounts = await this.prisma.discount.findMany({
-      take: limit + 1,
+      take: parseInt(limit) + 1,
       ...(cursor && {
         skip: 1,
         cursor: { id: cursor },
@@ -60,7 +60,7 @@ export class DiscountService {
     });
 
     let nextCursor: string | null = null;
-    if (discounts.length > limit) {
+    if (discounts.length > parseInt(limit)) {
       const nextDiscount = discounts.pop();
       nextCursor = nextDiscount?.id || null;
     }

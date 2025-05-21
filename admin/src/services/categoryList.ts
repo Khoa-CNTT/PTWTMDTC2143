@@ -4,7 +4,6 @@ import { authService } from './auth.service';
 export interface Category {
   id: string;
   name: string;
-  description: string;
   image?: string;
   parentId?: string | null;
 }
@@ -16,8 +15,8 @@ class CategoryService {
     }
 
     try {
-      const response = await axiosInstance.get('/category');
-      return response.data;
+      const response = await axiosInstance.get('/category/?limit=40');
+      return response.data.data;
     } catch (error) {
       console.error('Error fetching categories:', error);
       throw error;
@@ -42,9 +41,14 @@ class CategoryService {
     if (!authService.isAuthenticated()) {
       throw new Error('User is not authenticated');
     }
-
     try {
-      const response = await axiosInstance.post('/category', category);
+      // Loại bỏ description khi gửi lên backend
+      const { name, image, parentId } = category;
+      const response = await axiosInstance.post('/category', {
+        name,
+        image,
+        parentId,
+      });
       return response.data;
     } catch (error) {
       console.error('Error creating category:', error);
@@ -59,9 +63,14 @@ class CategoryService {
     if (!authService.isAuthenticated()) {
       throw new Error('User is not authenticated');
     }
-
     try {
-      const response = await axiosInstance.put(`/category/${id}`, category);
+      // Loại bỏ description khi gửi lên backend
+      const { name, image, parentId } = category;
+      const response = await axiosInstance.put(`/category/${id}`, {
+        name,
+        image,
+        parentId,
+      });
       return response.data;
     } catch (error) {
       console.error(`Error updating category ${id}:`, error);

@@ -1,15 +1,24 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3000';
+import axiosInstance from './axios.config';
+import { authService } from './auth.service';
 
 export interface Brand {
   id: string;
   name: string;
 }
 
-export const brandService = {
-  getAllBrands: async (): Promise<Brand[]> => {
-    const response = await axios.get(`${API_URL}/brand`);
-    return response.data;
-  },
-};
+class BrandService {
+  async getAllBrands(): Promise<Brand[]> {
+    if (!authService.isAuthenticated()) {
+      throw new Error('User is not authenticated');
+    }
+
+    try {
+      const response = await axiosInstance.get('/brands');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching brands:', error);
+      throw error;
+    }
+  }
+}
+export const brandService = new BrandService();

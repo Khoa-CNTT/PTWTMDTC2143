@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Pencil, Trash2, Plus } from 'lucide-react';
-import { promoService, Promotion } from '../../services/promoService';
+import {
+  Discount,
+  promoService,
+  Promotion,
+  Voucher,
+} from '../../services/promoService';
 
 const PromoManager: React.FC = () => {
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  // const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [search, setSearch] = useState('');
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(
     null
@@ -19,18 +24,35 @@ const PromoManager: React.FC = () => {
   // const [currentPage, setCurrentPage] = useState(1);
   const currentPage = 1;
   const [totalPromotions, setTotalPromotions] = useState(0);
-  const itemsPerPage = 10;
+  const [voucherData, setVoucherData] = useState<Voucher[]>([]);
+  const [discountData, setDiscountData] = useState<Discount[]>([]);
+  type Combined = Voucher | Discount;
 
+  const [combinedData, setCombinedData] = useState<Combined[]>([]);
   const fetchPromotions = useCallback(
     async (page: number) => {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await promoService.getAllPromotions(
-          itemsPerPage,
-          undefined,
-          typeFilter === 'all' ? undefined : typeFilter
-        );
+        let response;
+        if (typeFilter === 'voucher') {
+          response = await promoService.getAllVouchers();
+          setVoucherData(response.data);
+        } else if (typeFilter === 'discount') {
+          response = await promoService.getAllDiscounts();
+          setDiscountData(response.data);
+        } else {
+          // typeFilter === 'all'
+          const [vouchers, discounts] = await Promise.all([
+            promoService.getAllVouchers(),
+            promoService.getAllDiscounts(),
+          ]);
+          response = {
+            promotions: [...vouchers.data, ...discounts.data],
+            total: (vouchers.total || 0) + (discounts.total || 0),
+            nextCursor: null,
+          };
+        }
 
         // Log API response data
         console.log('API Response:', {
@@ -62,7 +84,7 @@ const PromoManager: React.FC = () => {
           });
         });
 
-        setPromotions(response.promotions);
+        // setPromotions(response.promotions);
         setTotalPromotions(response.total);
       } catch (err) {
         console.error('Error fetching promotions:', err);
@@ -75,11 +97,21 @@ const PromoManager: React.FC = () => {
   );
 
   useEffect(() => {
+    if (typeFilter === 'all') {
+      setCombinedData([...voucherData, ...discountData]);
+    } else if (typeFilter === 'voucher') {
+      setCombinedData(voucherData);
+    } else {
+      setCombinedData(discountData);
+    }
+  }, [typeFilter, voucherData, discountData]);
+
+  useEffect(() => {
     fetchPromotions(currentPage);
     console.log('test:', totalPromotions);
-  }, [currentPage, fetchPromotions]);
+  }, [currentPage, fetchPromotions, typeFilter]);
 
-  const filteredPromotions = promotions.filter(
+  const filteredPromotions = combinedData.filter(
     (p) =>
       p.name?.toLowerCase().includes(search.toLowerCase()) ||
       p.code?.toLowerCase().includes(search.toLowerCase())
@@ -105,18 +137,18 @@ const PromoManager: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      if (editingPromotion.id) {
-        const updated = await promoService.updatePromotion(
-          editingPromotion.id,
-          editingPromotion
-        );
-        setPromotions((prev) =>
-          prev.map((p) => (p.id === updated.id ? updated : p))
-        );
-      } else {
-        const created = await promoService.createPromotion(editingPromotion);
-        setPromotions((prev) => [...prev, created]);
-      }
+      // if (editingPromotion.id) {
+      //   const updated = await promoService.updatePromotion(
+      //     editingPromotion.id,
+      //     editingPromotion
+      //   );
+      //   // setPromotions((prev) =>
+      //   //   prev.map((p) => (p.id === updated.id ? updated : p))
+      //   // );
+      // } else {
+      //   const created = await promoService.createPromotion(editingPromotion);
+      //   // setPromotions((prev) => [...prev, created]);
+      // }
 
       setEditingPromotion(null);
     } catch (err) {
@@ -132,7 +164,7 @@ const PromoManager: React.FC = () => {
       setIsLoading(true);
       setError(null);
       await promoService.deletePromotion(id, type);
-      setPromotions((prev) => prev.filter((p) => p.id !== id));
+      // setPromotions((prev) => prev.filter((p) => p.id !== id));
       setDeletingPromotion(null);
     } catch (err) {
       console.error('Error deleting promotion:', err);
@@ -239,7 +271,7 @@ const PromoManager: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredPromotions.map((promo) => (
+              {combinedData?.map((promo) => (
                 <tr key={promo.id} className="hover:bg-gray-50">
                   <td className="border px-4 py-2">{promo.code || promo.id}</td>
                   <td className="border px-4 py-2">{promo.name}</td>
@@ -287,7 +319,7 @@ const PromoManager: React.FC = () => {
                       </div>
                     ) : (
                       <div className="text-sm">
-                        <div>Apply: {promo.applyType}</div>
+                        <div>{promo?.applyType}</div>
                         {promo.categories && promo.categories.length > 0 && (
                           <div>Categories: {promo.categories.length}</div>
                         )}

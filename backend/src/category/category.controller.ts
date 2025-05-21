@@ -41,7 +41,7 @@ export class CategoryController {
 
   @Get()
   async findAll(
-    @Query('limit') limit: number = 10,
+    @Query('limit') limit: string = '10',
     @Query('cursor') cursor?: string
   ): Promise<{ data: CategoryResponseDto[]; nextCursor: string | null }> {
     return this.categoryService.findAll(limit, cursor);

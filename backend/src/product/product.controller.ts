@@ -45,9 +45,14 @@ export class ProductController {
     @Body() productCreateDTO: ProductCreateDTO,
     @UploadedFiles() images: Express.Multer.File[]
   ) {
+    console.log('Raw DTO:', productCreateDTO);
+    console.log('Raw options:', productCreateDTO.options);
+
+    // Handle images
     if (images && images.length) {
       productCreateDTO.images = images;
     }
+
     if (typeof productCreateDTO.options === 'string') {
       productCreateDTO.options = JSON.parse(
         productCreateDTO.options
@@ -85,6 +90,7 @@ export class ProductController {
     dto.images = files.images || [];
     return this.productService.createVariant(productId, dto);
   }
+
   @Put(':variantId/variants')
   @UseInterceptors(FileFieldsInterceptor([{ name: 'newImages', maxCount: 10 }]))
   async updateVariant(
@@ -141,5 +147,13 @@ export class ProductController {
     @Query('cursor') cursor?: string
   ) {
     return this.productService.searchProductsByName(keyword, limit, cursor);
+  }
+
+  @Get('variants')
+  async getAllVariants(
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number = 50,
+    @Query('cursor') cursor?: string
+  ) {
+    return this.productService.getAllVariants(limit, cursor);
   }
 }

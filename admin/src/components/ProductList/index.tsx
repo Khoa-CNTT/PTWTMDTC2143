@@ -5,6 +5,8 @@ import { FaUser, FaShoppingCart } from 'react-icons/fa';
 import { IoBagHandleOutline } from 'react-icons/io5';
 import Rating from '@mui/material/Rating';
 import { productService, Product } from '../../services/productService';
+import { categoryService, Category } from '../../services/categoryList';
+import { brandService, Brand } from '../../services/brandService';
 import { toast } from 'react-toastify';
 
 const ProductList = () => {
@@ -25,6 +27,9 @@ const ProductList = () => {
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+
   const [editData, setEditData] = useState({
     id: '',
     name: '',
@@ -38,18 +43,31 @@ const ProductList = () => {
 
   useEffect(() => {
     fetchProducts();
+    // Fetch categories and brands
+    (async () => {
+      try {
+        const [cat, br] = await Promise.all([
+          categoryService.getAllCategories(),
+          brandService.getAllBrands(),
+        ]);
+        setCategories(cat);
+        setBrands(br);
+      } catch (e) {
+        toast.error('Lỗi khi tải danh mục hoặc thương hiệu');
+      }
+    })();
   }, []);
 
   const fetchProducts = async (cursor?: string) => {
     try {
       setIsLoading(true);
-      const response = await productService.getAllProducts(10, cursor);
+      const response = await productService.getAllProducts(); // No arguments
       if (cursor) {
         setProducts((prev) => [...prev, ...response.products]);
       } else {
         setProducts(response.products);
       }
-      setNextCursor(response.nextCursor);
+      setNextCursor(response.nextCursor || undefined); // Use undefined if null
       setHasMore(!!response.nextCursor);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -136,8 +154,8 @@ const ProductList = () => {
       setEditData({
         id: product.id,
         name: product.title,
-        category: product.category?.name || '',
-        brand: product.brand?.name || '',
+        category: product.category?.id || '', // Use ID
+        brand: product.brand?.id || '', // Use ID
         price: product.variants?.[0]?.price?.toString() || '',
         rating: product.rating?.toString() || '',
         status: product.variants?.[0]?.status || '',
@@ -152,22 +170,14 @@ const ProductList = () => {
       await productService.updateProduct(editData.id, {
         title: editData.name,
         category: {
-          id:
-            products.find((p) => p.category?.name === editData.category)
-              ?.category?.id || '',
-          name: editData.category,
+          id: editData.category,
+          name: categories.find((c) => c.id === editData.category)?.name || '',
           image:
-            products.find((p) => p.category?.name === editData.category)
-              ?.category?.image || '',
+            categories.find((c) => c.id === editData.category)?.image || '',
         },
         brand: {
-          id:
-            products.find((p) => p.brand?.name === editData.brand)?.brand?.id ||
-            '',
-          name: editData.brand,
-          logo:
-            products.find((p) => p.brand?.name === editData.brand)?.brand
-              ?.logo || '',
+          id: editData.brand,
+          name: brands.find((b) => b.id === editData.brand)?.name || '',
         },
         variants: [
           {
@@ -183,11 +193,38 @@ const ProductList = () => {
         ],
         rating: Number(editData.rating),
       });
-      await fetchProducts();
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === editData.id
+            ? {
+                ...p,
+                title: editData.name,
+                category:
+                  categories.find((c) => c.id === editData.category) ||
+                  p.category,
+                brand: brands.find((b) => b.id === editData.brand) || p.brand,
+                variants: [
+                  {
+                    ...p.variants?.[0],
+                    price: Number(editData.price),
+                    status: editData.status,
+                    images: p.variants?.[0]?.images || [],
+                  },
+                ],
+                rating: Number(editData.rating),
+                images: editData.images.map((url, idx) => ({
+                  imageUrl: url,
+                  id: p.images?.[idx]?.id || String(idx),
+                })),
+              }
+            : p
+        )
+      );
       setShowForm(false);
+      toast.success('Cập nhật sản phẩm thành công!');
     } catch (error) {
       console.error('Error updating product:', error);
-      alert('Failed to update product. Please try again.');
+      toast.error('Cập nhật sản phẩm thất bại!');
     }
   };
 
@@ -508,8 +545,12 @@ const ProductList = () => {
                   onChange={handleEditChange}
                   className="w-full border border-gray-300 rounded px-3 py-2"
                 >
-                  <option value="1">Category 1</option>
-                  <option value="0">Category 2</option>
+                  <option value="">Select category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="">
@@ -520,8 +561,12 @@ const ProductList = () => {
                   onChange={handleEditChange}
                   className="w-full border border-gray-300 rounded px-3 py-2"
                 >
-                  <option value="1">Brand 1</option>
-                  <option value="0">Brand 2</option>
+                  <option value="">Select brand</option>
+                  {brands.map((br) => (
+                    <option key={br.id} value={br.id}>
+                      {br.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="">

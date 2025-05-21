@@ -20,7 +20,7 @@ async function bootstrap() {
     optionsSuccessStatus: 204,
   });
 
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({}));
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap().catch((error) => {
