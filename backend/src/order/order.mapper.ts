@@ -29,6 +29,7 @@ export class OrderMapper {
       city: order.city,
       province: order.province,
       country: order.country,
+      paymentMethod: order.paymentMethod,
       items: order.items.map((item) => this.toItemDTO(item)),
     };
   }

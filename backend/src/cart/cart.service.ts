@@ -283,4 +283,20 @@ export class CartService {
     const cart = await this.getOrCreateCart(userId);
     return this.prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
   }
+
+  async clearSelectedItems(userId: string, tx) {
+    await tx.cartItem.deleteMany({
+      where: {
+        cart: { userId },
+        isSelected: true,
+      },
+    });
+  }
+
+  async resetCartTotal(userId: string, tx) {
+    await tx.cart.update({
+      where: { userId },
+      data: { totalAmount: 0 },
+    });
+  }
 }

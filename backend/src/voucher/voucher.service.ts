@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { VoucherCreateDTO } from './dto/voucher-create.dto';
 import { VoucherResponseDTO } from './dto/voucher-response.dto';
@@ -74,5 +78,67 @@ export class VoucherService {
     });
 
     return VoucherMapper.toDTO(updated);
+  }
+
+  async validateVoucher(userId: string, voucherId: string, total: number) {
+    const voucher = await this.prisma.voucher.findUnique({
+      where: { id: voucherId },
+    });
+    if (!voucher || voucher.status !== 'ACTIVE') {
+      throw new NotFoundException('Voucher không hợp lệ hoặc không hoạt động');
+    }
+
+    const now = new Date();
+    if (voucher.startDate > now || voucher.endDate < now) {
+      throw new BadRequestException(
+        'Voucher không trong khoảng thời gian hợp lệ'
+      );
+    }
+
+    if (voucher.minPrice && total < voucher.minPrice) {
+      throw new BadRequestException(
+        `Tổng đơn hàng phải ít nhất là ${voucher.minPrice}`
+      );
+    }
+
+    if (voucher.usageLimit > 0 && voucher.usedCount >= voucher.usageLimit) {
+      throw new BadRequestException('Voucher đã vượt quá giới hạn sử dụng');
+    }
+
+    const hasUsed = await this.prisma.voucherUsage.findFirst({
+      where: { userId, voucherId },
+    });
+
+    if (hasUsed) {
+      throw new BadRequestException('Bạn đã sử dụng voucher này trước đó');
+    }
+
+    return voucher;
+  }
+
+  calculateVoucherDiscount(voucher, total: number): number {
+    let discountAmount = 0;
+    if (voucher.type === 'PERCENTAGE') {
+      discountAmount = (total * voucher.discountValue) / 100;
+      if (voucher.maxDiscount && discountAmount > voucher.maxDiscount) {
+        discountAmount = voucher.maxDiscount;
+      }
+    } else if (voucher.type === 'FIXED_AMOUNT') {
+      discountAmount = voucher.discountValue;
+    }
+    return discountAmount > total ? total : discountAmount;
+  }
+
+  async applyVoucherUsage(userId: string, voucherId: string, tx) {
+    await tx.voucher.update({
+      where: { id: voucherId },
+      data: {
+        usedCount: { increment: 1 },
+      },
+    });
+
+    await tx.voucherUsage.create({
+      data: { userId, voucherId },
+    });
   }
 }
