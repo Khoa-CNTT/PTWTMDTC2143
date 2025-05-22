@@ -59,7 +59,8 @@ enum PaymentMethod {
 
 enum PaymentStatus {
   UNPAID
-  PAID
+  PENDING
+  COMPLETED
   FAILED
   REFUNDED
 }
