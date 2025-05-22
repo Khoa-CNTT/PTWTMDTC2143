@@ -16,6 +16,8 @@ import ProfilePage from './pages/ProfilePage';
 import ChatbotPage from './components/ChatBox/chatBoxPage';
 import WishlistPage from './pages/WishlistPage';
 import { AuthProvider } from './contexts/AuthContext';
+import OrderSuccessPage from './pages/OrderPage/OrderSuccessPage';
+import OrderFailedPage from './pages/OrderPage/OrderFailedPage';
 
 function App() {
   return (
@@ -36,6 +38,8 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/electric-ai" element={<ChatbotPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/order-success" element={<OrderSuccessPage />} />
+          <Route path="/order-failed" element={<OrderFailedPage />} />
         </Routes>
         <Footer />
       </BrowserRouter>
