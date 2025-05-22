@@ -130,6 +130,11 @@ export class VoucherService {
   }
 
   async applyVoucherUsage(userId: string, voucherId: string, tx) {
+    const alreadyUsed = await tx.voucherUsage.findFirst({
+      where: { userId, voucherId },
+    });
+    if (alreadyUsed) return;
+
     await tx.voucher.update({
       where: { id: voucherId },
       data: {

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PaymentMethod, Prisma } from '@prisma/client';
+import { PaymentMethod, PaymentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -11,6 +11,7 @@ export class PaymentService {
     userId: string;
     amount: number;
     method: PaymentMethod;
+    paymentStatus: PaymentStatus;
   }) {
     const transactionCode = this.generateTransactionCode();
 

@@ -47,3 +47,15 @@ export class CreateOrderDTO {
   @Type(() => CreateOrderItemDTO)
   items: CreateOrderItemDTO[];
 }
+
+export interface CalculatedOrderData {
+  dto: CreateOrderDTO;
+  total: number;
+  voucherDiscount: number;
+  orderItemsData: {
+    productId: string;
+    variantId: string;
+    quantity: number;
+    price: number;
+  }[];
+}

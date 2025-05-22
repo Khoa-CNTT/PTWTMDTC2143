@@ -28,9 +28,27 @@ import { PaypalModule } from './paypal/paypal.module';
 import { ReturnModule } from './return/return.module';
 import { InvoiceModule } from './invoice/invoice.module';
 import { PaymentModule } from './payment/payment.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { createKeyv } from '@keyv/redis';
+import { Keyv } from 'keyv';
+import { CacheableMemory } from 'cacheable';
 
 @Module({
   imports: [
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useFactory: async () => {
+        return {
+          stores: [
+            new Keyv({
+              store: new CacheableMemory({ ttl: 60000, lruSize: 5000 }),
+            }),
+            createKeyv('redis://localhost:6379'),
+          ],
+        };
+      },
+    }),
+
     ConfigModule.forRoot({
       isGlobal: true,
       load: [jwtConfig],
@@ -86,5 +104,6 @@ import { PaymentModule } from './payment/payment.module';
       useClass: GlobalRoleGuard, // sau đó check role
     },
   ],
+  exports: [CacheModule],
 })
 export class AppModule {}

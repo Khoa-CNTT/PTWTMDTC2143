@@ -1,7 +1,10 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
+  Inject,
   Param,
   Patch,
   Post,
@@ -9,15 +12,19 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { CreateOrderDTO } from './dto/order-create.dto';
+import { CalculatedOrderData, CreateOrderDTO } from './dto/order-create.dto';
 import { OrderService } from './order.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UpdateOrderStatusDTO } from './dto/order-update-status.dto';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @UseGuards(JwtAuthGuard)
 @Controller('order')
 export class OrderController {
-  constructor(private orderService: OrderService) {}
+  constructor(
+    private orderService: OrderService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache
+  ) {}
 
   @Get()
   getOrders(
@@ -43,22 +50,52 @@ export class OrderController {
     return this.orderService.updateStatus(id, dto);
   }
 
-  @Post('create-order')
-  async createOrder(@Req() req, @Body() dto: CreateOrderDTO) {
+  @Post('prepare-paypal')
+  async preparePaypalOrder(@Req() req, @Body() dto: CreateOrderDTO) {
+    console.log('preparePaypalOrder', dto);
     const userId = req.user.id;
-    return this.orderService.createOrderAndPaypalOrder(userId, dto);
+    const { approvalUrl, paypalOrderId, calculatedData } =
+      await this.orderService.preparePaypalOrder(userId, dto);
+
+    await this.cacheManager.set(
+      `paypal_order:${paypalOrderId}`,
+      { ...calculatedData, userId },
+      0
+    );
+    ``;
+
+    return {
+      approvalUrl,
+      paypalOrderId,
+    };
   }
 
-  @Post('confirm-payment')
-  async confirmPayment(
-    @Req() req,
-    @Body() body: { orderId: string; paypalOrderId: string }
-  ) {
+  @Post('confirm-paypal')
+  async confirmPaypal(@Req() req, @Body() body: { paypalOrderId: string }) {
     const userId = req.user.id;
-    return this.orderService.confirmPaypalPayment(
+    const { paypalOrderId } = body;
+
+    const calculatedData = await this.cacheManager.get<
+      CalculatedOrderData & { userId: string }
+    >(`paypal_order:${paypalOrderId}`);
+    if (!calculatedData) {
+      throw new BadRequestException(
+        'Dữ liệu thanh toán đã hết hạn hoặc không tồn tại'
+      );
+    }
+
+    if (calculatedData.userId !== userId) {
+      throw new ForbiddenException('Bạn không có quyền xác nhận đơn hàng này');
+    }
+
+    const order = await this.orderService.confirmPaypalAndCreateOrder(
       userId,
-      body.orderId,
-      body.paypalOrderId
+      paypalOrderId,
+      calculatedData
     );
+
+    await this.cacheManager.del(`paypal_order:${paypalOrderId}`);
+
+    return order;
   }
 }
