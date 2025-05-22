@@ -20,7 +20,7 @@ export class PaymentService {
         userId: input.userId,
         totalAmount: input.amount,
         method: input.method,
-        status: 'PENDING',
+        status: 'UNPAID',
         refundStatus: 'NONE',
         transactions: {
           create: {
