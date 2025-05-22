@@ -17,26 +17,49 @@ import { GiPc } from 'react-icons/gi';
 import { FaTv } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { FaHeart } from 'react-icons/fa';
-
 const categories = [
   {
     label: 'Điện thoại, Tablet',
     key: 'phone',
     icon: <IoPhonePortraitOutline />,
   },
-  { label: 'Laptop', key: 'laptop', icon: <IoIosLaptop /> },
-  { label: 'Âm thanh, Mic thu âm', key: 'audio', icon: <TbDeviceAirpods /> },
-  { label: 'Đồng hồ, Camera', key: 'camera', icon: <MdWatch /> },
-  { label: 'Phụ kiện', key: 'accessories', icon: <BsUsbPlug /> },
-  { label: 'PC, Màn hình, Máy in', key: 'pc', icon: <GiPc /> },
-  { label: 'Tivi', key: 'tv', icon: <FaTv /> },
+  {
+    label: 'Laptop',
+    key: 'laptop',
+    icon: <IoIosLaptop className="text-2xl" />,
+  },
+  {
+    label: 'Âm thanh, Mic thu âm',
+    key: 'audio',
+    icon: <TbDeviceAirpods className="text-2xl" />,
+  },
+  {
+    label: 'Đồng hồ, Camera',
+    key: 'camera',
+    icon: <MdWatch className="text-2xl" />,
+  },
+  {
+    label: 'Phụ kiện',
+    key: 'accessories',
+    icon: <BsUsbPlug className="text-2xl" />,
+  },
+  {
+    label: 'PC, Màn hình, Máy in',
+    key: 'pc',
+    icon: <GiPc className="text-2xl" />,
+  },
+  { label: 'Tivi', key: 'tv', icon: <FaTv className="text-2xl" /> },
 ];
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
 
   const handleCartClick = () => {
-    navigate('/shopping-cart');
+    if (isAuthenticated) {
+      navigate('/shopping-cart');
+    } else {
+      navigate('/login');
+    }
   };
 
   const handleUserClick = () => {
@@ -47,7 +70,11 @@ const Header: React.FC = () => {
     }
   };
   const handleWishlistClick = () => {
-    navigate('/wishlist');
+    if (isAuthenticated) {
+      navigate('/wishlist');
+    } else {
+      navigate('/login');
+    }
   };
   const StyledBadge = styled(Badge)(({ theme }) => ({
     '& .MuiBadge-badge': {
@@ -66,7 +93,7 @@ const Header: React.FC = () => {
       className={`z-[1000] w-full transition ${isOpen ? 'shadow-lg bg-blue-50' : 'bg-white'} sticky top-0`}
     >
       <div
-        className={`top-strip lg:block py-2 border-t-[1px] border-gray-250 border-b-[1px] ${isOpen ? 'bg-blue-50' : ''}`}
+        className={`top-strip lg:block py-2 border-t-[1px] border-gray-250 border-b-[1px] ${isOpen ? 'bg-white' : ''}`}
       >
         <div className="container">
           <div className="flex items-center justify-between">
@@ -102,7 +129,7 @@ const Header: React.FC = () => {
       </div>
 
       <div
-        className={`header py-2 lg:py-4 border-b-[1px] border-gray-250 ${isOpen ? 'bg-blue-50' : ''}`}
+        className={`header py-2 lg:py-4 border-b-[1px] border-gray-250 ${isOpen ? 'bg-white' : ''}`}
       >
         <div className="container flex items-center justify-between">
           <div className="col1 w-[40%] lg:w-[25%]">
@@ -113,14 +140,14 @@ const Header: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={`mt-3 px-5 py-2 rounded-md whitespace-nowrap flex items-center gap-2 font-semibold transition-colors duration-300
+              className={`mt-3 px-5 py-2 rounded-md whitespace-nowrap flex items-center gap-2  transition-colors duration-300
     ${
       isOpen
-        ? 'bg-blue-600 text-white hover:bg-blue-700'
-        : 'bg-blue-300 text-blue-800 hover:bg-blue-400'
+        ? 'bg-orange-600 text-white hover:bg-orange-700'
+        : 'border border-orange-300 text-orange-500 hover:bg-orange-300'
     }`}
             >
-              <CiViewList />
+              <CiViewList className="text-2xl" />
               Category
             </button>
 
@@ -154,7 +181,7 @@ const Header: React.FC = () => {
                       <div className="w-[900px] grid grid-cols-5 gap-4 text-sm">
                         <div>
                           <h3 className="font-bold mb-2">Hãng điện thoại</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">iPhone</a>
                             </li>
@@ -181,7 +208,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Mức giá</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Dưới 2 triệu</a>
                             </li>
@@ -205,7 +232,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Điện thoại HOT</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">iPhone 16 Series</a>
                             </li>
@@ -226,7 +253,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Hãng máy tính bảng</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">iPad</a>
                             </li>
@@ -244,7 +271,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Máy tính bảng HOT</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">iPad Air M3</a>
                             </li>
@@ -264,7 +291,7 @@ const Header: React.FC = () => {
                       <div className="w-[900px] grid grid-cols-5 gap-4 text-sm">
                         <div>
                           <h3 className="font-bold mb-2">Thương hiệu</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Mac</a>
                             </li>
@@ -306,7 +333,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Phân khúc giá</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Dưới 10 triệu</a>
                             </li>
@@ -327,7 +354,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Nhu cầu sử dụng</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Văn phòng</a>
                             </li>
@@ -363,7 +390,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Dòng chip</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Laptop Core i3</a>
                             </li>
@@ -404,7 +431,7 @@ const Header: React.FC = () => {
                           <h3 className="font-bold mb-2">
                             Kích thước màn hình
                           </h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Laptop 12 inch</a>
                             </li>
@@ -430,7 +457,7 @@ const Header: React.FC = () => {
                       <div className="w-[900px] grid grid-cols-6 gap-4 text-sm">
                         <div>
                           <h3 className="font-bold mb-2">Chọn loại tai nghe</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Bluetooth</a>
                             </li>
@@ -457,7 +484,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Hãng tai nghe</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Apple</a>
                             </li>
@@ -502,7 +529,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Chọn theo giá</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Tai nghe dưới 200K</a>
                             </li>
@@ -523,7 +550,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Hãng loa</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">JBL</a>
                             </li>
@@ -568,7 +595,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Chọn loại loa</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Loa Bluetooth</a>
                             </li>
@@ -592,7 +619,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Sản phẩm nổi bật</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">AirPods 4</a>
                             </li>
@@ -630,7 +657,7 @@ const Header: React.FC = () => {
                       <div className="w-[900px] grid grid-cols-6 gap-4 text-sm">
                         <div>
                           <h3 className="font-bold mb-2">Loại đồng hồ</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Đồng hồ thông minh</a>
                             </li>
@@ -650,7 +677,7 @@ const Header: React.FC = () => {
                           <h3 className="font-bold mb-2">
                             Chọn theo thương hiệu
                           </h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Apple Watch</a>
                             </li>
@@ -697,7 +724,7 @@ const Header: React.FC = () => {
                           <h3 className="font-bold mb-2">
                             Sản phẩm nổi bật ⚡
                           </h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Apple Watch Series 10</a>
                             </li>
@@ -751,7 +778,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Camera</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Camera an ninh</a>
                             </li>
@@ -790,7 +817,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Camera nổi bật</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Camera an ninh Imou</a>
                             </li>
@@ -846,7 +873,7 @@ const Header: React.FC = () => {
                       <div className="w-[900px] grid grid-cols-6 gap-4 text-sm">
                         <div>
                           <h3 className="font-bold mb-2">Phụ kiện di động</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Phụ kiện Apple</a>
                             </li>
@@ -885,7 +912,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Phụ kiện Laptop</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Chuột, bàn phím</a>
                             </li>
@@ -915,7 +942,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Thiết bị mạng</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Thiết bị phát sóng WiFi</a>
                             </li>
@@ -933,7 +960,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Gaming Gear</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">PlayStation</a>
                             </li>
@@ -963,7 +990,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Phụ kiện khác</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Dây đeo đồng hồ</a>
                             </li>
@@ -987,7 +1014,7 @@ const Header: React.FC = () => {
 
                         <div>
                           <h3 className="font-bold mb-2">Thiết bị lưu trữ</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Thẻ nhớ</a>
                             </li>
@@ -1007,7 +1034,7 @@ const Header: React.FC = () => {
                       <div className="w-[900px] grid grid-cols-6 gap-4 text-sm">
                         <div>
                           <h3 className="font-bold mb-2">Loại PC</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Build PC</a>
                             </li>
@@ -1026,7 +1053,7 @@ const Header: React.FC = () => {
                           <h3 className="font-bold mb-2">
                             Chọn PC theo nhu cầu
                           </h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Gaming</a>
                             </li>
@@ -1040,7 +1067,7 @@ const Header: React.FC = () => {
                         </div>
                         <div>
                           <h3 className="font-bold mb-2">Linh kiện máy tính</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">CPU</a>
                             </li>
@@ -1074,7 +1101,7 @@ const Header: React.FC = () => {
                           <h3 className="font-bold mb-2">
                             Chọn màn hình theo hãng
                           </h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">ASUS</a>
                             </li>
@@ -1114,7 +1141,7 @@ const Header: React.FC = () => {
                           <h3 className="font-bold mb-2">
                             Chọn màn hình theo nhu cầu
                           </h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Gaming</a>
                             </li>
@@ -1140,7 +1167,7 @@ const Header: React.FC = () => {
                         </div>
                         <div>
                           <h3 className="font-bold mb-2">Thiết bị văn phòng</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Máy in</a>
                             </li>
@@ -1160,7 +1187,7 @@ const Header: React.FC = () => {
                       <div className="w-[900px] grid grid-cols-5 gap-4 text-sm">
                         <div>
                           <h3 className="font-bold mb-2">Chọn theo hãng</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Samsung</a>
                             </li>
@@ -1194,7 +1221,7 @@ const Header: React.FC = () => {
                         </div>
                         <div>
                           <h3 className="font-bold mb-2">Chọn theo mức giá</h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Dưới 5 triệu</a>
                             </li>
@@ -1216,7 +1243,7 @@ const Header: React.FC = () => {
                           <h3 className="font-bold mb-2">
                             Chọn theo kích thước
                           </h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Tivi 32 inch</a>
                             </li>
@@ -1244,7 +1271,7 @@ const Header: React.FC = () => {
                           <h3 className="font-bold mb-2">
                             Chọn theo độ phân giải
                           </h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Tivi 4K</a>
                             </li>
@@ -1269,7 +1296,7 @@ const Header: React.FC = () => {
                           <h3 className="font-bold mb-2">
                             Sản phẩm nổi bật ⚡
                           </h3>
-                          <ul className="space-y-1 text-gray-500">
+                          <ul className="space-y-3 text-gray-500">
                             <li>
                               <a href="">Tivi Samsung UHD 4K 55 inch</a>
                             </li>
@@ -1325,51 +1352,49 @@ const Header: React.FC = () => {
               </Button>
             </div> */}
             <ul className="flex items-center justify-end gap-0 lg:gap-3 w-full">
-              {isAuthenticated && (
-                <>
-                  <li>
-                    <Button
-                      onClick={handleWishlistClick}
-                      className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
-                      startIcon={
-                        <StyledBadge badgeContent={2} color="secondary">
-                          <FaHeart className="text-xl text-pink-500" />
-                        </StyledBadge>
-                      }
-                    >
-                      <div className="info flex flex-col">
-                        <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
-                          Wishlist
-                        </h4>
-                        <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
-                          2 items
-                        </span>
-                      </div>
-                    </Button>
-                  </li>
-                  <li>
-                    <Button
-                      onClick={handleCartClick}
-                      className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
-                      startIcon={
-                        <StyledBadge badgeContent={4} color="secondary">
-                          <ShoppingCartIcon />
-                        </StyledBadge>
-                      }
-                    >
-                      <div className="info flex flex-col">
-                        <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
-                          Cart
-                        </h4>
-                        <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
-                          $150.000
-                        </span>
-                      </div>
-                    </Button>
-                  </li>
-                  <div className="h-6 w-[1px] bg-gray-300"></div>
-                </>
-              )}
+              <>
+                <li>
+                  <Button
+                    onClick={handleWishlistClick}
+                    className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
+                    startIcon={
+                      <StyledBadge badgeContent={2} color="secondary">
+                        <FaHeart className="text-xl text-pink-500" />
+                      </StyledBadge>
+                    }
+                  >
+                    <div className="info flex flex-col">
+                      <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
+                        Wishlist
+                      </h4>
+                      <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
+                        2 items
+                      </span>
+                    </div>
+                  </Button>
+                </li>
+                <li>
+                  <Button
+                    onClick={handleCartClick}
+                    className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
+                    startIcon={
+                      <StyledBadge badgeContent={4} color="secondary">
+                        <ShoppingCartIcon />
+                      </StyledBadge>
+                    }
+                  >
+                    <div className="info flex flex-col">
+                      <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
+                        Cart
+                      </h4>
+                      <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
+                        $150.000
+                      </span>
+                    </div>
+                  </Button>
+                </li>
+                <div className="h-6 w-[1px] bg-gray-300"></div>
+              </>
 
               <li
                 onMouseEnter={() => setIsHoveringUser(true)}

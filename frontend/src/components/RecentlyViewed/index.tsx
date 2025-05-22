@@ -71,12 +71,12 @@ const RecentlyViewed: React.FC = () => {
     <>
       <Swiper
         slidesPerView={5}
-        spaceBetween={20}
+        spaceBetween={10}
         pagination={{
           clickable: true,
         }}
         modules={[Pagination]}
-        className="mySwiper"
+        className="mySwiper !pb-10"
       >
         {product.map(({ id, name, price, image, rating }) => (
           <SwiperSlide key={id}>
@@ -93,7 +93,10 @@ const RecentlyViewed: React.FC = () => {
                   <div className="p-4 flex flex-col justify-between">
                     <div>
                       <h3 className="text-[16px] font-[500] text-[rgba(0,0,0,0.9)] -mt-3">
-                        <Link to="/" className="link transition-all">
+                        <Link
+                          to="/product-detail"
+                          className="link transition-all"
+                        >
                           {name}
                         </Link>
                       </h3>
