@@ -205,7 +205,7 @@ const ProductList = () => {
                 brand: brands.find((b) => b.id === editData.brand) || p.brand,
                 variants: [
                   {
-                    ...p.variants?.[0],
+                    id: p.variants?.[0]?.id || '',
                     price: Number(editData.price),
                     status: editData.status,
                     images: p.variants?.[0]?.images || [],
