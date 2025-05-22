@@ -93,7 +93,7 @@ const BestDeal: React.FC = () => {
           {products.map((product) => (
             <div
               key={product.id}
-              className="grid grid-cols-2 border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg overflow-hidden"
+              className="grid grid-cols-2 border-1 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1]  overflow-hidden"
             >
               <div className="w-full h-full rounded-[20px] overflow-hidden">
                 <img
@@ -105,7 +105,7 @@ const BestDeal: React.FC = () => {
               <div className="p-4 flex flex-col justify-between">
                 <div>
                   <h3 className="text-[16px] font-[500] text-[rgba(0,0,0,0.9)] -mt-3">
-                    <Link to="/" className="link transition-all">
+                    <Link to="/product-detail" className="link transition-all">
                       {product.name}
                     </Link>
                   </h3>

@@ -70,6 +70,16 @@ interface Review {
   email: string;
   content: string;
   rating: number;
+  replies?: Reply[];
+  images?: string[];
+  createdAt: Date;
+}
+interface Reply {
+  id: number;
+  name: string;
+  content: string;
+  avatar: string;
+  createdAt: Date;
 }
 const initialReviews: Review[] = [
   {
@@ -79,6 +89,8 @@ const initialReviews: Review[] = [
     email: 'rod@example.com',
     content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
     rating: 4,
+    replies: [],
+    createdAt: new Date('2024-05-01T10:30:00'),
   },
   {
     id: 2,
@@ -87,6 +99,7 @@ const initialReviews: Review[] = [
     email: 'marissa@example.com',
     content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
     rating: 4,
+    createdAt: new Date('2024-05-05T14:45:00'),
   },
   {
     id: 3,
@@ -95,6 +108,7 @@ const initialReviews: Review[] = [
     email: 'julianto@example.com',
     content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
     rating: 3.5,
+    createdAt: new Date('2024-05-10T08:15:00'),
   },
 ];
 const ProductDetail: React.FC = () => {
@@ -103,14 +117,58 @@ const ProductDetail: React.FC = () => {
   const [selectedColor, setSelectedColor] = useState('Blue');
   const [selectedImage, setSelectedImage] = useState(product.colors['Blue'][0]);
   const [activeTab, setActiveTab] = useState('Description');
-
-  const [reviews, setReviews] = useState(initialReviews);
+  const [replyingToId, setReplyingToId] = useState<number | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+  const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [nickname, setNickname] = useState('');
   const [email, setEmail] = useState('');
   const [content, setContent] = useState('');
   const [rating, setRating] = useState(4);
+  const [reviewImages, setReviewImages] = useState<File[]>([]);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setReviewImages((prev) => [...prev, ...newFiles]);
+    }
+  };
+  const handleReplyClick = (id: number) => {
+    if (replyingToId === id) {
+      setReplyingToId(null);
+    } else {
+      setReplyingToId(id);
+      setReplyContent('');
+    }
+  };
+  const handleReplySubmit = (reviewId: number) => {
+    if (!replyContent.trim()) return;
+
+    setReviews((prev) =>
+      prev.map((review) =>
+        review.id === reviewId
+          ? {
+              ...review,
+              replies: [
+                ...(review.replies || []),
+                {
+                  id: Date.now(),
+                  name: 'Admin',
+                  content: replyContent.trim(),
+                  avatar: 'https://randomuser.me/api/portraits/lego/2.jpg',
+                  createdAt: new Date(),
+                },
+              ],
+            }
+          : review
+      )
+    );
+
+    setReplyingToId(null);
+    setReplyContent('');
+  };
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     const newReview: Review = {
       id: Date.now(),
       name: nickname,
@@ -118,13 +176,19 @@ const ProductDetail: React.FC = () => {
       email,
       content,
       rating,
+      replies: [],
+      images: reviewImages.map((file) => URL.createObjectURL(file)),
+      createdAt: new Date(),
     };
+
     setReviews([newReview, ...reviews]);
     setNickname('');
     setEmail('');
     setContent('');
     setRating(4);
+    setReviewImages([]);
   };
+
   return (
     <>
       <div className="container mx-auto p-6 flex gap-10 border-1 rounded-[30px] bg-white">
@@ -415,7 +479,6 @@ const ProductDetail: React.FC = () => {
                         required
                       />
                     </div>
-
                     <div>
                       <label className="block font-medium">Rating</label>
                       <div className="flex mt-2 space-x-1">
@@ -430,6 +493,45 @@ const ProductDetail: React.FC = () => {
                         ))}
                       </div>
                     </div>
+                    <div className="mb-4">
+                      <label className="block text-gray-700 font-medium mb-2">
+                        Tải ảnh lên (tùy chọn):
+                      </label>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
+                                  file:rounded-full file:border-0 file:text-sm file:font-semibold
+                                  file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                      />
+                      {reviewImages.length > 0 && (
+                        <div className="flex gap-4 flex-wrap mt-2">
+                          {reviewImages.map((image, idx) => (
+                            <div key={idx} className="relative group">
+                              <img
+                                src={URL.createObjectURL(image)}
+                                alt={`uploaded-${idx}`}
+                                className="w-24 h-24 object-cover rounded border"
+                              />
+                              <button
+                                type="button"
+                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 text-xs hidden group-hover:block"
+                                onClick={() => {
+                                  setReviewImages((prev) =>
+                                    prev.filter((_, i) => i !== idx)
+                                  );
+                                }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     <div className="md:col-span-2">
                       <button
                         type="submit"
@@ -444,46 +546,133 @@ const ProductDetail: React.FC = () => {
 
                   <div className="space-y-6">
                     {reviews.map((review) => (
-                      <div key={review.id} className="flex gap-4">
-                        <img
-                          src={review.avatar}
-                          alt={review.name}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                        <div className="flex-1">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <div className="font-semibold">{review.name}</div>
-                              <div className="text-orange-500 text-sm font-medium flex items-center gap-1">
-                                <span className="w-2 h-2 bg-orange-500 rounded-full" />
-                                Verified Buyer
+                      <div key={review.id} className="flex gap-4 flex-col">
+                        <div className="flex gap-4">
+                          <img
+                            src={review.avatar}
+                            alt={review.name}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                          <div className="flex-1">
+                            <div className="text-xs text-gray-400 mt-1">
+                              {new Date(review.createdAt).toLocaleString()}
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <div className="font-semibold">
+                                  {review.name}
+                                </div>
+                                <div className="text-orange-500 text-sm font-medium flex items-center gap-1">
+                                  <span className="w-2 h-2 bg-orange-500 rounded-full" />
+                                  Verified Buyer
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-orange-500 font-bold text-xl">
+                                  {review.rating.toFixed(1)}
+                                </div>
+                                <div className="flex justify-end">
+                                  {[1, 2, 3, 4, 5].map((i) => (
+                                    <Star
+                                      key={i}
+                                      fill={
+                                        i <= Math.floor(review.rating)
+                                          ? '#f97316'
+                                          : i - review.rating <= 0.5
+                                            ? '#f97316'
+                                            : 'none'
+                                      }
+                                      stroke="#f97316"
+                                      className="w-4 h-4"
+                                    />
+                                  ))}
+                                </div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-orange-500 font-bold text-xl">
-                                {review.rating.toFixed(1)}
+
+                            <p className="text-gray-600 text-sm mt-2">
+                              {review.content}
+                            </p>
+                            {Array.isArray(review.images) &&
+                              review.images.length > 0 && (
+                                <div className="mt-2 flex gap-2 flex-wrap">
+                                  {review.images.map((img, idx) => (
+                                    <img
+                                      key={idx}
+                                      src={img}
+                                      alt={`review-${idx}`}
+                                      className="w-24 h-24 rounded object-cover border cursor-pointer"
+                                      onClick={() => setViewingImage(img)}
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                            {viewingImage && (
+                              <div
+                                className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-70"
+                                onClick={() => setViewingImage(null)}
+                              >
+                                <img
+                                  src={viewingImage}
+                                  alt="Enlarged"
+                                  className="max-w-full max-h-full rounded shadow-lg"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
                               </div>
-                              <div className="flex justify-end">
-                                {[1, 2, 3, 4, 5].map((i) => (
-                                  <Star
-                                    key={i}
-                                    fill={
-                                      i <= Math.floor(review.rating)
-                                        ? '#f97316'
-                                        : i - review.rating <= 0.5
-                                          ? '#f97316'
-                                          : 'none'
-                                    }
-                                    stroke="#f97316"
-                                    className="w-4 h-4"
-                                  />
+                            )}
+
+                            <button
+                              onClick={() => handleReplyClick(review.id)}
+                              className="text-sm text-orange-500 mt-2 hover:underline"
+                            >
+                              {replyingToId === review.id ? 'Cancel' : 'Reply'}
+                            </button>
+                            {replyingToId === review.id && (
+                              <div className="mt-2">
+                                <textarea
+                                  rows={2}
+                                  placeholder="Write a reply..."
+                                  className="w-full border rounded px-3 py-2 mt-2 focus:outline-orange-500"
+                                  value={replyContent}
+                                  onChange={(e) =>
+                                    setReplyContent(e.target.value)
+                                  }
+                                />
+                                <button
+                                  onClick={() => handleReplySubmit(review.id)}
+                                  className="mt-2 px-4 py-1 bg-orange-500 text-white rounded hover:bg-orange-600"
+                                >
+                                  Submit Reply
+                                </button>
+                              </div>
+                            )}
+                            {review.replies && review.replies.length > 0 && (
+                              <div className="mt-4 pl-6 border-l border-orange-200 space-y-2">
+                                {review.replies.map((reply) => (
+                                  <div key={reply.id}>
+                                    <p className="text-xs text-gray-400">
+                                      {new Date(
+                                        reply.createdAt
+                                      ).toLocaleString()}
+                                    </p>
+                                    <div className="flex ">
+                                      <img
+                                        src={reply.avatar}
+                                        alt={reply.name}
+                                        className="w-8 h-8 rounded-full object-cover"
+                                      />
+                                      <p className="text-sm text-gray-800 font-semibold ms-3">
+                                        {reply.name}:
+                                      </p>
+                                      <p className="text-sm text-gray-700 ms-1">
+                                        {reply.content}
+                                      </p>
+                                    </div>
+                                  </div>
                                 ))}
                               </div>
-                            </div>
+                            )}
                           </div>
-                          <p className="text-gray-600 text-sm mt-2">
-                            {review.content}
-                          </p>
                         </div>
                       </div>
                     ))}
