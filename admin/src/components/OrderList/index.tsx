@@ -18,7 +18,24 @@ import { AxiosError } from 'axios';
 interface ErrorResponse {
   message: string;
 }
+interface RefundItem {
+  id: string;
+  productName: string;
+  price: number;
+  quantity: number;
+  reason: string;
+  note?: string;
+  image?: string;
+}
 
+interface RefundRequest {
+  id: string;
+  requester: string;
+  phone: string;
+  address: string;
+  paymentMethod: 'PayPal Payment' | 'Cash on Delivery';
+  items: RefundItem[];
+}
 const Badge = ({ text, color }: { text: string; color: string }) => (
   <span className={`px-2 py-1 text-xs rounded-full font-medium ${color}`}>
     {text}
@@ -29,9 +46,12 @@ const OrderList = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [showMenu, setShowMenu] = useState<number | null>(null);
+  const [showMenuRefund, setShowMenuRefund] = useState<number | null>(null);
   const [orderToEdit, setOrderToEdit] = useState<Order | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRefundRequest, setSelectedRefundRequest] =
+    useState<RefundRequest | null>(null);
 
   const itemsPerPage = 10;
   const [currentPage, setCurrentPage] = useState(1);
@@ -128,43 +148,52 @@ const OrderList = () => {
       setOrderToEdit(null);
     }
   };
-  const fakeRefundItems = [
+  const fakeRefundRequests: RefundRequest[] = [
     {
-      id: 'R001',
-      productName: 'Tai nghe Bluetooth Sony WH-1000XM4',
-      quantity: 1,
+      id: 'REQ001',
       requester: 'Nguyễn Văn A',
-      reason: 'Không kết nối được Bluetooth',
+      phone: '0901234567',
+      address: '123 Lê Lợi, Q.1, TP.HCM',
+      paymentMethod: 'PayPal Payment',
+      items: [
+        {
+          id: 'P001',
+          productName: 'Tai nghe Bluetooth Sony WH-1000XM4',
+          price: 200000,
+          quantity: 1,
+          reason: 'Không kết nối được Bluetooth',
+          image: 'https://via.placeholder.com/100?text=Sony+WH-1000XM4',
+        },
+        {
+          id: 'P002',
+          productName: 'Loa JBL Charge 5',
+          price: 200000,
+          quantity: 1,
+          reason: 'Âm thanh bị rè khi mở to',
+          image: 'https://via.placeholder.com/100?text=JBL+Charge+5',
+        },
+      ],
     },
     {
-      id: 'R002',
-      productName: 'Laptop Dell XPS 13',
-      quantity: 1,
+      id: 'REQ002',
       requester: 'Trần Thị B',
-      reason: 'Màn hình bị sọc ngang',
-    },
-    {
-      id: 'R003',
-      productName: 'Chuột Logitech MX Master 3',
-      quantity: 2,
-      requester: 'Lê Văn C',
-      reason: 'Con lăn cuộn không hoạt động',
-    },
-    {
-      id: 'R004',
-      productName: 'Loa JBL Charge 5',
-      quantity: 1,
-      requester: 'Phạm Thị D',
-      reason: 'Âm thanh bị rè khi mở to',
-    },
-    {
-      id: 'R005',
-      productName: 'Bàn phím cơ Keychron K6',
-      quantity: 1,
-      requester: 'Hoàng Minh E',
-      reason: 'Một số phím không nhạy',
+      phone: '0902345678',
+      address: '456 Nguyễn Trãi, Q.5, TP.HCM',
+      paymentMethod: 'Cash on Delivery',
+      items: [
+        {
+          id: 'P003',
+          productName: 'Laptop Dell XPS 13',
+          price: 200000,
+          quantity: 1,
+          reason: 'Màn hình bị sọc ngang',
+          note: 'Phát hiện khi mới mở máy',
+          image: 'https://via.placeholder.com/100?text=Dell+XPS+13',
+        },
+      ],
     },
   ];
+
   return (
     <div className="p-4">
       <div className="bg-white rounded-lg shadow p-4 mb-5">
@@ -359,34 +388,137 @@ const OrderList = () => {
                 </tr>
               </thead>
               <tbody>
-                {fakeRefundItems.map((item) => (
-                  <tr key={item.id} className="border-b">
-                    <td className="py-2 px-2">{item.id}</td>
-                    <td className="py-2 px-2">{item.productName}</td>
-                    <td className="py-2 px-2">{item.requester}</td>
-                    <td className="py-2 px-2">{item.reason}</td>
-                    <td className="flex gap-2">
+                {fakeRefundRequests.map((request, index) => (
+                  <tr key={request.id} className="border-b">
+                    <td className="py-2 px-2">{request.id}</td>
+                    <td className="py-2 px-2">{request.requester}</td>
+                    <td className="py-2 px-2">
+                      {request.items.map((item) => item.productName).join(', ')}
+                    </td>
+                    <td className="py-2 px-2">
+                      {request.items.map((item) => item.reason).join('; ')}
+                    </td>
+                    <td className="relative">
                       <button
-                        className="bg-green-600 text-white px-2 py-1 rounded"
-                        onClick={() => {
-                          toast.success(`Approved ${item.productName}`);
-                        }}
+                        className="hover:bg-gray-200 p-2 rounded-full"
+                        onClick={() =>
+                          setShowMenuRefund(
+                            showMenuRefund === index ? null : index
+                          )
+                        }
                       >
-                        Approve
+                        <MoreVertical className="w-4 h-4 text-gray-500" />
                       </button>
-                      <button
-                        className="bg-red-600 text-white px-2 py-1 rounded"
-                        onClick={() => {
-                          toast.info(`Rejected ${item.productName}`);
-                        }}
-                      >
-                        Reject
-                      </button>
+                      {showMenuRefund === index && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => setShowMenuRefund(null)}
+                            tabIndex={-1}
+                          />
+                          <div className="absolute right-0 mt-2 w-40 bg-white border rounded shadow z-20">
+                            <button
+                              className="block px-4 py-2 text-sm text-green-600 hover:bg-gray-100 w-full text-left"
+                              onClick={() => {
+                                toast.success(`Approved ${request.id}`);
+                                setShowMenuRefund(null);
+                              }}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
+                              onClick={() => {
+                                toast.info(`Rejected ${request.id}`);
+                                setShowMenuRefund(null);
+                              }}
+                            >
+                              Reject
+                            </button>
+                            <button
+                              className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100 w-full text-left"
+                              onClick={() => {
+                                setSelectedRefundRequest(request);
+                                setShowMenuRefund(null);
+                              }}
+                            >
+                              View Detail
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+        {selectedRefundRequest && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl relative">
+              <h2 className="text-xl font-bold mb-4">Refund Request Details</h2>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-2">
+                  Requester Information
+                </h3>
+                <p>
+                  <strong>Name:</strong> {selectedRefundRequest.requester}
+                </p>
+                <p>
+                  <strong>Phone:</strong> {selectedRefundRequest.phone}
+                </p>
+                <p>
+                  <strong>Address:</strong> {selectedRefundRequest.address}
+                </p>
+                <p>
+                  <strong>Payment Method:</strong>{' '}
+                  {selectedRefundRequest.paymentMethod === 'PayPal Payment'
+                    ? 'Paid'
+                    : 'Not Paid'}
+                </p>
+              </div>
+
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">Product List</h3>
+                {selectedRefundRequest.items.map((item, idx) => (
+                  <div key={idx} className="flex gap-4 mb-4">
+                    <img
+                      src={item.image}
+                      alt={item.productName}
+                      className="w-24 h-24 object-cover border rounded"
+                    />
+                    <div>
+                      <p>
+                        <strong>Product:</strong> {item.productName}
+                      </p>
+                      <p>
+                        <strong>Price:</strong> {item.price.toLocaleString()}₫
+                      </p>
+                      <p>
+                        <strong>Quantity:</strong> {item.quantity}
+                      </p>
+                      <p>
+                        <strong>Reason:</strong> {item.reason}
+                      </p>
+                      <p>
+                        <strong>Note:</strong> {item.note || 'Not available'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-end mt-4">
+                <button
+                  onClick={() => setSelectedRefundRequest(null)}
+                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         )}
         <div className="flex justify-end mt-4 space-x-2 items-center">
