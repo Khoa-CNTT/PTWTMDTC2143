@@ -9,6 +9,7 @@ const Wishlist: React.FC = () => {
       description:
         '13.4” QHD 165Hz, GeForce RTX 4050, Intel Core i9-13900H, 16GB LPDDR5, 1TB PCIe SSD, Wi-Fi 6E, Windows 11',
       price: 1021,
+      originalPrice: 1299,
       image: 'https://m.media-amazon.com/images/I/71L2iBSyyOL._AC_SL1500_.jpg',
       rating: 4,
       ratingCount: 124,
@@ -20,6 +21,7 @@ const Wishlist: React.FC = () => {
       description:
         '165Hz, NVIDIA RTX 4060, Intel Core i7-13650HX, 16GB DDR5, 1TB PCIe Gen4 SSD, Wi-Fi 6E, Windows 11',
       price: 1631,
+      originalPrice: 1866,
       shipping: 8,
       image: 'https://m.media-amazon.com/images/I/41kjMvKK9mL._SS135_.jpg',
       rating: 4,
@@ -70,8 +72,13 @@ const Wishlist: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="text-lg font-bold mt-2 text-gray-800">
+                <div className="text-lg font-bold mt-2 text-gray-800 flex items-center gap-2">
                   {item.price.toLocaleString()} USD
+                  {item.originalPrice && item.originalPrice > item.price && (
+                    <span className="text-sm text-gray-500 line-through">
+                      {item.originalPrice.toLocaleString()} USD
+                    </span>
+                  )}
                 </div>
                 {item.shipping && (
                   <div className="text-sm text-gray-500">

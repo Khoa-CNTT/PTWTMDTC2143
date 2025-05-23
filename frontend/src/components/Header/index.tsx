@@ -1405,7 +1405,7 @@ const Header: React.FC = () => {
                   onClick={handleUserClick}
                   className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
                 >
-                  {isAuthenticated ? user?.name || 'Profile' : 'Đăng nhập'}
+                  {isAuthenticated ? user?.name || 'Profile' : 'Log in'}
                 </Button>
 
                 {isAuthenticated && isHoveringUser && (
@@ -1413,7 +1413,7 @@ const Header: React.FC = () => {
                     onClick={logout}
                     className="absolute top-full left-0 mt-1 bg-white border rounded shadow-lg px-4 py-2 text-sm text-red-500 hover:bg-gray-100 cursor-pointer z-50"
                   >
-                    Đăng xuất
+                    Log out
                   </div>
                 )}
               </li>
