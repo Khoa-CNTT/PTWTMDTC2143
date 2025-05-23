@@ -18,7 +18,7 @@ const Profile: React.FC = () => {
     try {
       setIsLoggingOut(true);
       await logout();
-      authLogout(); // Call AuthContext logout to update the global state
+      authLogout();
       toast.success('Đăng xuất thành công');
       navigate('/login');
     } catch (error) {
@@ -57,7 +57,7 @@ const Profile: React.FC = () => {
                 activeForm === 'profile' ? 'font-semibold text-red-500' : ''
               }`}
             >
-              Hồ Sơ
+              Profile
             </button>
           </li>
           <li>
@@ -67,7 +67,7 @@ const Profile: React.FC = () => {
                 activeForm === 'bank' ? 'font-semibold text-red-500' : ''
               }`}
             >
-              Ngân Hàng
+              Bank
             </button>
           </li>
           <li>
@@ -77,7 +77,7 @@ const Profile: React.FC = () => {
                 activeForm === 'address' ? 'font-semibold text-red-500' : ''
               }`}
             >
-              Địa Chỉ
+              Address
             </button>
           </li>
           <li>
@@ -87,7 +87,7 @@ const Profile: React.FC = () => {
                 activeForm === 'password' ? 'font-semibold text-red-500' : ''
               }`}
             >
-              Đổi Mật Khẩu
+              Change Password
             </button>
           </li>
           <li>
@@ -98,7 +98,7 @@ const Profile: React.FC = () => {
               }`}
               disabled={isLoggingOut}
             >
-              {isLoggingOut ? 'Đang đăng xuất...' : 'Đăng Xuất'}
+              {isLoggingOut ? 'Logging out...' : 'Logout'}
             </button>
           </li>
         </ul>
@@ -107,15 +107,15 @@ const Profile: React.FC = () => {
       <div className="flex-1 pl-6">
         {activeForm === 'profile' && (
           <div>
-            <h2 className="text-xl font-semibold mb-2">Hồ Sơ Của Tôi</h2>
+            <h2 className="text-xl font-semibold mb-2">My Profile</h2>
             <p className="text-sm text-gray-500 mb-6">
-              Quản lý thông tin hồ sơ để bảo mật tài khoản
+              Manage your profile information to secure your account
             </p>
             <form className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tên đăng nhập
+                    Username
                   </label>
                   <input
                     type="text"
@@ -126,12 +126,12 @@ const Profile: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tên
+                    Name
                   </label>
                   <input
                     type="text"
                     className="w-full p-2 border rounded-md"
-                    placeholder="Tên"
+                    placeholder="Name"
                   />
                 </div>
 
@@ -139,49 +139,49 @@ const Profile: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Email
                   </label>
-                  <button className="text-blue-500">Thêm</button>
+                  <button className="text-blue-500">Add</button>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Số điện thoại
+                    Phone number
                   </label>
                   <div className="flex items-center space-x-2">
                     <span>********92</span>
-                    <button className="text-blue-500 text-sm">Thay Đổi</button>
+                    <button className="text-blue-500 text-sm">Change</button>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Giới tính
+                    Gender
                   </label>
                   <div className="flex space-x-4">
                     <label className="flex items-center space-x-1">
-                      <input type="radio" name="gender" /> <span>Nam</span>
+                      <input type="radio" name="gender" /> <span>Male</span>
                     </label>
                     <label className="flex items-center space-x-1">
-                      <input type="radio" name="gender" /> <span>Nữ</span>
+                      <input type="radio" name="gender" /> <span>Female</span>
                     </label>
                     <label className="flex items-center space-x-1">
-                      <input type="radio" name="gender" /> <span>Khác</span>
+                      <input type="radio" name="gender" /> <span>Other</span>
                     </label>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Ngày sinh
+                    Date of Birth
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     <select className="p-2 border rounded-md">
-                      <option>Ngày</option>
+                      <option>Day</option>
                     </select>
                     <select className="p-2 border rounded-md">
-                      <option>Tháng</option>
+                      <option>Month</option>
                     </select>
                     <select className="p-2 border rounded-md">
-                      <option>Năm</option>
+                      <option>Year</option>
                     </select>
                   </div>
                 </div>
@@ -204,7 +204,7 @@ const Profile: React.FC = () => {
                   type="button"
                   className="bg-gray-100 px-4 py-2 rounded-md border border-gray-300 text-sm"
                 >
-                  Chọn Ảnh
+                  Choose Image
                 </button>
                 <input
                   type="file"
@@ -214,9 +214,9 @@ const Profile: React.FC = () => {
                   onChange={handleFileChange}
                 />
                 <p className="text-xs text-gray-500 mt-2 text-center">
-                  Dung lượng file tối đa 1 MB
+                  Max file size 1 MB
                   <br />
-                  Định dạng: .JPEG, .PNG
+                  Formats: .JPEG, .PNG
                 </p>
               </div>
 
@@ -225,37 +225,38 @@ const Profile: React.FC = () => {
                   type="submit"
                   className="bg-red-500 text-white px-6 py-2 rounded-md hover:bg-red-600"
                 >
-                  Lưu
+                  Save
                 </button>
               </div>
             </form>
           </div>
         )}
+
         {activeForm === 'bank' && (
           <div>
-            <h2 className="text-xl font-semibold mb-2">Thông Tin Ngân Hàng</h2>
+            <h2 className="text-xl font-semibold mb-2">Bank Information</h2>
             <p className="text-sm text-gray-500 mb-6">
-              Quản lý thông tin ngân hàng của bạn
+              Manage your bank information
             </p>
             <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tên Ngân Hàng
+                  Bank Name
                 </label>
                 <input
                   type="text"
                   className="w-full p-2 border rounded-md"
-                  placeholder="Tên Ngân Hàng"
+                  placeholder="Bank Name"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Số Tài Khoản
+                  Account Number
                 </label>
                 <input
                   type="text"
                   className="w-full p-2 border rounded-md"
-                  placeholder="Số Tài Khoản"
+                  placeholder="Account Number"
                 />
               </div>
               <div className="md:col-span-3 flex justify-end mt-4 me-4">
@@ -263,12 +264,12 @@ const Profile: React.FC = () => {
                   type="submit"
                   className="bg-red-500 text-white px-6 py-2 rounded-md hover:bg-red-600"
                 >
-                  Thêm Ngân Hàng
+                  Add Bank
                 </button>
               </div>
             </form>
             <hr className="mt-5 mb-3" />
-            <h2 className="text-l font-semibold mb-2">Ngân Hàng Đã Liên Kết</h2>
+            <h2 className="text-l font-semibold mb-2">Linked Bank</h2>
             <div className="flex items-start justify-between border rounded-lg p-4 shadow-sm max-w-4xl bg-white me-4 mt-4">
               <div className="flex items-start space-x-4 ">
                 <img
@@ -280,19 +281,19 @@ const Profile: React.FC = () => {
                 <div>
                   <div className="flex items-center space-x-2">
                     <span className="font-medium text-gray-800">
-                      VCB - NH TMCP NGOAI THUONG VIE...
+                      VCB - JSC BANK FOR FOREIGN TRADE OF VIE...
                     </span>
-                    <span className="text-xs text-gray-400">Đã kiểm tra</span>
+                    <span className="text-xs text-gray-400">Verified</span>
                     <span className="text-xs bg-teal-500 text-white px-2 py-0.5 rounded">
-                      Mặc Định
+                      Default
                     </span>
                   </div>
                   <div className="mt-1 text-sm text-gray-700">
-                    <span className="font-medium">Họ Và Tên:</span> Duong Van
+                    <span className="font-medium">Full Name:</span> Duong Van
                     Toan
                   </div>
                   <div className="text-sm text-gray-500">
-                    Chi nhánh: CN Da Nang (Vietcombank)
+                    Branch: CN Da Nang (Vietcombank)
                   </div>
                 </div>
               </div>
@@ -300,43 +301,42 @@ const Profile: React.FC = () => {
               <div className="flex flex-col items-end space-y-1">
                 <div className="text-lg font-medium text-gray-800">*3422</div>
                 <button className="text-sm text-blue-600 hover:underline">
-                  Xóa
+                  Delete
                 </button>
                 <button
                   className="text-sm text-gray-400 bg-gray-100 border border-gray-300 px-3 py-1 rounded cursor-not-allowed"
                   disabled
                 >
-                  Thiết Lập Mặc Định
+                  Set as Default
                 </button>
               </div>
             </div>
           </div>
         )}
+
         {activeForm === 'address' && (
           <>
-            <h2 className="text-xl font-semibold mb-2">Địa Chỉ Của Tôi</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Quản lý địa chỉ của bạn
-            </p>
+            <h2 className="text-xl font-semibold mb-2">My Address</h2>
+            <p className="text-sm text-gray-500 mb-6">Manage your address</p>
             <form className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Họ và Tên người nhận
+                  Recipient&apos;s Full Name
                 </label>
                 <input
                   type="text"
-                  placeholder="VD: Nguyễn Văn A"
+                  placeholder="e.g., Nguyen Van A"
                   className="w-full p-2 border rounded-md"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Số điện thoại
+                  Phone Number
                 </label>
                 <input
                   type="text"
-                  placeholder="VD: 0912345678"
+                  placeholder="e.g., 0912345678"
                   className="w-full p-2 border rounded-md"
                 />
               </div>
@@ -344,31 +344,31 @@ const Profile: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tỉnh/Thành phố
+                    Province/City
                   </label>
                   <input
                     type="text"
-                    placeholder="VD: Đà Nẵng"
+                    placeholder="e.g., Da Nang"
                     className="w-full p-2 border rounded-md"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Quận/Huyện
+                    District
                   </label>
                   <input
                     type="text"
-                    placeholder="VD: Hải Châu"
+                    placeholder="e.g., Hai Chau"
                     className="w-full p-2 border rounded-md"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phường/Xã
+                    Ward/Commune
                   </label>
                   <input
                     type="text"
-                    placeholder="VD: Phước Ninh"
+                    placeholder="e.g., Phuoc Ninh"
                     className="w-full p-2 border rounded-md"
                   />
                 </div>
@@ -376,11 +376,11 @@ const Profile: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Địa chỉ cụ thể
+                  Specific Address
                 </label>
                 <input
                   type="text"
-                  placeholder="VD: 123 Đường Lê Duẩn"
+                  placeholder="e.g., 123 Le Duan Street"
                   className="w-full p-2 border rounded-md"
                 />
               </div>
@@ -397,7 +397,7 @@ const Profile: React.FC = () => {
                   htmlFor="defaultAddress"
                   className="text-sm text-gray-700"
                 >
-                  Đặt làm địa chỉ mặc định
+                  Set as default address
                 </label>
               </div>
 
@@ -406,18 +406,18 @@ const Profile: React.FC = () => {
                   type="button"
                   className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
                 >
-                  Hủy
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-600"
                 >
-                  Lưu
+                  Save
                 </button>
               </div>
             </form>
             <hr className="mt-5 mb-3" />
-            <h2 className="text-l font-semibold mb-2">Địa Chỉ Đã Nhập</h2>
+            <h2 className="text-l font-semibold mb-2">Saved Address</h2>
             <div className="flex justify-between items-start bg-white border rounded-lg p-4  shadow-sm">
               <div className="space-y-1">
                 <div className="font-semibold text-gray-900">
@@ -426,58 +426,59 @@ const Profile: React.FC = () => {
                     (+84) 867 727 861
                   </span>
                 </div>
-                <div className="text-gray-700 text-sm">86 Khánh An 1</div>
+                <div className="text-gray-700 text-sm">86 Khanh An 1</div>
                 <div className="text-gray-700 text-sm">
-                  Phường Hòa Khánh Bắc, Quận Liên Chiểu, Đà Nẵng
+                  Hoa Khanh Bac Ward, Lien Chieu District, Da Nang
                 </div>
 
                 <div className="inline-block mt-1">
                   <span className="text-red-500 border border-red-500 px-2 py-0.5 text-xs rounded">
-                    Mặc định
+                    Default
                   </span>
                 </div>
               </div>
 
               <div className="flex flex-col items-end space-y-2">
                 <button className="text-blue-600 text-sm hover:underline">
-                  Cập nhật
+                  Update
                 </button>
                 <button className="border px-3 py-1 text-sm rounded hover:bg-gray-100">
-                  Thiết lập mặc định
+                  Set as Default
                 </button>
               </div>
             </div>
           </>
         )}
+
         {activeForm === 'password' && (
           <>
-            <h2 className="text-xl font-semibold mb-2">Đổi Mật Khẩu</h2>
+            <h2 className="text-xl font-semibold mb-2">Change Password</h2>
             <p className="text-sm text-gray-500 mb-6">
-              Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu cho người
-              khác
+              For your account&apos;s security, please do not share your
+              password with others.
             </p>
             <div className="max-w-md mx-auto space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nhập mật khẩu cũ
+                  Enter current password
                 </label>
                 <input type="text" className="w-full p-2 border rounded-md" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nhập mật khẩu mới
+                  Enter new password
                 </label>
                 <input type="text" className="w-full p-2 border rounded-md" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nhập lại mật khẩu mới
+                  Confirm new password
                 </label>
                 <input type="text" className="w-full p-2 border rounded-md" />
               </div>
               <div className="text-end">
                 <button className="w-32 px-4 py-2 rounded text-white bg-red-500 hover:bg-red-600">
-                  Xác Nhận
+                  Confirm
                 </button>
               </div>
             </div>

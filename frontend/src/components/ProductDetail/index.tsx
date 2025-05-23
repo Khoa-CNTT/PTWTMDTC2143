@@ -559,12 +559,8 @@ const ProductDetail: React.FC = () => {
                             </div>
                             <div className="flex justify-between items-center">
                               <div>
-                                <div className="font-semibold">
+                                <div className="font-semibold mb-5">
                                   {review.name}
-                                </div>
-                                <div className="text-orange-500 text-sm font-medium flex items-center gap-1">
-                                  <span className="w-2 h-2 bg-orange-500 rounded-full" />
-                                  Verified Buyer
                                 </div>
                               </div>
                               <div className="text-right">
@@ -590,7 +586,7 @@ const ProductDetail: React.FC = () => {
                               </div>
                             </div>
 
-                            <p className="text-gray-600 text-sm mt-2">
+                            <p className="text-gray-600 text-sm">
                               {review.content}
                             </p>
                             {Array.isArray(review.images) &&

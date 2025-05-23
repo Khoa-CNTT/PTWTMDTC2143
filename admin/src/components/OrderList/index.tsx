@@ -18,7 +18,24 @@ import { AxiosError } from 'axios';
 interface ErrorResponse {
   message: string;
 }
+interface RefundItem {
+  id: string;
+  productName: string;
+  price: number;
+  quantity: number;
+  reason: string;
+  note?: string;
+  image?: string;
+}
 
+interface RefundRequest {
+  id: string;
+  requester: string;
+  phone: string;
+  address: string;
+  paymentMethod: 'PayPal Payment' | 'Cash on Delivery';
+  items: RefundItem[];
+}
 const Badge = ({ text, color }: { text: string; color: string }) => (
   <span className={`px-2 py-1 text-xs rounded-full font-medium ${color}`}>
     {text}
@@ -29,9 +46,12 @@ const OrderList = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [showMenu, setShowMenu] = useState<number | null>(null);
+  const [showMenuRefund, setShowMenuRefund] = useState<number | null>(null);
   const [orderToEdit, setOrderToEdit] = useState<Order | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRefundRequest, setSelectedRefundRequest] =
+    useState<RefundRequest | null>(null);
 
   const itemsPerPage = 10;
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,7 +61,6 @@ const OrderList = () => {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -62,7 +81,7 @@ const OrderList = () => {
       setLoading(false);
     }
   };
-
+  const [viewMode, setViewMode] = useState<'orders' | 'refundItems'>('orders');
   const handleView = (orderId: string) => {
     navigate(`/order-details/${orderId}`);
   };
@@ -129,6 +148,51 @@ const OrderList = () => {
       setOrderToEdit(null);
     }
   };
+  const fakeRefundRequests: RefundRequest[] = [
+    {
+      id: 'REQ001',
+      requester: 'Nguyễn Văn A',
+      phone: '0901234567',
+      address: '123 Lê Lợi, Q.1, TP.HCM',
+      paymentMethod: 'PayPal Payment',
+      items: [
+        {
+          id: 'P001',
+          productName: 'Tai nghe Bluetooth Sony WH-1000XM4',
+          price: 200000,
+          quantity: 1,
+          reason: 'Không kết nối được Bluetooth',
+          image: 'https://via.placeholder.com/100?text=Sony+WH-1000XM4',
+        },
+        {
+          id: 'P002',
+          productName: 'Loa JBL Charge 5',
+          price: 200000,
+          quantity: 1,
+          reason: 'Âm thanh bị rè khi mở to',
+          image: 'https://via.placeholder.com/100?text=JBL+Charge+5',
+        },
+      ],
+    },
+    {
+      id: 'REQ002',
+      requester: 'Trần Thị B',
+      phone: '0902345678',
+      address: '456 Nguyễn Trãi, Q.5, TP.HCM',
+      paymentMethod: 'Cash on Delivery',
+      items: [
+        {
+          id: 'P003',
+          productName: 'Laptop Dell XPS 13',
+          price: 200000,
+          quantity: 1,
+          reason: 'Màn hình bị sọc ngang',
+          note: 'Phát hiện khi mới mở máy',
+          image: 'https://via.placeholder.com/100?text=Dell+XPS+13',
+        },
+      ],
+    },
+  ];
 
   return (
     <div className="p-4">
@@ -189,7 +253,18 @@ const OrderList = () => {
             placeholder="Search Order"
             className="border rounded px-3 py-2 w-64"
           />
+
           <div className="flex items-center gap-2">
+            <select
+              className="border rounded px-2 py-1 mr-2"
+              value={viewMode}
+              onChange={(e) =>
+                setViewMode(e.target.value as 'orders' | 'refundItems')
+              }
+            >
+              <option value="orders">View Orders</option>
+              <option value="refundItems">Refund Request Items</option>
+            </select>
             <select className="border rounded px-2 py-1">
               <option>10</option>
               <option>25</option>
@@ -200,96 +275,251 @@ const OrderList = () => {
             </button>
           </div>
         </div>
-        {loading ? (
-          <div>Đang tải đơn hàng...</div>
-        ) : error ? (
-          <div className="text-red-500">{error}</div>
-        ) : (
-          <table className="w-full text-left text-sm relative">
-            <thead>
-              <tr className="text-gray-500 border-b">
-                <th className="py-2 px-2">ORDER</th>
-                <th className="py-2 px-2">CUSTOMER</th>
-                <th className="py-2 px-2">PHONE</th>
-                <th className="py-2 px-2">ADDRESS</th>
-                <th className="py-2 px-2">PAYMENT</th>
-                <th className="py-2 px-2">STATUS</th>
-                <th className="py-2 px-2">ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedOrders.map((order, index) => (
-                <tr className="border-b relative" key={order.id}>
-                  <td className="py-2 px-2 text-blue-600">{order.id}</td>
-                  <td className="py-2 px-2">{order.fullName}</td>
-                  <td className="py-2 px-2">{order.phone}</td>
-                  <td className="py-2 px-2">
-                    {order.streetAddress}, {order.ward}, {order.district},{' '}
-                    {order.city}, {order.province}, {order.country}
-                  </td>
-                  <td className={`py-2 px-2 ${getPaymentColor(order.payment)}`}>
-                    {order.payment}
-                  </td>
-                  <td className="py-2 px-2">
-                    <Badge
-                      text={order.status}
-                      color={getStatusColor(order.status)}
-                    />
-                  </td>
-                  <td className="py-2 px-2">
-                    <div className="relative inline-block text-left">
+        {viewMode === 'orders' && (
+          <>
+            {loading ? (
+              <div>Đang tải đơn hàng...</div>
+            ) : error ? (
+              <div className="text-red-500">{error}</div>
+            ) : (
+              <table className="w-full text-left text-sm relative">
+                <thead>
+                  <tr className="text-gray-500 border-b">
+                    <th className="py-2 px-2">ORDER</th>
+                    <th className="py-2 px-2">CUSTOMER</th>
+                    <th className="py-2 px-2">PHONE</th>
+                    <th className="py-2 px-2">ADDRESS</th>
+                    <th className="py-2 px-2">PAYMENT</th>
+                    <th className="py-2 px-2">STATUS</th>
+                    <th className="py-2 px-2">ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedOrders.map((order, index) => (
+                    <tr className="border-b relative" key={order.id}>
+                      <td className="py-2 px-2 text-blue-600">{order.id}</td>
+                      <td className="py-2 px-2">{order.fullName}</td>
+                      <td className="py-2 px-2">{order.phone}</td>
+                      <td className="py-2 px-2">
+                        {order.streetAddress}, {order.ward}, {order.district},{' '}
+                        {order.city}, {order.province}, {order.country}
+                      </td>
+                      <td
+                        className={`py-2 px-2 ${getPaymentColor(order.payment)}`}
+                      >
+                        {order.payment}
+                      </td>
+                      <td className="py-2 px-2">
+                        <Badge
+                          text={order.status}
+                          color={getStatusColor(order.status)}
+                        />
+                      </td>
+                      <td className="py-2 px-2">
+                        <div className="relative inline-block text-left">
+                          <button
+                            className="hover:bg-gray-200 p-2 rounded-full"
+                            onClick={() =>
+                              setShowMenu(showMenu === index ? null : index)
+                            }
+                          >
+                            <MoreVertical className="w-4 h-4 text-gray-500" />
+                          </button>
+                          {showMenu === index && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setShowMenu(null)}
+                                tabIndex={-1}
+                              />
+                              <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-20">
+                                <button
+                                  onClick={() => {
+                                    handleView(order.id);
+                                    setShowMenu(null);
+                                  }}
+                                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                >
+                                  View
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setOrderToEdit(order);
+                                    setShowMenu(null);
+                                  }}
+                                  className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100 w-full text-left"
+                                >
+                                  Change Status
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    handleDelete(order.id);
+                                    setShowMenu(null);
+                                  }}
+                                  className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </>
+        )}
+        {viewMode === 'refundItems' && (
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold mb-2">
+              List of Refund Request Items
+            </h3>
+            <table className="w-full text-left text-sm relative">
+              <thead>
+                <tr className="text-gray-500 border-b">
+                  <th className="py-2 px-2">ID</th>
+                  <th className="py-2 px-2">ITEM NAME</th>
+                  <th className="py-2 px-2">REQUEST</th>
+                  <th className="py-2 px-2">REASON</th>
+                  <th className="py-2 px-2">ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fakeRefundRequests.map((request, index) => (
+                  <tr key={request.id} className="border-b">
+                    <td className="py-2 px-2">{request.id}</td>
+                    <td className="py-2 px-2">{request.requester}</td>
+                    <td className="py-2 px-2">
+                      {request.items.map((item) => item.productName).join(', ')}
+                    </td>
+                    <td className="py-2 px-2">
+                      {request.items.map((item) => item.reason).join('; ')}
+                    </td>
+                    <td className="relative">
                       <button
                         className="hover:bg-gray-200 p-2 rounded-full"
                         onClick={() =>
-                          setShowMenu(showMenu === index ? null : index)
+                          setShowMenuRefund(
+                            showMenuRefund === index ? null : index
+                          )
                         }
                       >
                         <MoreVertical className="w-4 h-4 text-gray-500" />
                       </button>
-                      {showMenu === index && (
+                      {showMenuRefund === index && (
                         <>
                           <div
                             className="fixed inset-0 z-10"
-                            onClick={() => setShowMenu(null)}
+                            onClick={() => setShowMenuRefund(null)}
                             tabIndex={-1}
                           />
-                          <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-20">
+                          <div className="absolute right-0 mt-2 w-40 bg-white border rounded shadow z-20">
                             <button
+                              className="block px-4 py-2 text-sm text-green-600 hover:bg-gray-100 w-full text-left"
                               onClick={() => {
-                                handleView(order.id);
-                                setShowMenu(null);
+                                toast.success(`Approved ${request.id}`);
+                                setShowMenuRefund(null);
                               }}
-                              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                             >
-                              View
+                              Approve
                             </button>
                             <button
-                              onClick={() => {
-                                setOrderToEdit(order);
-                                setShowMenu(null);
-                              }}
-                              className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100 w-full text-left"
-                            >
-                              Change Status
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleDelete(order.id);
-                                setShowMenu(null);
-                              }}
                               className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
+                              onClick={() => {
+                                toast.info(`Rejected ${request.id}`);
+                                setShowMenuRefund(null);
+                              }}
                             >
-                              Delete
+                              Reject
+                            </button>
+                            <button
+                              className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100 w-full text-left"
+                              onClick={() => {
+                                setSelectedRefundRequest(request);
+                                setShowMenuRefund(null);
+                              }}
+                            >
+                              View Detail
                             </button>
                           </div>
                         </>
                       )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {selectedRefundRequest && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl relative">
+              <h2 className="text-xl font-bold mb-4">Refund Request Details</h2>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-2">
+                  Requester Information
+                </h3>
+                <p>
+                  <strong>Name:</strong> {selectedRefundRequest.requester}
+                </p>
+                <p>
+                  <strong>Phone:</strong> {selectedRefundRequest.phone}
+                </p>
+                <p>
+                  <strong>Address:</strong> {selectedRefundRequest.address}
+                </p>
+                <p>
+                  <strong>Payment Method:</strong>{' '}
+                  {selectedRefundRequest.paymentMethod === 'PayPal Payment'
+                    ? 'Paid'
+                    : 'Not Paid'}
+                </p>
+              </div>
+
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">Product List</h3>
+                {selectedRefundRequest.items.map((item, idx) => (
+                  <div key={idx} className="flex gap-4 mb-4">
+                    <img
+                      src={item.image}
+                      alt={item.productName}
+                      className="w-24 h-24 object-cover border rounded"
+                    />
+                    <div>
+                      <p>
+                        <strong>Product:</strong> {item.productName}
+                      </p>
+                      <p>
+                        <strong>Price:</strong> {item.price.toLocaleString()}₫
+                      </p>
+                      <p>
+                        <strong>Quantity:</strong> {item.quantity}
+                      </p>
+                      <p>
+                        <strong>Reason:</strong> {item.reason}
+                      </p>
+                      <p>
+                        <strong>Note:</strong> {item.note || 'Not available'}
+                      </p>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-end mt-4">
+                <button
+                  onClick={() => setSelectedRefundRequest(null)}
+                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
         )}
         <div className="flex justify-end mt-4 space-x-2 items-center">
           <button
