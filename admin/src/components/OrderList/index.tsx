@@ -41,7 +41,6 @@ const OrderList = () => {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -62,7 +61,7 @@ const OrderList = () => {
       setLoading(false);
     }
   };
-
+  const [viewMode, setViewMode] = useState<'orders' | 'refundItems'>('orders');
   const handleView = (orderId: string) => {
     navigate(`/order-details/${orderId}`);
   };
@@ -129,7 +128,43 @@ const OrderList = () => {
       setOrderToEdit(null);
     }
   };
-
+  const fakeRefundItems = [
+    {
+      id: 'R001',
+      productName: 'Tai nghe Bluetooth Sony WH-1000XM4',
+      quantity: 1,
+      requester: 'Nguyễn Văn A',
+      reason: 'Không kết nối được Bluetooth',
+    },
+    {
+      id: 'R002',
+      productName: 'Laptop Dell XPS 13',
+      quantity: 1,
+      requester: 'Trần Thị B',
+      reason: 'Màn hình bị sọc ngang',
+    },
+    {
+      id: 'R003',
+      productName: 'Chuột Logitech MX Master 3',
+      quantity: 2,
+      requester: 'Lê Văn C',
+      reason: 'Con lăn cuộn không hoạt động',
+    },
+    {
+      id: 'R004',
+      productName: 'Loa JBL Charge 5',
+      quantity: 1,
+      requester: 'Phạm Thị D',
+      reason: 'Âm thanh bị rè khi mở to',
+    },
+    {
+      id: 'R005',
+      productName: 'Bàn phím cơ Keychron K6',
+      quantity: 1,
+      requester: 'Hoàng Minh E',
+      reason: 'Một số phím không nhạy',
+    },
+  ];
   return (
     <div className="p-4">
       <div className="bg-white rounded-lg shadow p-4 mb-5">
@@ -189,7 +224,18 @@ const OrderList = () => {
             placeholder="Search Order"
             className="border rounded px-3 py-2 w-64"
           />
+
           <div className="flex items-center gap-2">
+            <select
+              className="border rounded px-2 py-1 mr-2"
+              value={viewMode}
+              onChange={(e) =>
+                setViewMode(e.target.value as 'orders' | 'refundItems')
+              }
+            >
+              <option value="orders">View Orders</option>
+              <option value="refundItems">Refund Request Items</option>
+            </select>
             <select className="border rounded px-2 py-1">
               <option>10</option>
               <option>25</option>
@@ -200,96 +246,148 @@ const OrderList = () => {
             </button>
           </div>
         </div>
-        {loading ? (
-          <div>Đang tải đơn hàng...</div>
-        ) : error ? (
-          <div className="text-red-500">{error}</div>
-        ) : (
-          <table className="w-full text-left text-sm relative">
-            <thead>
-              <tr className="text-gray-500 border-b">
-                <th className="py-2 px-2">ORDER</th>
-                <th className="py-2 px-2">CUSTOMER</th>
-                <th className="py-2 px-2">PHONE</th>
-                <th className="py-2 px-2">ADDRESS</th>
-                <th className="py-2 px-2">PAYMENT</th>
-                <th className="py-2 px-2">STATUS</th>
-                <th className="py-2 px-2">ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedOrders.map((order, index) => (
-                <tr className="border-b relative" key={order.id}>
-                  <td className="py-2 px-2 text-blue-600">{order.id}</td>
-                  <td className="py-2 px-2">{order.fullName}</td>
-                  <td className="py-2 px-2">{order.phone}</td>
-                  <td className="py-2 px-2">
-                    {order.streetAddress}, {order.ward}, {order.district},{' '}
-                    {order.city}, {order.province}, {order.country}
-                  </td>
-                  <td className={`py-2 px-2 ${getPaymentColor(order.payment)}`}>
-                    {order.payment}
-                  </td>
-                  <td className="py-2 px-2">
-                    <Badge
-                      text={order.status}
-                      color={getStatusColor(order.status)}
-                    />
-                  </td>
-                  <td className="py-2 px-2">
-                    <div className="relative inline-block text-left">
-                      <button
-                        className="hover:bg-gray-200 p-2 rounded-full"
-                        onClick={() =>
-                          setShowMenu(showMenu === index ? null : index)
-                        }
+        {viewMode === 'orders' && (
+          <>
+            {loading ? (
+              <div>Đang tải đơn hàng...</div>
+            ) : error ? (
+              <div className="text-red-500">{error}</div>
+            ) : (
+              <table className="w-full text-left text-sm relative">
+                <thead>
+                  <tr className="text-gray-500 border-b">
+                    <th className="py-2 px-2">ORDER</th>
+                    <th className="py-2 px-2">CUSTOMER</th>
+                    <th className="py-2 px-2">PHONE</th>
+                    <th className="py-2 px-2">ADDRESS</th>
+                    <th className="py-2 px-2">PAYMENT</th>
+                    <th className="py-2 px-2">STATUS</th>
+                    <th className="py-2 px-2">ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedOrders.map((order, index) => (
+                    <tr className="border-b relative" key={order.id}>
+                      <td className="py-2 px-2 text-blue-600">{order.id}</td>
+                      <td className="py-2 px-2">{order.fullName}</td>
+                      <td className="py-2 px-2">{order.phone}</td>
+                      <td className="py-2 px-2">
+                        {order.streetAddress}, {order.ward}, {order.district},{' '}
+                        {order.city}, {order.province}, {order.country}
+                      </td>
+                      <td
+                        className={`py-2 px-2 ${getPaymentColor(order.payment)}`}
                       >
-                        <MoreVertical className="w-4 h-4 text-gray-500" />
-                      </button>
-                      {showMenu === index && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-10"
-                            onClick={() => setShowMenu(null)}
-                            tabIndex={-1}
-                          />
-                          <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-20">
-                            <button
-                              onClick={() => {
-                                handleView(order.id);
-                                setShowMenu(null);
-                              }}
-                              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                            >
-                              View
-                            </button>
-                            <button
-                              onClick={() => {
-                                setOrderToEdit(order);
-                                setShowMenu(null);
-                              }}
-                              className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100 w-full text-left"
-                            >
-                              Change Status
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleDelete(order.id);
-                                setShowMenu(null);
-                              }}
-                              className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </td>
+                        {order.payment}
+                      </td>
+                      <td className="py-2 px-2">
+                        <Badge
+                          text={order.status}
+                          color={getStatusColor(order.status)}
+                        />
+                      </td>
+                      <td className="py-2 px-2">
+                        <div className="relative inline-block text-left">
+                          <button
+                            className="hover:bg-gray-200 p-2 rounded-full"
+                            onClick={() =>
+                              setShowMenu(showMenu === index ? null : index)
+                            }
+                          >
+                            <MoreVertical className="w-4 h-4 text-gray-500" />
+                          </button>
+                          {showMenu === index && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setShowMenu(null)}
+                                tabIndex={-1}
+                              />
+                              <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-20">
+                                <button
+                                  onClick={() => {
+                                    handleView(order.id);
+                                    setShowMenu(null);
+                                  }}
+                                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                >
+                                  View
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setOrderToEdit(order);
+                                    setShowMenu(null);
+                                  }}
+                                  className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100 w-full text-left"
+                                >
+                                  Change Status
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    handleDelete(order.id);
+                                    setShowMenu(null);
+                                  }}
+                                  className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </>
+        )}
+        {viewMode === 'refundItems' && (
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold mb-2">
+              List of Refund Request Items
+            </h3>
+            <table className="w-full text-left text-sm relative">
+              <thead>
+                <tr className="text-gray-500 border-b">
+                  <th className="py-2 px-2">ID</th>
+                  <th className="py-2 px-2">ITEM NAME</th>
+                  <th className="py-2 px-2">REQUEST</th>
+                  <th className="py-2 px-2">REASON</th>
+                  <th className="py-2 px-2">ACTION</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {fakeRefundItems.map((item) => (
+                  <tr key={item.id} className="border-b">
+                    <td className="py-2 px-2">{item.id}</td>
+                    <td className="py-2 px-2">{item.productName}</td>
+                    <td className="py-2 px-2">{item.requester}</td>
+                    <td className="py-2 px-2">{item.reason}</td>
+                    <td className="flex gap-2">
+                      <button
+                        className="bg-green-600 text-white px-2 py-1 rounded"
+                        onClick={() => {
+                          toast.success(`Approved ${item.productName}`);
+                        }}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        className="bg-red-600 text-white px-2 py-1 rounded"
+                        onClick={() => {
+                          toast.info(`Rejected ${item.productName}`);
+                        }}
+                      >
+                        Reject
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
         <div className="flex justify-end mt-4 space-x-2 items-center">
           <button
