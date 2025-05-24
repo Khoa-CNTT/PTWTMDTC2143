@@ -170,4 +170,7 @@ export const PublicRoutes = [
   { path: '/warehouses', method: 'GET' },
   { path: '/warehouses/:id', method: 'GET' },
   { path: '/warehouses/name/:name', method: 'GET' },
+
+  { path: '/flashsale', method: 'POST' },
+  { path: '/flashsale', method: 'GET' },
 ];

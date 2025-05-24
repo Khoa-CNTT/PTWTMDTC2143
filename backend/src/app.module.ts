@@ -32,6 +32,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { createKeyv } from '@keyv/redis';
 import { Keyv } from 'keyv';
 import { CacheableMemory } from 'cacheable';
+import { FlashsaleModule } from './flashsale/flashsale.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { CacheableMemory } from 'cacheable';
     ReturnModule,
     InvoiceModule,
     PaymentModule,
+    FlashsaleModule,
   ],
   controllers: [AppController],
   providers: [

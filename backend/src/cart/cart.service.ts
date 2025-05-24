@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,16 +8,30 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { AddToCartDTO } from './dto/add-to-cart.dto';
 import { UpdateCartItemQuantityDTO } from './dto/cart-item-update-quantity.dto';
 import { SelectCartItemDTO } from './dto/select-cart-item.dto';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { DiscountService } from 'src/discount/discount.service';
 
 @Injectable()
 export class CartService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private prisma: PrismaService,
+    private discountService: DiscountService
+  ) {}
 
   private async getOrCreateCart(userId: string) {
     const existing = await this.prisma.cart.findUnique({ where: { userId } });
     if (existing) return existing;
 
     return this.prisma.cart.create({ data: { userId } });
+  }
+
+  private async getFlashSalePrice(
+    variantId: string
+  ): Promise<{ flashPrice: number; quantity: number } | null> {
+    return this.cacheManager.get<{ flashPrice: number; quantity: number }>(
+      `flashSale:${variantId}`
+    );
   }
 
   async getCart(userId: string) {
@@ -27,88 +42,80 @@ export class CartService {
       include: {
         items: {
           include: {
-            variant: true,
+            variant: {
+              include: {
+                product: true,
+                images: true,
+                optionValues: true,
+              },
+            },
           },
         },
       },
     });
 
-    // Tính toán giá gốc và giá giảm cho từng item trong giỏ hàng
+    if (!cartData) throw new NotFoundException('Cart not found');
+
     const cartItems = await Promise.all(
       cartData.items.map(async (item) => {
         const variant = item.variant;
+        if (!variant) throw new NotFoundException('Variant not found');
 
-        // Lấy thông tin product và category để tính discount
-        const product = await this.prisma.product.findUnique({
-          where: { id: variant.productId },
-          include: { category: true },
-        });
-
-        if (!product) throw new NotFoundException('Product not found');
-        const category = product.category;
-
-        // Lấy các discount áp dụng cho product và category
-        const productDiscounts = await this.prisma.productDiscount.findMany({
-          where: { productId: product.id },
-          include: { discount: true },
-        });
-
-        const categoryDiscounts = await this.prisma.categoryDiscount.findMany({
-          where: { categoryId: category.id },
-          include: { discount: true },
-        });
-
-        // Kết hợp discount từ product và category
-        const discounts = [
-          ...productDiscounts.map((pd) => pd.discount),
-          ...categoryDiscounts.map((cd) => cd.discount),
-        ];
-
-        // Tính toán giá giảm
-        let discountedPrice = variant.price;
-        const finalPrice = variant.price; // Giá gốc
-
-        for (const discount of discounts) {
-          if (
-            discount.status === 'ACTIVE' &&
-            new Date() >= discount.startDate &&
-            new Date() <= discount.endDate
-          ) {
-            if (
-              discount.applyType === 'PRODUCT' ||
-              discount.applyType === 'ALL'
-            ) {
-              // Áp dụng discount cho variant (tùy vào DiscountType)
-              if (discount.type === 'PERCENTAGE') {
-                discountedPrice -= (discountedPrice * discount.discount) / 100;
-              } else if (discount.type === 'FIXED_AMOUNT') {
-                discountedPrice -= discount.discount;
-              }
-            }
-          }
+        const flashSaleData = await this.getFlashSalePrice(variant.id);
+        let finalPrice = variant.price;
+        if (flashSaleData && flashSaleData.quantity > 0) {
+          finalPrice = flashSaleData.flashPrice;
         }
 
-        // Tính số tiền tiết kiệm cho từng item
+        const product = variant.product;
+        if (!product) throw new NotFoundException('Product not found');
+
+        const category = await this.prisma.category.findUnique({
+          where: { id: product.categoryId },
+        });
+        if (!category) throw new NotFoundException('Category not found');
+
+        const discounts =
+          await this.discountService.getActiveDiscountsForProduct(
+            product.id,
+            category.id
+          );
+        const discountedPrice =
+          this.discountService.calculateDiscountedPriceSale(
+            finalPrice,
+            discounts
+          );
+
         const savedAmount = (finalPrice - discountedPrice) * item.quantity;
 
         return {
           variantId: item.variantId,
           quantity: item.quantity,
-          originalPrice: finalPrice, // Giá gốc
-          discountedPrice, // Giá giảm
-          totalPrice: discountedPrice * item.quantity, // Tổng giá cho quantity
-          savedAmount, // Số tiền tiết kiệm cho item
+          originalPrice: finalPrice,
+          discountedPrice,
+          totalPrice: discountedPrice * item.quantity,
+          savedAmount,
+          variant: {
+            id: variant.id,
+            sku: variant.sku,
+            price: variant.price,
+            compareAtPrice: variant.compareAtPrice,
+            description: variant.description,
+            product: {
+              title: product.title,
+            },
+            images: variant.images.map((img) => ({
+              url: img.imageUrl,
+            })),
+          },
         };
       })
     );
 
-    // Tính tổng số tiền giỏ hàng sau discount
     const totalCartPrice = cartItems.reduce(
       (acc, item) => acc + item.totalPrice,
       0
     );
-
-    // Tính tổng số tiền tiết kiệm
     const totalSavedAmount = cartItems.reduce(
       (acc, item) => acc + item.savedAmount,
       0
@@ -116,74 +123,49 @@ export class CartService {
 
     return {
       items: cartItems,
-      totalCartPrice, // Tổng giá giỏ hàng
-      totalSavedAmount, // Tổng số tiền tiết kiệm
+      totalCartPrice,
+      totalSavedAmount,
     };
   }
 
   async addToCart(userId: string, dto: AddToCartDTO) {
     const cart = await this.getOrCreateCart(userId);
-
     const [existingItem, variant] = await Promise.all([
       this.prisma.cartItem.findFirst({
         where: { cartId: cart.id, variantId: dto.variantId },
       }),
       this.prisma.variant.findUnique({
         where: { id: dto.variantId },
-        include: {
-          product: {
-            include: {
-              category: true,
-            },
-          },
-        },
+        include: { product: { include: { category: true } } },
       }),
     ]);
-
     if (!variant) throw new NotFoundException('Variant not found');
 
-    // Lấy thông tin product và category để tính discount
-    const product = variant.product;
-    const category = product.category;
+    // Lấy flash sale cache từ Redis (object chứa flashPrice + quantity)
+    const flashSaleData = await this.getFlashSalePrice(dto.variantId);
 
-    // Lấy các discount áp dụng cho product và category
-    const productDiscounts = await this.prisma.productDiscount.findMany({
-      where: { productId: product.id },
-      include: { discount: true },
-    });
+    let appliedPrice = variant.price;
 
-    const categoryDiscounts = await this.prisma.categoryDiscount.findMany({
-      where: { categoryId: category.id },
-      include: { discount: true },
-    });
+    if (flashSaleData && flashSaleData.quantity >= dto.quantity) {
+      appliedPrice = flashSaleData.flashPrice;
+    } else {
+      const product = variant.product;
+      const category = product.category;
 
-    // Kết hợp discount từ product và category
-    const discounts = [
-      ...productDiscounts.map((pd) => pd.discount),
-      ...categoryDiscounts.map((cd) => cd.discount),
-    ];
+      if (!product || !category)
+        throw new NotFoundException('Product or Category not found');
 
-    // Tính toán giá giảm
-    let discountedPrice = variant.price;
-
-    for (const discount of discounts) {
-      if (
-        discount.status === 'ACTIVE' &&
-        new Date() >= discount.startDate &&
-        new Date() <= discount.endDate
-      ) {
-        if (discount.applyType === 'PRODUCT' || discount.applyType === 'ALL') {
-          // Áp dụng discount cho variant (tùy vào DiscountType)
-          if (discount.type === 'PERCENTAGE') {
-            discountedPrice -= (discountedPrice * discount.discount) / 100;
-          } else if (discount.type === 'FIXED_AMOUNT') {
-            discountedPrice -= discount.discount;
-          }
-        }
-      }
+      const discounts = await this.discountService.getActiveDiscountsForProduct(
+        product.id,
+        category.id
+      );
+      appliedPrice = this.discountService.calculateDiscountedPriceSale(
+        appliedPrice,
+        discounts
+      );
     }
 
-    const addedPrice = discountedPrice * dto.quantity; // Tính tổng giá giảm
+    const addedPrice = appliedPrice * dto.quantity;
 
     if (existingItem) {
       return this.prisma.cartItem.update({
@@ -200,7 +182,7 @@ export class CartService {
         cartId: cart.id,
         variantId: dto.variantId,
         quantity: dto.quantity,
-        totalPrice: addedPrice, // Chỉ lưu giá giảm
+        totalPrice: addedPrice,
       },
     });
   }
@@ -210,7 +192,7 @@ export class CartService {
 
     const cartItem = await this.prisma.cartItem.findFirst({
       where: { id: dto.cartItemId, cartId: cart.id },
-      include: { variant: true },
+      include: { variant: { include: { product: true } } },
     });
 
     if (!cartItem) throw new NotFoundException('Cart item not found');
@@ -219,7 +201,31 @@ export class CartService {
     if (newQuantity < 1)
       throw new BadRequestException('Quantity must be at least 1');
 
-    const totalPrice = cartItem.variant.price * newQuantity;
+    const flashSaleData = await this.getFlashSalePrice(cartItem.variantId);
+    let unitPrice = cartItem.variant.price;
+
+    if (flashSaleData && flashSaleData.quantity >= newQuantity) {
+      unitPrice = flashSaleData.flashPrice;
+    } else {
+      const product = cartItem.variant.product;
+      if (!product) throw new NotFoundException('Product not found');
+
+      const category = await this.prisma.category.findUnique({
+        where: { id: product.categoryId },
+      });
+      if (!category) throw new NotFoundException('Category not found');
+
+      const discounts = await this.discountService.getActiveDiscountsForProduct(
+        product.id,
+        category.id
+      );
+      unitPrice = this.discountService.calculateDiscountedPriceSale(
+        unitPrice,
+        discounts
+      );
+    }
+
+    const totalPrice = unitPrice * newQuantity;
 
     const updatedItem = await this.prisma.cartItem.update({
       where: { id: cartItem.id },
