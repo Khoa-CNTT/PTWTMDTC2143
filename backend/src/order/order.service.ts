@@ -14,6 +14,7 @@ import { CartService } from 'src/cart/cart.service';
 import { PaypalService } from 'src/paypal/paypal.service';
 import { PaymentService } from 'src/payment/payment.service';
 import { InvoiceService } from 'src/invoice/invoice.service';
+import { InventoryService } from 'src/inventory/inventory.service';
 
 @Injectable()
 export class OrderService {
@@ -24,7 +25,8 @@ export class OrderService {
     private cartService: CartService,
     private paypalService: PaypalService,
     private paymentService: PaymentService,
-    private invoiceService: InvoiceService
+    private invoiceService: InvoiceService,
+    private inventoryService: InventoryService
   ) {}
 
   async getAll(
@@ -108,7 +110,9 @@ export class OrderService {
     if (variants.length !== dto.items.length) {
       throw new NotFoundException('Một số biến thể không tồn tại');
     }
-
+    for (const item of dto.items) {
+      await this.inventoryService.reserveStock(item.variantId, item.quantity);
+    }
     let total = 0;
     const orderItemsData = [];
 
@@ -180,6 +184,7 @@ export class OrderService {
     const existing = await this.prisma.order.findFirst({
       where: { paypalOrderId },
     });
+
     if (existing) return existing;
 
     const capture = await this.paypalService.captureOrder(paypalOrderId);
@@ -202,6 +207,24 @@ export class OrderService {
 
     const createdOrder = await this.prisma.$transaction(
       async (tx) => {
+        for (const item of orderItemsData) {
+          await tx.inventory.updateMany({
+            where: { variantId: item.variantId },
+            data: {
+              quantity: {
+                decrement: item.quantity,
+              },
+              reserved: {
+                decrement: item.quantity,
+              },
+            },
+          });
+
+          await this.inventoryService.releaseReserveStock(
+            item.variantId,
+            item.quantity
+          );
+        }
         const order = await tx.order.create({
           data: {
             userId,
