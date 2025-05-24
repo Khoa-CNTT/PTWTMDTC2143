@@ -18,6 +18,7 @@ import WishlistPage from './pages/WishlistPage';
 import { AuthProvider } from './contexts/AuthContext';
 import OrderSuccessPage from './pages/OrderPage/OrderSuccessPage';
 import OrderFailedPage from './pages/OrderPage/OrderFailedPage';
+import OrderListPage from './pages/OrderPage/OrderListPage';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/order-success" element={<OrderSuccessPage />} />
           <Route path="/order-failed" element={<OrderFailedPage />} />
+          <Route path="/order-list" element={<OrderListPage />} />
         </Routes>
         <Footer />
       </BrowserRouter>

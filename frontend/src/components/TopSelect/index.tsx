@@ -121,7 +121,10 @@ const TopSelect: React.FC = () => {
   };
   return (
     <>
-      <div className="topSelect mt-5">
+      <div className="bg-yellow-300 p-6 rounded-[20px] shadow-md">
+        <h3 className=" text-[30px] font-[500] pb-5">
+          Top 10 Selected Products On the Week
+        </h3>
         <Swiper
           slidesPerView={5}
           spaceBetween={10}
