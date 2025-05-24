@@ -3,7 +3,6 @@ import BestDeal from '../../components/BestDeal';
 import TopSelect from '../../components/TopSelect';
 import PopularSearch from '../../components/PopularSearch';
 import HotSale from '../../components/HotSale';
-import Category from '../../components/Category';
 
 import RecentlyViewed from '../../components/RecentlyViewed';
 import ChatbotFloating from '../../components/ChatBox/chatBoxFloating';
@@ -13,7 +12,7 @@ const Home: React.FC = () => {
     <>
       <div className="max-w-screen-xl mx-auto">
         <HomeSlider />
-        <Category />
+
         <div className="p-6">
           <HotSale />
         </div>

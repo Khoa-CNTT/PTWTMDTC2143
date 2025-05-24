@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Checkbox, Button, FormControlLabel } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { login } from '../../services/auth.services';
+import { login as loginService } from '../../services/auth.services';
 import { AxiosError } from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -28,24 +28,13 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-
     try {
-      const response = await login(formData);
+      const response = await loginService(formData, authLogin);
       if (response.access_token) {
-        // Store token in localStorage
-        localStorage.setItem('token', response.access_token);
-
-        // Store user data in AuthContext
-        authLogin({
-          id: response.user?.id,
-          email: response.user?.email,
-          name: response.user?.name,
-        });
-
         if (rememberMe) {
           localStorage.setItem('rememberedEmail', formData.email);
         }
-        navigate('/'); // Redirect to home page after successful login
+        navigate('/');
       }
     } catch (err) {
       console.error('Login error:', err);

@@ -33,10 +33,10 @@ export class ProductController {
 
   @Get()
   async getAllProducts(
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
-    @Query('cursor') cursor?: string
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(8), ParseIntPipe) limit: number
   ) {
-    return this.productService.getAllProducts(limit, cursor);
+    return this.productService.getAllProducts(page, limit);
   }
 
   @Post('create')
@@ -132,6 +132,12 @@ export class ProductController {
       cursor
     );
   }
+  @Get('best-deal')
+  async getBestDealProducts(
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number
+  ) {
+    return this.productService.getBestDealProducts(limit);
+  }
 
   @Get('variants/:variantId')
   async getProductVariant(
@@ -147,6 +153,10 @@ export class ProductController {
     @Query('cursor') cursor?: string
   ) {
     return this.productService.searchProductsByName(keyword, limit, cursor);
+  }
+  @Get(':id')
+  async getProductById(@Param('id', ParseUUIDPipe) id: string) {
+    return this.productService.getProductById(id);
   }
 
   @Get('variants')

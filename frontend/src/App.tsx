@@ -8,7 +8,7 @@ import ShippingDetail from './pages/ShippingDetail';
 import RegisterAccount from './pages/RegisterAccount';
 import TrackOrder from './pages/TrackOrder';
 import ProductPage from './pages/ProductPage';
-import ProductDetailPage from './pages/ProductDetailPage';
+import ProductDetail from './components/ProductDetail';
 import FAQPage from './pages/FAQPage';
 import ForgotPassword from './pages/ForgotPassword';
 import LoginAccount from './pages/LoginAccount';
@@ -32,7 +32,7 @@ function App() {
           <Route path="/register" element={<RegisterAccount />} />
           <Route path="/track-order" element={<TrackOrder />} />
           <Route path="/product" element={<ProductPage />} />
-          <Route path="/product-detail" element={<ProductDetailPage />} />
+          <Route path="/product/:productId" element={<ProductDetail />} />
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/forgotpassword" element={<ForgotPassword />} />
           <Route path="/login" element={<LoginAccount />} />

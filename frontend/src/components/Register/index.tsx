@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { register } from '../../services/auth.services';
+import { register as registerService } from '../../services/auth.services';
 import { useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -29,7 +31,7 @@ const Register: React.FC = () => {
 
     try {
       console.log('Submitting registration data:', formData);
-      await register(formData);
+      await registerService(formData, authLogin);
       navigate('/login');
     } catch (err) {
       console.error('Registration error:', err);

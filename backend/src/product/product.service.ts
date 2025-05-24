@@ -495,40 +495,56 @@ export class ProductService {
     };
   }
 
-  async getAllProducts(limit: number, cursor?: string) {
-    const products = await this.prisma.product.findMany({
-      take: limit,
-      skip: cursor ? 1 : 0,
-      cursor: cursor ? { id: cursor } : undefined,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        category: true,
-        brand: true,
-        images: true,
-        variants: {
-          include: {
-            images: true,
-            optionValues: {
-              include: {
-                optionValue: {
-                  include: {
-                    option: true,
+  async getAllProducts(page: number, limit: number) {
+    const skip = (page - 1) * limit;
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        take: limit,
+        skip: skip,
+        orderBy: [
+          { id: 'desc' }, // Sắp xếp theo id để đảm bảo thứ tự ổn định
+        ],
+        include: {
+          category: true,
+          brand: true,
+          images: true,
+          options: {
+            include: {
+              values: true,
+            },
+          },
+          variants: {
+            include: {
+              images: true,
+              optionValues: {
+                include: {
+                  optionValue: {
+                    include: {
+                      option: true,
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-    });
+      }),
+      this.prisma.product.count(),
+    ]);
 
-    const total = await this.prisma.product.count();
+    const totalPages = Math.ceil(total / limit);
+
+    // Map products to response format
+    const mappedProducts = await Promise.all(
+      products.map((product) => this.mapProductToResponse(product))
+    );
 
     return {
-      products,
+      products: mappedProducts,
       total,
-      hasMore: products.length === limit,
-      nextCursor: products.length > 0 ? products[products.length - 1].id : null,
+      totalPages,
+      currentPage: page,
     };
   }
 
@@ -662,5 +678,85 @@ export class ProductService {
       })
     );
     return skuParts.join(' | ');
+  }
+
+  async getProductById(id: string) {
+    return this.prisma.product.findUnique({
+      where: { id },
+      include: {
+        images: true,
+        brand: true,
+        category: true,
+        variants: {
+          include: {
+            images: true,
+            optionValues: {
+              include: { optionValue: { include: { option: true } } },
+            },
+          },
+        },
+        options: {
+          include: {
+            values: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getBestDealProducts(limit: number) {
+    // Lấy tất cả variants có compareAtPrice > 0 và price > 0
+    const variants = await this.prisma.variant.findMany({
+      where: {
+        compareAtPrice: { not: null, gt: 0 },
+        price: { not: null, gt: 0 },
+      },
+      include: {
+        images: true,
+        product: {
+          include: {
+            images: true,
+            brand: true,
+            category: true,
+          },
+        },
+      },
+    });
+
+    // Lọc và sort bằng JS: chỉ lấy variant có compareAtPrice > price
+    const sorted = variants
+      .filter((v) => v.compareAtPrice > v.price)
+      .sort((a, b) => a.compareAtPrice - a.price - (b.compareAtPrice - b.price))
+      .slice(0, limit)
+      .map((v) => ({
+        id: v.product.id,
+        title: v.product.title,
+        price: v.price,
+        compareAtPrice: v.compareAtPrice,
+        discount: Math.round(
+          (100 * (v.compareAtPrice - v.price)) / v.compareAtPrice
+        ),
+        images: v.product.images,
+        brand: v.product.brand,
+        category: v.product.category,
+        variantId: v.id,
+        variantSku: v.sku,
+        variantImages: v.images,
+      }));
+
+    return sorted;
+  }
+
+  public async getProductResponseById(id: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      include: {
+        images: true,
+        brand: true,
+        category: true,
+        options: { include: { values: true } },
+      },
+    });
+    return this.mapProductToResponse(product);
   }
 }
