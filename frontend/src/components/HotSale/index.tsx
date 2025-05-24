@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import 'swiper/css/navigation';
@@ -8,9 +8,11 @@ import { Link } from 'react-router-dom';
 import Button from '@mui/material/Button';
 import { AiOutlineHeart, AiFillHeart } from 'react-icons/ai';
 import Rating from '@mui/material/Rating';
+import { FaFireAlt } from 'react-icons/fa';
+import './style.css';
 
 const HotSale: React.FC = () => {
-  const product = [
+  const products = [
     {
       id: 2,
       name: 'Xiaomi 15G',
@@ -72,7 +74,6 @@ const HotSale: React.FC = () => {
         'https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/1/_/1.4_5.png',
       price: 15,
       originalPrice: 22,
-
       rating: 4,
     },
     {
@@ -85,25 +86,75 @@ const HotSale: React.FC = () => {
       rating: 4,
     },
   ];
-  const [wishlist, setWishlist] = useState<number[]>([]);
 
+  const [wishlist, setWishlist] = useState<number[]>([]);
   const toggleWishlist = (id: number) => {
     setWishlist((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
+
+  const saleEndTimeRef = useRef(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+  const [remainingTime, setRemainingTime] = useState(
+    Math.floor((saleEndTimeRef.current - Date.now()) / 1000)
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const timeLeft = Math.max(
+        Math.floor((saleEndTimeRef.current - Date.now()) / 1000),
+        0
+      );
+      setRemainingTime(timeLeft);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTimeParts = (totalSeconds: number) => {
+    const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+    const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+    const s = String(totalSeconds % 60).padStart(2, '0');
+    return { h, m, s };
+  };
+
+  const { h, m, s } = formatTimeParts(remainingTime);
+
   return (
-    <>
+    <div className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 pb-6 rounded-3xl shadow-xl p-6">
+      <h3 className="text-[36px] font-extrabold flex items-center text-white drop-shadow-md tracking-wide">
+        <FaFireAlt className="me-3 text-white animate-pulse text-4xl" />
+        HOT SALE
+      </h3>
+
+      <div className="flex justify-center items-center ">
+        <div className="flex flex-col md:flex-row items-center gap-3  font-mono text-white">
+          <span className=" font-semibold">⏰ Kết thúc sau:</span>
+          <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl shadow-inner border border-white/30">
+            {[h, m, s].map((value, index) => (
+              <React.Fragment key={index}>
+                <div className="w-8 h-8 bg-yellow-200 text-red-700 flex items-center justify-center rounded-full shadow-lg font-extrabold">
+                  {value}
+                </div>
+                {index < 2 && (
+                  <span className="text-yellow-200 text-2xl font-bold -mt-1">
+                    :
+                  </span>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <Swiper
         slidesPerView={5}
         spaceBetween={10}
-        pagination={{
-          clickable: true,
-        }}
+        pagination={{ clickable: true }}
         modules={[Pagination]}
-        className="mySwiper !pb-10"
+        className="mySwiper !pb-10 mt-6"
       >
-        {product.map((product) => (
+        {products.map((product) => (
           <SwiperSlide key={product.id}>
             <div className="productItem h-[450px] border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg flex flex-col items-center relative overflow-hidden">
               <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded z-10">
@@ -115,6 +166,7 @@ const HotSale: React.FC = () => {
                 )}
                 %
               </div>
+
               <div className="imgWrapper w-full h-[220px] overflow-hidden rounded-[20px] flex items-center justify-center">
                 <img
                   className="w-full h-full object-cover"
@@ -138,7 +190,8 @@ const HotSale: React.FC = () => {
                     </Link>
                   </h3>
                 </div>
-                <div className="flex items-center justify-between pt-2 pb-2 w-full ">
+
+                <div className="flex items-center justify-between pt-2 pb-2 w-full">
                   <Rating
                     name={`rating-${product.id}`}
                     defaultValue={product.rating}
@@ -156,6 +209,7 @@ const HotSale: React.FC = () => {
                     )}
                   </button>
                 </div>
+
                 <div className="mt-auto mb-4">
                   <Button
                     variant="outlined"
@@ -180,7 +234,8 @@ const HotSale: React.FC = () => {
           </SwiperSlide>
         ))}
       </Swiper>
-    </>
+    </div>
   );
 };
+
 export default HotSale;

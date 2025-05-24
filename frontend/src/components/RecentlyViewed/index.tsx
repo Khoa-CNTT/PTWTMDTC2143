@@ -69,54 +69,59 @@ const RecentlyViewed: React.FC = () => {
 
   return (
     <>
-      <Swiper
-        slidesPerView={5}
-        spaceBetween={10}
-        pagination={{
-          clickable: true,
-        }}
-        modules={[Pagination]}
-        className="mySwiper !pb-10"
-      >
-        {product.map(({ id, name, price, image, rating }) => (
-          <SwiperSlide key={id}>
-            <div className="recentlyViewed rounded-[20px] mt-5">
-              <div className="grid grid-cols-1 gap-4">
-                <div className="grid grid-cols-2 border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg">
-                  <div className="w-full h-full rounded-[20px] overflow-hidden">
-                    <img
-                      className="w-full h-full object-cover"
-                      src={image}
-                      alt={name}
-                    />
-                  </div>
-                  <div className="p-4 flex flex-col justify-between">
-                    <div>
-                      <h3 className="text-[16px] font-[500] text-[rgba(0,0,0,0.9)] -mt-3">
-                        <Link
-                          to="/product-detail"
-                          className="link transition-all"
-                        >
-                          {name}
-                        </Link>
-                      </h3>
-                    </div>
-                    <div className="mt-4">
-                      <h3 className="text-primary font-[500]">${price}</h3>
-                      <Rating
-                        name="size-small"
-                        value={rating}
-                        size="small"
-                        readOnly
+      <div className="bg-gray-200 p-6 rounded-[20px] shadow-md">
+        <h3 className="text-[30px] font-[500] flex items-center pb-3">
+          Recently Viewed
+        </h3>
+        <Swiper
+          slidesPerView={5}
+          spaceBetween={10}
+          pagination={{
+            clickable: true,
+          }}
+          modules={[Pagination]}
+          className="mySwiper !pb-10"
+        >
+          {product.map(({ id, name, price, image, rating }) => (
+            <SwiperSlide key={id}>
+              <div className="recentlyViewed rounded-[20px]">
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-2 border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg">
+                    <div className="w-full h-full rounded-[20px] overflow-hidden">
+                      <img
+                        className="w-full h-full object-cover"
+                        src={image}
+                        alt={name}
                       />
+                    </div>
+                    <div className="p-4 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-[16px] font-[500] text-[rgba(0,0,0,0.9)] -mt-3">
+                          <Link
+                            to="/product-detail"
+                            className="link transition-all"
+                          >
+                            {name}
+                          </Link>
+                        </h3>
+                      </div>
+                      <div className="mt-4">
+                        <h3 className="text-primary font-[500]">${price}</h3>
+                        <Rating
+                          name="size-small"
+                          value={rating}
+                          size="small"
+                          readOnly
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </SwiperSlide>
-        ))}
-      </Swiper>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </div>
     </>
   );
 };
