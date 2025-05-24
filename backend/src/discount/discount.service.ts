@@ -5,6 +5,16 @@ import { DiscountMapper } from './discount.mapper';
 import { DiscountCreateDTO } from './dto/discount-create.dto';
 import { DiscountResponseDTO } from './dto/discount-response.dto';
 
+export interface Discount {
+  id: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'EXPIRED';
+  startDate: Date;
+  endDate: Date;
+  applyType: 'PRODUCT' | 'CATEGORY' | 'ALL';
+  type: 'PERCENTAGE' | 'FIXED_AMOUNT';
+  discount: number;
+}
+
 @Injectable()
 export class DiscountService {
   constructor(private readonly prisma: PrismaService) {}
@@ -166,5 +176,50 @@ export class DiscountService {
     }
 
     return discountedPrice < 0 ? 0 : discountedPrice;
+  }
+
+  async getActiveDiscountsForProduct(
+    productId: string,
+    categoryId: string
+  ): Promise<Discount[]> {
+    const now = new Date();
+
+    const productDiscounts = await this.prisma.productDiscount.findMany({
+      where: { productId },
+      include: { discount: true },
+    });
+
+    const categoryDiscounts = await this.prisma.categoryDiscount.findMany({
+      where: { categoryId },
+      include: { discount: true },
+    });
+
+    const discounts = [
+      ...productDiscounts.map((pd) => pd.discount),
+      ...categoryDiscounts.map((cd) => cd.discount),
+    ];
+
+    return discounts.filter(
+      (d) =>
+        d.status === 'ACTIVE' &&
+        now >= d.startDate &&
+        now <= d.endDate &&
+        (d.applyType === 'PRODUCT' || d.applyType === 'ALL')
+    );
+  }
+
+  calculateDiscountedPriceSale(
+    originalPrice: number,
+    discounts: Discount[]
+  ): number {
+    let price = originalPrice;
+    for (const discount of discounts) {
+      if (discount.type === 'PERCENTAGE') {
+        price -= (price * discount.discount) / 100;
+      } else if (discount.type === 'FIXED_AMOUNT') {
+        price -= discount.discount;
+      }
+    }
+    return Math.max(price, 0);
   }
 }
