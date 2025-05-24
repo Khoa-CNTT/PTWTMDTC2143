@@ -1,4 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import {
+  getProductById,
+  Products as APIProduct,
+} from '../../services/productsService';
 import { Star } from 'lucide-react';
 import { Button, Rating, IconButton } from '@mui/material';
 import { AiOutlineHeart } from 'react-icons/ai';
@@ -10,9 +15,21 @@ import {
   BsWhatsapp,
   BsLink,
 } from 'react-icons/bs';
+import { Variant } from '../../services/productsService';
+
+interface OptionValue {
+  id: number | string;
+  value: string;
+}
+
+interface Option {
+  id: number | string;
+  name: string;
+  values: OptionValue[];
+}
 
 interface Product {
-  id: number;
+  id: number | string;
   name: string;
   description: string;
   features: string[];
@@ -28,9 +45,61 @@ interface Product {
     [key: string]: string[];
   };
   sizes: string[];
+  options?: Option[];
 }
 
-const product: Product = {
+interface Review {
+  id: number;
+  name: string;
+  avatar: string;
+  email: string;
+  content: string;
+  rating: number;
+  replies?: Reply[];
+  images?: string[];
+  createdAt: Date;
+}
+
+interface Reply {
+  id: number;
+  name: string;
+  content: string;
+  avatar: string;
+  createdAt: Date;
+}
+
+const initialReviews: Review[] = [
+  {
+    id: 1,
+    name: 'Rodriguez',
+    avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+    email: 'rod@example.com',
+    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+    rating: 4,
+    replies: [],
+    createdAt: new Date('2024-05-01T10:30:00'),
+  },
+  {
+    id: 2,
+    name: 'Marissa',
+    avatar: 'https://randomuser.me/api/portraits/women/65.jpg',
+    email: 'marissa@example.com',
+    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+    rating: 4,
+    createdAt: new Date('2024-05-05T14:45:00'),
+  },
+  {
+    id: 3,
+    name: 'Julianto Mc. Daniel',
+    avatar: 'https://randomuser.me/api/portraits/men/75.jpg',
+    email: 'julianto@example.com',
+    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+    rating: 3.5,
+    createdAt: new Date('2024-05-10T08:15:00'),
+  },
+];
+
+const fallbackProduct: Product = {
   id: 1,
   name: 'LED Monitor With High Quality In The World',
   description:
@@ -63,59 +132,21 @@ const product: Product = {
   },
   sizes: ['14-Inch', '24-Inch', '32-Inch', '60-Inch'],
 };
-interface Review {
-  id: number;
-  name: string;
-  avatar: string;
-  email: string;
-  content: string;
-  rating: number;
-  replies?: Reply[];
-  images?: string[];
-  createdAt: Date;
-}
-interface Reply {
-  id: number;
-  name: string;
-  content: string;
-  avatar: string;
-  createdAt: Date;
-}
-const initialReviews: Review[] = [
-  {
-    id: 1,
-    name: 'Rodriguez',
-    avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-    email: 'rod@example.com',
-    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
-    rating: 4,
-    replies: [],
-    createdAt: new Date('2024-05-01T10:30:00'),
-  },
-  {
-    id: 2,
-    name: 'Marissa',
-    avatar: 'https://randomuser.me/api/portraits/women/65.jpg',
-    email: 'marissa@example.com',
-    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
-    rating: 4,
-    createdAt: new Date('2024-05-05T14:45:00'),
-  },
-  {
-    id: 3,
-    name: 'Julianto Mc. Daniel',
-    avatar: 'https://randomuser.me/api/portraits/men/75.jpg',
-    email: 'julianto@example.com',
-    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
-    rating: 3.5,
-    createdAt: new Date('2024-05-10T08:15:00'),
-  },
-];
+
 const ProductDetail: React.FC = () => {
-  const [selectedSize, setSelectedSize] = useState(product.sizes[1]);
+  const { productId } = useParams<{ productId: string }>();
+  const [product, setProduct] = useState<Product>(fallbackProduct);
+  const [variants, setVariants] = useState<Variant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedOptionValues, setSelectedOptionValues] = useState<{
+    [optionIndex: number]: string;
+  }>({});
+  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [selectedColor, setSelectedColor] = useState('Blue');
-  const [selectedImage, setSelectedImage] = useState(product.colors['Blue'][0]);
+  const [selectedImage, setSelectedImage] = useState(
+    fallbackProduct.colors['Blue'][0]
+  );
   const [activeTab, setActiveTab] = useState('Description');
   const [replyingToId, setReplyingToId] = useState<number | null>(null);
   const [replyContent, setReplyContent] = useState('');
@@ -126,12 +157,119 @@ const ProductDetail: React.FC = () => {
   const [rating, setRating] = useState(4);
   const [reviewImages, setReviewImages] = useState<File[]>([]);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const apiProduct: APIProduct = await getProductById(productId!);
+        let price = fallbackProduct.price;
+        let oldPrice = fallbackProduct.oldPrice;
+        let discount = fallbackProduct.discount;
+        if (apiProduct.variants && apiProduct.variants.length > 0) {
+          price = apiProduct.variants[0].price || price;
+          oldPrice = apiProduct.variants[0].compareAtPrice || oldPrice;
+          if (oldPrice > price) {
+            discount = Math.round((100 * (oldPrice - price)) / oldPrice);
+          } else {
+            discount = 0;
+          }
+        }
+        let colors = fallbackProduct.colors;
+        let defaultImage = fallbackProduct.colors['Blue'][0];
+        if (apiProduct.images && apiProduct.images.length > 0) {
+          const urls = apiProduct.images.map((img) => img.imageUrl);
+          colors = { Default: urls };
+          defaultImage = urls[0];
+        }
+        setVariants(apiProduct.variants || []);
+        const mapped: Product = {
+          id: apiProduct.id || fallbackProduct.id,
+          name: apiProduct.title || fallbackProduct.name,
+          description: apiProduct.description || fallbackProduct.description,
+          features: fallbackProduct.features,
+          price,
+          oldPrice,
+          discount,
+          rating: apiProduct.rating || fallbackProduct.rating,
+          reviews: fallbackProduct.reviews,
+          sold: fallbackProduct.sold,
+          viewed: fallbackProduct.viewed,
+          store: fallbackProduct.store,
+          colors,
+          sizes: fallbackProduct.sizes,
+          options: apiProduct.options || [],
+        };
+        setProduct(mapped);
+        setSelectedImage(defaultImage);
+        if (apiProduct.options && apiProduct.options.length > 0) {
+          const initial: { [optionIndex: number]: string } = {};
+          apiProduct.options.forEach((opt: Option, idx: number) => {
+            if (opt.values && opt.values.length > 0) {
+              initial[idx] = String(opt.values[0].id);
+            }
+          });
+          setSelectedOptionValues(initial);
+        }
+      } catch (err) {
+        setError('Failed to fetch product details');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+    // eslint-disable-next-line
+  }, [productId]);
+
+  useEffect(() => {
+    if (
+      !product.options ||
+      product.options.length === 0 ||
+      variants.length === 0
+    )
+      return;
+    const selectedIds = Object.values(selectedOptionValues);
+    const found = variants.find((variant) => {
+      if (!variant.optionValues) return false;
+      const variantValueIds = variant.optionValues.map(
+        (ov) => ov.optionValueId || ov.optionValue?.id
+      );
+      return selectedIds.every((id) => variantValueIds.includes(id));
+    });
+    setSelectedVariant(found || null);
+    if (found && found.images && found.images.length > 0) {
+      setSelectedImage(found.images[0].imageUrl);
+    } else if (product.images && product.images.length > 0) {
+      setSelectedImage(product.images[0].imageUrl);
+    } else if (
+      product.colors &&
+      product.colors[Object.keys(product.colors)[0]]
+    ) {
+      setSelectedImage(product.colors[Object.keys(product.colors)[0]][0]);
+    }
+  }, [selectedOptionValues, product.options, variants, product.images]);
+
+  const displayPrice =
+    selectedVariant && selectedVariant.price
+      ? selectedVariant.price
+      : product.price;
+  const displayOldPrice =
+    selectedVariant && selectedVariant.compareAtPrice
+      ? selectedVariant.compareAtPrice
+      : product.oldPrice;
+  const displayDiscount =
+    displayOldPrice > displayPrice
+      ? Math.round((100 * (displayOldPrice - displayPrice)) / displayOldPrice)
+      : 0;
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
       setReviewImages((prev) => [...prev, ...newFiles]);
     }
   };
+
   const handleReplyClick = (id: number) => {
     if (replyingToId === id) {
       setReplyingToId(null);
@@ -140,9 +278,9 @@ const ProductDetail: React.FC = () => {
       setReplyContent('');
     }
   };
+
   const handleReplySubmit = (reviewId: number) => {
     if (!replyContent.trim()) return;
-
     setReviews((prev) =>
       prev.map((review) =>
         review.id === reviewId
@@ -162,13 +300,12 @@ const ProductDetail: React.FC = () => {
           : review
       )
     );
-
     setReplyingToId(null);
     setReplyContent('');
   };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     const newReview: Review = {
       id: Date.now(),
       name: nickname,
@@ -180,7 +317,6 @@ const ProductDetail: React.FC = () => {
       images: reviewImages.map((file) => URL.createObjectURL(file)),
       createdAt: new Date(),
     };
-
     setReviews([newReview, ...reviews]);
     setNickname('');
     setEmail('');
@@ -188,6 +324,24 @@ const ProductDetail: React.FC = () => {
     setRating(4);
     setReviewImages([]);
   };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center">Loading product details...</div>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center text-red-500">
+          {error || 'Product not found'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -198,27 +352,27 @@ const ProductDetail: React.FC = () => {
             alt="Product Thumbnail"
             className="w-[400px] h-[300px] object-cover rounded-lg"
           />
-
           <div className="flex mt-3 space-x-2">
-            {product.colors[selectedColor].map((img, index) => (
-              <img
-                key={index}
-                src={img}
-                alt={`Thumbnail ${index}`}
-                className={`w-16 h-16 object-cover rounded-lg cursor-pointer border-2 ${
-                  selectedImage === img
-                    ? 'border-orange-500'
-                    : 'border-transparent'
-                }`}
-                onClick={() => setSelectedImage(img)}
-              />
-            ))}
+            {product.colors[Object.keys(product.colors)[0]].map(
+              (img, index) => (
+                <img
+                  key={index}
+                  src={img}
+                  alt={`Thumbnail ${index}`}
+                  className={`w-16 h-16 object-cover rounded-lg cursor-pointer border-2 ${
+                    selectedImage === img
+                      ? 'border-orange-500'
+                      : 'border-transparent'
+                  }`}
+                  onClick={() => setSelectedImage(img)}
+                />
+              )
+            )}
           </div>
         </div>
         <div className="flex-1">
-          <span className="text-gray-500 text-sm">SKU 12314124124</span>
+          <span className="text-gray-500 text-sm">SKU {product.id}</span>
           <h2 className="text-2xl font-bold mt-2">{product.name}</h2>
-
           <div className="flex items-center gap-2 mt-2">
             <Rating value={product.rating} readOnly size="small" />
             <span className="text-sm text-gray-600">({product.reviews})</span>
@@ -235,68 +389,83 @@ const ProductDetail: React.FC = () => {
               Add to wishlist
             </span>
           </div>
-
-          <div className="flex items-center mt-3">
-            <span className="text-orange-500 text-3xl font-bold">
-              ${product.price.toFixed(2)}
-            </span>
-            <span className="text-gray-400 line-through text-xl ml-3">
-              ${product.oldPrice.toFixed(2)}
-            </span>
-            <span className="bg-green-200 text-green-800 text-sm font-semibold px-2 py-1 rounded ml-3">
-              {product.discount}% OFF
-            </span>
+          <div className="flex items-center mt-3 gap-3">
+            <div>
+              <span className="block text-xs text-gray-400">
+                Giá khuyến mãi
+              </span>
+              <span className="text-orange-500 text-3xl font-bold">
+                ${displayPrice.toFixed(2)}
+              </span>
+            </div>
+            <div>
+              <span className="block text-xs text-gray-400">Giá gốc</span>
+              <span className="text-gray-400 line-through text-xl ml-1">
+                ${displayOldPrice.toFixed(2)}
+              </span>
+            </div>
+            {displayDiscount > 0 && (
+              <span className="bg-green-200 text-green-800 text-sm font-semibold px-2 py-1 rounded ml-3">
+                Tiết kiệm {displayDiscount}%
+              </span>
+            )}
           </div>
-
           <p className="text-gray-600 text-sm mt-3">{product.description}</p>
-
           <ul className="mt-3 text-sm text-gray-700 list-disc list-inside">
             {product.features.map((feature, index) => (
               <li key={index}>{feature}</li>
             ))}
           </ul>
-
-          <div className="mt-4">
-            <span className="text-lg font-semibold">Screen Size</span>
-            <div className="flex gap-3 mt-2">
-              {product.sizes.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  className={`px-4 py-2 border rounded-lg transition-all ${
-                    selectedSize === size
-                      ? 'bg-orange-200 text-orange-700 border-orange-400'
-                      : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <span className="text-lg font-semibold">Color</span>
-            <div className="flex gap-3 mt-2">
-              {Object.keys(product.colors).map((color) => (
-                <button
-                  key={color}
-                  onClick={() => {
-                    setSelectedColor(color);
-                    setSelectedImage(product.colors[color][0]);
-                  }}
-                  className={`px-4 py-2 border rounded-lg transition-all ${
-                    selectedColor === color
-                      ? 'bg-orange-200 text-orange-700 border-orange-400'
-                      : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'
-                  }`}
-                >
-                  {color}
-                </button>
-              ))}
-            </div>
-          </div>
-
+          {product.options && product.options.length > 0 && (
+            <>
+              {product.options[0] && (
+                <div className="mt-4">
+                  <span className="text-lg font-semibold">
+                    {product.options[0].name}
+                  </span>
+                  <div className="flex gap-3 mt-2">
+                    {product.options[0].values.map((value) => (
+                      <button
+                        key={value.id}
+                        onClick={() =>
+                          setSelectedOptionValues((prev) => ({
+                            ...prev,
+                            0: String(value.id),
+                          }))
+                        }
+                        className={`px-4 py-2 border rounded-lg transition-all ${selectedOptionValues[0] === String(value.id) ? 'bg-orange-200 text-orange-700 border-orange-400' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'}`}
+                      >
+                        {value.value}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {product.options[1] && (
+                <div className="mt-4">
+                  <span className="text-lg font-semibold">
+                    {product.options[1].name}
+                  </span>
+                  <div className="flex gap-3 mt-2">
+                    {product.options[1].values.map((value) => (
+                      <button
+                        key={value.id}
+                        onClick={() =>
+                          setSelectedOptionValues((prev) => ({
+                            ...prev,
+                            1: String(value.id),
+                          }))
+                        }
+                        className={`px-4 py-2 border rounded-lg transition-all ${selectedOptionValues[1] === String(value.id) ? 'bg-orange-200 text-orange-700 border-orange-400' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'}`}
+                      >
+                        {value.value}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
           <div className="mt-4 flex items-center">
             <Button
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -312,17 +481,27 @@ const ProductDetail: React.FC = () => {
               <FaPlus />
             </Button>
           </div>
-
           <div className="mt-4 flex gap-3 ">
-            <button className="border-2 border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white py-2 px-4 rounded">
+            <button
+              className="border-2 border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white py-2 px-4 rounded"
+              disabled={
+                selectedVariant && selectedVariant.status === 'OUT_OF_STOCK'
+              }
+            >
               BUY
             </button>
-
-            <button className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded">
+            <button
+              className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded"
+              disabled={
+                selectedVariant && selectedVariant.status === 'OUT_OF_STOCK'
+              }
+            >
               ADD TO CART
             </button>
+            {selectedVariant && selectedVariant.status === 'OUT_OF_STOCK' && (
+              <span className="text-red-500 font-semibold ml-2">Hết hàng</span>
+            )}
           </div>
-
           <div className="mt-6 flex items-center gap-3">
             <span className="text-gray-600">Share</span>
             <IconButton className="text-blue-600">
@@ -347,14 +526,14 @@ const ProductDetail: React.FC = () => {
         <div className="container flex flex-col lg:flex-row bg-white">
           <div className="bg-orange-500 text-white p-6 rounded-lg w-full h-min lg:w-1/4">
             <h1 className="text-5xl font-bold">
-              4.0 <span className="text-xl">/5</span>
+              {product.rating} <span className="text-xl">/5</span>
             </h1>
             <div className="flex items-center my-2">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="text-yellow-400" fill="yellow" />
               ))}
             </div>
-            <p className="text-lg">223 Reviews</p>
+            <p className="text-lg">{product.reviews} Reviews</p>
             <div className="mt-4 space-y-2">
               {[186, 18, 12, 5, 2].map((count, index) => (
                 <div key={index} className="flex items-center">
@@ -368,10 +547,9 @@ const ProductDetail: React.FC = () => {
               ))}
             </div>
           </div>
-
           <div className="flex-1 p-6">
             <div className="flex border-b">
-              {['Description', 'Reviews (223)'].map((tab) => (
+              {['Description', `Reviews (${product.reviews})`].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -381,7 +559,6 @@ const ProductDetail: React.FC = () => {
                 </button>
               ))}
             </div>
-
             <div className="mt-4">
               {activeTab === 'Description' && (
                 <div className="p-4">
@@ -398,7 +575,6 @@ const ProductDetail: React.FC = () => {
                     occaecat cupidatat non proident, sunt in culpa qui officia
                     deserunt mollit anim id est laborum.
                   </p>
-
                   <div className="mt-4">
                     <img
                       src="https://via.placeholder.com/800x400"
@@ -406,7 +582,6 @@ const ProductDetail: React.FC = () => {
                       className="w-full rounded-lg"
                     />
                   </div>
-
                   <h3 className="text-xl font-semibold mt-6">
                     Powerful intelligence for perfection
                   </h3>
@@ -419,7 +594,6 @@ const ProductDetail: React.FC = () => {
                     aut fugit, sed quia consequuntur magni dolores eos qui
                     ratione voluptatem sequi nesciunt.
                   </p>
-
                   <h3 className="text-xl font-semibold mt-6">
                     The power of less
                   </h3>
@@ -433,8 +607,7 @@ const ProductDetail: React.FC = () => {
                   </p>
                 </div>
               )}
-
-              {activeTab === 'Reviews (223)' && (
+              {activeTab === `Reviews (${product.reviews})` && (
                 <div className="p-4">
                   <h2 className="text-xl font-semibold mb-2">
                     Submit Your Review
@@ -442,7 +615,6 @@ const ProductDetail: React.FC = () => {
                   <p className="text-gray-600 mb-4">
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit...
                   </p>
-
                   <form
                     onSubmit={handleSubmit}
                     className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"
@@ -531,7 +703,6 @@ const ProductDetail: React.FC = () => {
                         </div>
                       )}
                     </div>
-
                     <div className="md:col-span-2">
                       <button
                         type="submit"
@@ -541,9 +712,7 @@ const ProductDetail: React.FC = () => {
                       </button>
                     </div>
                   </form>
-
                   <hr className="my-6" />
-
                   <div className="space-y-6">
                     {reviews.map((review) => (
                       <div key={review.id} className="flex gap-4 flex-col">
@@ -559,12 +728,8 @@ const ProductDetail: React.FC = () => {
                             </div>
                             <div className="flex justify-between items-center">
                               <div>
-                                <div className="font-semibold">
+                                <div className="font-semibold mb-5">
                                   {review.name}
-                                </div>
-                                <div className="text-orange-500 text-sm font-medium flex items-center gap-1">
-                                  <span className="w-2 h-2 bg-orange-500 rounded-full" />
-                                  Verified Buyer
                                 </div>
                               </div>
                               <div className="text-right">
@@ -589,8 +754,7 @@ const ProductDetail: React.FC = () => {
                                 </div>
                               </div>
                             </div>
-
-                            <p className="text-gray-600 text-sm mt-2">
+                            <p className="text-gray-600 text-sm">
                               {review.content}
                             </p>
                             {Array.isArray(review.images) &&
@@ -620,7 +784,6 @@ const ProductDetail: React.FC = () => {
                                 />
                               </div>
                             )}
-
                             <button
                               onClick={() => handleReplyClick(review.id)}
                               className="text-sm text-orange-500 mt-2 hover:underline"

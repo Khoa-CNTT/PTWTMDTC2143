@@ -6,12 +6,14 @@ import { CategoryUpdateDTO } from './dto/category-update.dto';
 import { Category } from './interfaces/category.interface';
 import { Prisma } from '@prisma/client';
 import { ImageService } from 'src/image/image.service';
-
+import { CategoryParentResponseDto } from './dto/category-response.dto';
+import { ProductService } from 'src/product/product.service';
 @Injectable()
 export class CategoryService {
   constructor(
     private prisma: PrismaService,
-    private imageService: ImageService
+    private imageService: ImageService,
+    private productService: ProductService
   ) {}
 
   async createCategory(
@@ -131,6 +133,40 @@ export class CategoryService {
     return category.subCategories.map((subCategory) =>
       this.toCategoryResponseDto(subCategory)
     );
+  }
+
+  // async getAllParentCategories(): Promise<CategoryResponseDto[]> {
+  //   const categories = await this.prisma.category.findMany({
+  //     where: { parentId: null },
+  //     include: {
+  //       subCategories: {
+  //         include: {
+  //           subCategories: true,
+  //         },
+  //       },
+  //     },
+  //     orderBy: { id: 'asc' },
+  //   });
+  //   return categories.map((category) => this.toCategoryResponseDto(category));
+  // }
+  async getAllParentCategories(): Promise<CategoryParentResponseDto[]> {
+    const categories = await this.prisma.category.findMany({
+      where: { parentId: null },
+      include: {
+        subCategories: {
+          include: {
+            subCategories: {
+              include: {
+                subCategories: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { id: 'asc' },
+    });
+
+    return categories.map((category) => this.toCategoryResponseDto(category));
   }
 
   async findParentCategory(id: string): Promise<CategoryResponseDto> {

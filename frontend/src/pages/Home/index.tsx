@@ -4,7 +4,6 @@ import TopSelect from '../../components/TopSelect';
 import PopularSearch from '../../components/PopularSearch';
 import HotSale from '../../components/HotSale';
 import { FaFireAlt } from 'react-icons/fa';
-import Category from '../../components/Category';
 
 import RecentlyViewed from '../../components/RecentlyViewed';
 import ChatbotFloating from '../../components/ChatBox/chatBoxFloating';
@@ -14,7 +13,7 @@ const Home: React.FC = () => {
     <>
       <div className="max-w-screen-xl mx-auto">
         <HomeSlider />
-        <Category />
+
         <div className="p-6">
           <div className="bg-red-500 pb-3 rounded-[20px] shadow-md">
             <div className="container">

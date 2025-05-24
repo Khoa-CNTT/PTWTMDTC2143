@@ -46,6 +46,11 @@ export class CategoryController {
   ): Promise<{ data: CategoryResponseDto[]; nextCursor: string | null }> {
     return this.categoryService.findAll(limit, cursor);
   }
+  @Get('parent')
+  async getAllParentCategories(): Promise<{ data: CategoryResponseDto[] }> {
+    const categories = await this.categoryService.getAllParentCategories();
+    return { data: categories };
+  }
 
   @Delete(':id')
   async remove(@Param('id') id: string): Promise<{ message: string }> {

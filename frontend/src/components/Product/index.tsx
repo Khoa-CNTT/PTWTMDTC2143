@@ -1,12 +1,38 @@
-import React, { useState } from 'react';
-import { Typography, Button } from '@mui/material';
-import { Slider, Checkbox, Select, MenuItem } from '@mui/material';
-import { Link } from 'react-router-dom';
-import Rating from '@mui/material/Rating';
+import React, { useState, useEffect } from 'react';
+import {
+  Typography,
+  Button,
+  Slider,
+  Checkbox,
+  Select,
+  MenuItem,
+  Pagination,
+} from '@mui/material';
+
+import {
+  getAllProducts,
+  Products,
+  ProductsResponse,
+} from '../../services/productsService';
+import { getAllBrands } from '../../services/brandsService';
+import { Brand } from '../../services/brandsService';
+import ProductCard from './ProductCard';
+
 type FilterType = {
   [key: string]: boolean;
 };
+
 const Product: React.FC = () => {
+  const [products, setProducts] = useState<Products[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [selectedBrand, setSelectedBrand] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  // const [total, setTotal] = useState(0);
+  const ITEMS_PER_PAGE = 8;
+
   const [priceRange, setPriceRange] = useState<number | number[]>([
     1500, 90500,
   ]);
@@ -17,10 +43,54 @@ const Product: React.FC = () => {
     red: false,
   });
 
+  const fetchProducts = async (page: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response: ProductsResponse = await getAllProducts(
+        page,
+        ITEMS_PER_PAGE
+      );
+      console.log('Response for page', page, ':', response);
+
+      // Update all states at once
+      setProducts(response.products);
+      // setTotal(response.total);
+      const calculatedTotalPages = Math.ceil(response.total / ITEMS_PER_PAGE);
+      setTotalPages(calculatedTotalPages);
+    } catch (err) {
+      // setError('Failed to fetch products');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts(currentPage);
+  }, [currentPage]);
+
+  useEffect(() => {
+    const fetchBrands = async () => {
+      const res = await getAllBrands();
+      setBrands(res);
+    };
+    fetchBrands();
+  }, []);
+
+  const handlePageChange = (
+    event: React.ChangeEvent<unknown>,
+    value: number
+  ) => {
+    if (value !== currentPage) {
+      setCurrentPage(value);
+    }
+  };
+
   return (
     <>
       <div className="flex bg-gray-100">
-        <aside className="mt-6 ms-5 h-[300px] bg-white shadow p-4  rounded-[20px]">
+        <aside className="mt-6 ms-5 h-[300px] bg-white shadow p-4 rounded-[20px]">
           <h2 className="text-lg font-semibold mb-4">Show all categories</h2>
           <ul className="text-gray-700">
             <li>
@@ -35,7 +105,7 @@ const Product: React.FC = () => {
           </ul>
         </aside>
 
-        <main className="flex-1 p-6  ">
+        <main className="flex-1 p-6">
           <div className="w-full h-64 bg-white shadow rounded-lg p-6 flex items-center">
             <div>
               <h1 className="text-3xl font-bold">
@@ -48,7 +118,8 @@ const Product: React.FC = () => {
           </div>
         </main>
       </div>
-      <div className="flex  gap-6 p-6 bg-gray-50 text-gray-900">
+
+      <div className="flex gap-6 p-6 bg-gray-50 text-gray-900">
         <aside className="w-1/4 p-6 bg-white shadow-lg rounded-lg">
           <h2 className="text-lg font-bold mb-4 text-black">Filters</h2>
           <Typography gutterBottom className="text-gray-700 font-medium">
@@ -65,8 +136,19 @@ const Product: React.FC = () => {
           <Typography gutterBottom className="text-gray-700 font-medium">
             Choose Brand
           </Typography>
-          <Select fullWidth displayEmpty className="mb-4 border-gray-300">
+          <Select
+            fullWidth
+            displayEmpty
+            className="mb-4 border-gray-300"
+            value={selectedBrand}
+            onChange={(e) => setSelectedBrand(e.target.value)}
+          >
             <MenuItem value="">Choose Brand</MenuItem>
+            {brands.map((brand) => (
+              <MenuItem key={brand.id} value={brand.id}>
+                {brand.name}
+              </MenuItem>
+            ))}
           </Select>
           <Typography gutterBottom className="text-gray-700 font-medium">
             Choose Location
@@ -120,359 +202,69 @@ const Product: React.FC = () => {
             Reset Filter
           </Typography>
         </aside>
-        <div className=" flex grid grid-cols-4 gap-4">
-          <div className="productItem border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg flex flex-col items-center">
-            <div className="imgWrapper w-full h-[270px] overflow-hidden rounded-[20px] flex items-center justify-center">
-              <img
-                className="w-full h-full object-cover"
-                src="https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/o/p/oppo-reno10-pro-plus-tim.png"
-                alt=""
-              />
+
+        <div className="flex-1">
+          {loading ? (
+            <div className="flex justify-center items-center min-h-[400px]">
+              <Typography>Loading products...</Typography>
             </div>
-            <div className="info flex flex-col  justify-center gap-1 mt-4">
-              <h3 className="text-[16px] font-[1000] text-[rgba(0,0,0,0.9)] ">
-                <Link to="/" className="link transition-all">
-                  OPPO Reno10 Pro+ 5G
-                </Link>
-              </h3>
-              <div className="flex items-center justify-between mt-3 mb-3">
-                <h3 className="font-[700] text-lg text-orange-500">$100</h3>
-                <Rating
-                  name="size-small"
-                  defaultValue={4}
-                  size="small"
-                  readOnly
-                />
+          ) : (
+            <>
+              <div className="grid grid-cols-4 gap-4">
+                {products && products.length > 0 ? (
+                  products.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onAddToCart={() => {
+                        console.log('Add to cart:', product.id);
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Typography className="col-span-4 text-center py-8">
+                    No products found
+                  </Typography>
+                )}
               </div>
-              <div className="mb-6">
-                <Button
-                  variant="outlined"
-                  sx={{
-                    borderColor: 'orange',
-                    color: 'orange',
-                    width: '100%',
-                    minWidth: '200px',
-                    padding: '4px 0',
-                    fontSize: '16px',
-                    '&:hover': {
-                      borderColor: 'darkorange',
-                      backgroundColor: 'rgba(255,165,0,0.1)',
-                    },
-                  }}
-                >
-                  Add to cart
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="productItem border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg flex flex-col items-center">
-            <div className="imgWrapper w-full h-[270px] overflow-hidden rounded-[20px] flex items-center justify-center">
-              <img
-                className="w-full h-full object-cover"
-                src="https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/o/p/oppo-reno10-pro-plus-tim.png"
-                alt=""
-              />
-            </div>
-            <div className="info flex flex-col  justify-center gap-1 mt-4">
-              <h3 className="text-[16px] font-[1000] text-[rgba(0,0,0,0.9)] ">
-                <Link to="/" className="link transition-all">
-                  OPPO Reno10 Pro+ 5G
-                </Link>
-              </h3>
-              <div className="flex items-center justify-between mt-3 mb-3">
-                <h3 className="font-[700] text-lg text-orange-500">$100</h3>
-                <Rating
-                  name="size-small"
-                  defaultValue={4}
-                  size="small"
-                  readOnly
-                />
-              </div>
-              <div className="mb-6">
-                <Button
-                  variant="outlined"
-                  sx={{
-                    borderColor: 'orange',
-                    color: 'orange',
-                    width: '100%',
-                    minWidth: '200px',
-                    padding: '4px 0',
-                    fontSize: '16px',
-                    '&:hover': {
-                      borderColor: 'darkorange',
-                      backgroundColor: 'rgba(255,165,0,0.1)',
-                    },
-                  }}
-                >
-                  Add to cart
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="productItem border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg flex flex-col items-center">
-            <div className="imgWrapper w-full h-[270px] overflow-hidden rounded-[20px] flex items-center justify-center">
-              <img
-                className="w-full h-full object-cover"
-                src="https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/o/p/oppo-reno10-pro-plus-tim.png"
-                alt=""
-              />
-            </div>
-            <div className="info flex flex-col  justify-center gap-1 mt-4">
-              <h3 className="text-[16px] font-[1000] text-[rgba(0,0,0,0.9)] ">
-                <Link to="/" className="link transition-all">
-                  OPPO Reno10 Pro+ 5G
-                </Link>
-              </h3>
-              <div className="flex items-center justify-between mt-3 mb-3">
-                <h3 className="font-[700] text-lg text-orange-500">$100</h3>
-                <Rating
-                  name="size-small"
-                  defaultValue={4}
-                  size="small"
-                  readOnly
-                />
-              </div>
-              <div className="mb-6">
-                <Button
-                  variant="outlined"
-                  sx={{
-                    borderColor: 'orange',
-                    color: 'orange',
-                    width: '100%',
-                    minWidth: '200px',
-                    padding: '4px 0',
-                    fontSize: '16px',
-                    '&:hover': {
-                      borderColor: 'darkorange',
-                      backgroundColor: 'rgba(255,165,0,0.1)',
-                    },
-                  }}
-                >
-                  Add to cart
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="productItem border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg flex flex-col items-center">
-            <div className="imgWrapper w-full h-[270px] overflow-hidden rounded-[20px] flex items-center justify-center">
-              <img
-                className="w-full h-full object-cover"
-                src="https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/o/p/oppo-reno10-pro-plus-tim.png"
-                alt=""
-              />
-            </div>
-            <div className="info flex flex-col  justify-center gap-1 mt-4">
-              <h3 className="text-[16px] font-[1000] text-[rgba(0,0,0,0.9)] ">
-                <Link to="/" className="link transition-all">
-                  OPPO Reno10 Pro+ 5G
-                </Link>
-              </h3>
-              <div className="flex items-center justify-between mt-3 mb-3">
-                <h3 className="font-[700] text-lg text-orange-500">$100</h3>
-                <Rating
-                  name="size-small"
-                  defaultValue={4}
-                  size="small"
-                  readOnly
-                />
-              </div>
-              <div className="mb-6">
-                <Button
-                  variant="outlined"
-                  sx={{
-                    borderColor: 'orange',
-                    color: 'orange',
-                    width: '100%',
-                    minWidth: '200px',
-                    padding: '4px 0',
-                    fontSize: '16px',
-                    '&:hover': {
-                      borderColor: 'darkorange',
-                      backgroundColor: 'rgba(255,165,0,0.1)',
-                    },
-                  }}
-                >
-                  Add to cart
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="productItem border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg flex flex-col items-center">
-            <div className="imgWrapper w-full h-[270px] overflow-hidden rounded-[20px] flex items-center justify-center">
-              <img
-                className="w-full h-full object-cover"
-                src="https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/o/p/oppo-reno10-pro-plus-tim.png"
-                alt=""
-              />
-            </div>
-            <div className="info flex flex-col  justify-center gap-1 mt-4">
-              <h3 className="text-[16px] font-[1000] text-[rgba(0,0,0,0.9)] ">
-                <Link to="/" className="link transition-all">
-                  OPPO Reno10 Pro+ 5G
-                </Link>
-              </h3>
-              <div className="flex items-center justify-between mt-3 mb-3">
-                <h3 className="font-[700] text-lg text-orange-500">$100</h3>
-                <Rating
-                  name="size-small"
-                  defaultValue={4}
-                  size="small"
-                  readOnly
-                />
-              </div>
-              <div className="mb-6">
-                <Button
-                  variant="outlined"
-                  sx={{
-                    borderColor: 'orange',
-                    color: 'orange',
-                    width: '100%',
-                    minWidth: '200px',
-                    padding: '4px 0',
-                    fontSize: '16px',
-                    '&:hover': {
-                      borderColor: 'darkorange',
-                      backgroundColor: 'rgba(255,165,0,0.1)',
-                    },
-                  }}
-                >
-                  Add to cart
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="productItem border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg flex flex-col items-center">
-            <div className="imgWrapper w-full h-[270px] overflow-hidden rounded-[20px] flex items-center justify-center">
-              <img
-                className="w-full h-full object-cover"
-                src="https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/o/p/oppo-reno10-pro-plus-tim.png"
-                alt=""
-              />
-            </div>
-            <div className="info flex flex-col  justify-center gap-1 mt-4">
-              <h3 className="text-[16px] font-[1000] text-[rgba(0,0,0,0.9)] ">
-                <Link to="/" className="link transition-all">
-                  OPPO Reno10 Pro+ 5G
-                </Link>
-              </h3>
-              <div className="flex items-center justify-between mt-3 mb-3">
-                <h3 className="font-[700] text-lg text-orange-500">$100</h3>
-                <Rating
-                  name="size-small"
-                  defaultValue={4}
-                  size="small"
-                  readOnly
-                />
-              </div>
-              <div className="mb-6">
-                <Button
-                  variant="outlined"
-                  sx={{
-                    borderColor: 'orange',
-                    color: 'orange',
-                    width: '100%',
-                    minWidth: '200px',
-                    padding: '4px 0',
-                    fontSize: '16px',
-                    '&:hover': {
-                      borderColor: 'darkorange',
-                      backgroundColor: 'rgba(255,165,0,0.1)',
-                    },
-                  }}
-                >
-                  Add to cart
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="productItem border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg flex flex-col items-center">
-            <div className="imgWrapper w-full h-[270px] overflow-hidden rounded-[20px] flex items-center justify-center">
-              <img
-                className="w-full h-full object-cover"
-                src="https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/o/p/oppo-reno10-pro-plus-tim.png"
-                alt=""
-              />
-            </div>
-            <div className="info flex flex-col  justify-center gap-1 mt-4">
-              <h3 className="text-[16px] font-[1000] text-[rgba(0,0,0,0.9)] ">
-                <Link to="/" className="link transition-all">
-                  OPPO Reno10 Pro+ 5G
-                </Link>
-              </h3>
-              <div className="flex items-center justify-between mt-3 mb-3">
-                <h3 className="font-[700] text-lg text-orange-500">$100</h3>
-                <Rating
-                  name="size-small"
-                  defaultValue={4}
-                  size="small"
-                  readOnly
-                />
-              </div>
-              <div className="mb-6">
-                <Button
-                  variant="outlined"
-                  sx={{
-                    borderColor: 'orange',
-                    color: 'orange',
-                    width: '100%',
-                    minWidth: '200px',
-                    padding: '4px 0',
-                    fontSize: '16px',
-                    '&:hover': {
-                      borderColor: 'darkorange',
-                      backgroundColor: 'rgba(255,165,0,0.1)',
-                    },
-                  }}
-                >
-                  Add to cart
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="productItem border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg flex flex-col items-center">
-            <div className="imgWrapper w-full h-[270px] overflow-hidden rounded-[20px] flex items-center justify-center">
-              <img
-                className="w-full h-full object-cover"
-                src="https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/o/p/oppo-reno10-pro-plus-tim.png"
-                alt=""
-              />
-            </div>
-            <div className="info flex flex-col  justify-center gap-1 mt-4">
-              <h3 className="text-[16px] font-[1000] text-[rgba(0,0,0,0.9)] ">
-                <Link to="/" className="link transition-all">
-                  OPPO Reno10 Pro+ 5G
-                </Link>
-              </h3>
-              <div className="flex items-center justify-between mt-3 mb-3">
-                <h3 className="font-[700] text-lg text-orange-500">$100</h3>
-                <Rating
-                  name="size-small"
-                  defaultValue={4}
-                  size="small"
-                  readOnly
-                />
-              </div>
-              <div className="mb-6">
-                <Button
-                  variant="outlined"
-                  sx={{
-                    borderColor: 'orange',
-                    color: 'orange',
-                    width: '100%',
-                    minWidth: '200px',
-                    padding: '4px 0',
-                    fontSize: '16px',
-                    '&:hover': {
-                      borderColor: 'darkorange',
-                      backgroundColor: 'rgba(255,165,0,0.1)',
-                    },
-                  }}
-                >
-                  Add to cart
-                </Button>
-              </div>
-            </div>
-          </div>
+
+              {totalPages > 1 && (
+                <div className="flex flex-col items-center mt-8 gap-2">
+                  <Typography>
+                    Page {currentPage} of {totalPages}
+                  </Typography>
+                  <Pagination
+                    count={totalPages}
+                    page={currentPage}
+                    onChange={handlePageChange}
+                    color="primary"
+                    disabled={loading}
+                    sx={{
+                      '& .MuiPaginationItem-root': {
+                        color: '#f97316',
+                        '&.Mui-selected': {
+                          backgroundColor: '#f97316',
+                          color: 'white',
+                          '&:hover': {
+                            backgroundColor: '#ea580c',
+                          },
+                        },
+                        '&:hover': {
+                          backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              )}
+
+              {error && (
+                <Typography color="error" className="text-center mt-4">
+                  {error}
+                </Typography>
+              )}
+            </>
+          )}
         </div>
       </div>
     </>

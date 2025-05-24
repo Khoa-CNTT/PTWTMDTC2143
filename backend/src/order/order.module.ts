@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { OrderService } from './order.service';
-import { OrderController } from './order.controller';
+// import { OrderController } from './order.controller';
 import { CartModule } from 'src/cart/cart.module';
 import { DiscountModule } from 'src/discount/discount.module';
 import { VoucherModule } from 'src/voucher/voucher.module';
@@ -18,6 +18,6 @@ import { InvoiceModule } from 'src/invoice/invoice.module';
     InvoiceModule,
   ],
   providers: [OrderService],
-  controllers: [OrderController],
+  // controllers: [OrderController],
 })
 export class OrderModule {}

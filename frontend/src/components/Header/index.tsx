@@ -1,5 +1,7 @@
+import { FaUserCheck } from 'react-icons/fa';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FaUserSlash } from 'react-icons/fa';
 import Logo from '../../assets/images/MESSIU-logo2.png';
 import SearchBox from '../SearchBox';
 import { Button } from '@mui/material';
@@ -10,49 +12,50 @@ import { ChevronRight } from 'lucide-react';
 import { CiViewList } from 'react-icons/ci';
 import { IoPhonePortraitOutline } from 'react-icons/io5';
 import { IoIosLaptop } from 'react-icons/io';
-import { TbDeviceAirpods } from 'react-icons/tb';
+import { TbDeviceComputerCamera } from 'react-icons/tb';
 import { MdWatch } from 'react-icons/md';
-import { BsUsbPlug } from 'react-icons/bs';
+import { BsFullscreen } from 'react-icons/bs';
 import { GiPc } from 'react-icons/gi';
 import { FaTv } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
+
 import { FaHeart } from 'react-icons/fa';
-const categories = [
-  {
-    label: 'Điện thoại, Tablet',
-    key: 'phone',
-    icon: <IoPhonePortraitOutline />,
-  },
-  {
-    label: 'Laptop',
-    key: 'laptop',
-    icon: <IoIosLaptop className="text-2xl" />,
-  },
-  {
-    label: 'Âm thanh, Mic thu âm',
-    key: 'audio',
-    icon: <TbDeviceAirpods className="text-2xl" />,
-  },
-  {
-    label: 'Đồng hồ, Camera',
-    key: 'camera',
-    icon: <MdWatch className="text-2xl" />,
-  },
-  {
-    label: 'Phụ kiện',
-    key: 'accessories',
-    icon: <BsUsbPlug className="text-2xl" />,
-  },
-  {
-    label: 'PC, Màn hình, Máy in',
-    key: 'pc',
-    icon: <GiPc className="text-2xl" />,
-  },
-  { label: 'Tivi', key: 'tv', icon: <FaTv className="text-2xl" /> },
-];
+import { useEffect } from 'react';
+import { categoryService } from '../../services/categoryService'; // adjust path if needed
+
+function getCategoryIcon(name: string) {
+  const lower = name.toLowerCase();
+  if (lower.includes('điện thoại')) return <IoPhonePortraitOutline />;
+  if (lower.includes('laptop')) return <IoIosLaptop className="text-2xl" />;
+  if (lower.includes('đồng hồ')) return <MdWatch className="text-2xl" />;
+  if (lower.includes('camera'))
+    return <TbDeviceComputerCamera className="text-2xl" />;
+
+  if (lower.includes('pc')) return <GiPc className="text-2xl" />;
+  if (lower.includes('màn hình')) return <BsFullscreen className="text-2xl" />;
+  if (lower.includes('tivi') || lower.includes('tv'))
+    return <FaTv className="text-2xl" />;
+  return null;
+}
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
+
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        // Gọi API lấy category cha (parent)
+        const res = await categoryService.getRootCategoriesWithProductCount();
+        console.log(res);
+        setCategories(res);
+      } catch (err) {
+        setCategories([]); // fallback nếu lỗi
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleCartClick = () => {
     if (isAuthenticated) {
@@ -84,10 +87,11 @@ const Header: React.FC = () => {
       padding: '0 4px',
     },
   }));
-  const { logout } = useAuth();
+
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
-  const [isHoveringUser, setIsHoveringUser] = useState(false);
+  // const [isHoveringUser, setIsHoveringUser] = useState(false);
+
   return (
     <header
       className={`z-[1000] w-full transition ${isOpen ? 'shadow-lg bg-blue-50' : 'bg-white'} sticky top-0`}
@@ -164,13 +168,15 @@ const Header: React.FC = () => {
                   <ul className="w-64 border-r divide-y text-sm">
                     {categories.map((cat) => (
                       <li
-                        key={cat.label}
-                        onMouseEnter={() => setHoveredCategory(cat.key ?? null)}
+                        key={cat.id}
+                        onMouseEnter={() => setHoveredCategory(cat.id ?? null)}
                         className="flex justify-between items-center px-4 py-3 hover:bg-gray-100 cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">{cat.icon}</span>
-                          <span>{cat.label}</span>
+                          <span className="text-lg">
+                            {getCategoryIcon(cat.name)}
+                          </span>
+                          <span>{cat.name}</span>
                         </div>
                         <ChevronRight className="h-4 w-4" />
                       </li>
@@ -1397,25 +1403,28 @@ const Header: React.FC = () => {
               </>
 
               <li
-                onMouseEnter={() => setIsHoveringUser(true)}
-                onMouseLeave={() => setIsHoveringUser(false)}
+                // onMouseEnter={() => setIsHoveringUser(true)}
+                // onMouseLeave={() => setIsHoveringUser(false)}
                 className="relative"
               >
                 <Button
                   onClick={handleUserClick}
                   className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
                 >
-                  {isAuthenticated ? user?.name || 'Profile' : 'Đăng nhập'}
+                  {isAuthenticated ? (
+                    <>
+                      <span className="font-semibold">
+                        {user?.name || 'Profile'}
+                      </span>
+                      <FaUserCheck className="text-green-500" />
+                    </>
+                  ) : (
+                    <>
+                      <span>Login</span>
+                      <FaUserSlash className="text-gray-400" />
+                    </>
+                  )}
                 </Button>
-
-                {isAuthenticated && isHoveringUser && (
-                  <div
-                    onClick={logout}
-                    className="absolute top-full left-0 mt-1 bg-white border rounded shadow-lg px-4 py-2 text-sm text-red-500 hover:bg-gray-100 cursor-pointer z-50"
-                  >
-                    Đăng xuất
-                  </div>
-                )}
               </li>
             </ul>
           </div>

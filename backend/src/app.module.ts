@@ -12,7 +12,7 @@ import { WarehouseModule } from './warehouse/warehouse.module';
 import { ProductModule } from './product/product.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { CartModule } from './cart/cart.module';
-import { OrderModule } from './order/order.module';
+// import { OrderModule } from './order/order.module';
 import { VoucherModule } from './voucher/voucher.module';
 import { DiscountModule } from './discount/discount.module';
 import { ImageService } from './image/image.service';
@@ -24,10 +24,10 @@ import { ReviewModule } from './review/review.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { GlobalRoleGuard } from './auth/guards/global-role.guard';
 import { APP_GUARD } from '@nestjs/core';
-import { PaypalModule } from './paypal/paypal.module';
+// import { PaypalModule } from './paypal/paypal.module';
 import { ReturnModule } from './return/return.module';
 import { InvoiceModule } from './invoice/invoice.module';
-import { PaymentModule } from './payment/payment.module';
+// import { PaymentModule } from './payment/payment.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { createKeyv } from '@keyv/redis';
 import { Keyv } from 'keyv';
@@ -79,17 +79,17 @@ import { CacheableMemory } from 'cacheable';
     ProductModule,
     InventoryModule,
     CartModule,
-    OrderModule,
+    // OrderModule,
     VoucherModule,
     DiscountModule,
     ImageModule,
     VnpayModule,
     WishlistModule,
     ReviewModule,
-    PaypalModule,
+    // PaypalModule,
     ReturnModule,
     InvoiceModule,
-    PaymentModule,
+    // PaymentModule,
   ],
   controllers: [AppController],
   providers: [
