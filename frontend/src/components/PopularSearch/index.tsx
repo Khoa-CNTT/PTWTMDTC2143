@@ -110,75 +110,83 @@ const PopularSearch: React.FC = () => {
   ];
 
   return (
-    <Swiper
-      slidesPerView={5}
-      spaceBetween={10}
-      pagination={{ clickable: true }}
-      modules={[Pagination]}
-      className="mySwiper !pb-10"
-    >
-      {products.map((product) => (
-        <SwiperSlide key={product.id}>
-          <div className="relative productItem h-[400px] border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg flex flex-col items-center overflow-hidden">
-            <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded z-10">
-              Discount{' '}
-              {Math.round(
-                ((product.originalPrice - product.price) /
-                  product.originalPrice) *
-                  100
-              )}
-              %
-            </div>
+    <>
+      <div className="bg-gray-200 p-6 rounded-[20px] shadow-md">
+        <h3 className=" text-[30px] font-[500] pb-3">Popula Search</h3>
+        <Swiper
+          slidesPerView={5}
+          spaceBetween={10}
+          pagination={{ clickable: true }}
+          modules={[Pagination]}
+          className="mySwiper !pb-10"
+        >
+          {products.map((product) => (
+            <SwiperSlide key={product.id}>
+              <div className="relative productItem h-[400px] border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg flex flex-col items-center overflow-hidden">
+                <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded z-10">
+                  Discount{' '}
+                  {Math.round(
+                    ((product.originalPrice - product.price) /
+                      product.originalPrice) *
+                      100
+                  )}
+                  %
+                </div>
 
-            <div className="imgWrapper w-full h-[220px] overflow-hidden rounded-[20px] flex items-center justify-center">
-              <img
-                className="w-full h-full object-cover"
-                src={product.image}
-                alt={product.name}
-              />
-            </div>
+                <div className="imgWrapper w-full h-[220px] overflow-hidden rounded-[20px] flex items-center justify-center">
+                  <img
+                    className="w-full h-full object-cover"
+                    src={product.image}
+                    alt={product.name}
+                  />
+                </div>
 
-            <div className="info flex flex-col h-[140px] px-4 w-full">
-              <div className="text-center mt-2">
-                <h3 className="font-[700] text-lg text-orange-500">
-                  ${product.price}
-                </h3>
-                <h3 className="line-through text-gray-500 text-sm">
-                  ${product.originalPrice}
-                </h3>
+                <div className="info flex flex-col h-[140px] px-4 w-full">
+                  <div className="text-center mt-2">
+                    <h3 className="font-[700] text-lg text-orange-500">
+                      ${product.price}
+                    </h3>
+                    <h3 className="line-through text-gray-500 text-sm">
+                      ${product.originalPrice}
+                    </h3>
+                  </div>
+
+                  <div className="mt-auto h-[48px] flex items-center justify-center">
+                    <h3 className="text-[16px] font-[1000] text-[rgba(0,0,0,0.9)] text-center line-clamp-2 leading-tight">
+                      <Link
+                        to="/product-detail"
+                        className="link transition-all"
+                      >
+                        {product.name}
+                      </Link>
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between px-4  w-full ">
+                  <Rating
+                    name={`rating-${product.id}`}
+                    defaultValue={product.rating}
+                    size="small"
+                    readOnly
+                  />
+                  <button
+                    onClick={() => toggleWishlist(product.id)}
+                    className="text-red-500 hover:text-red-600 transition-colors"
+                  >
+                    {wishlist.includes(product.id) ? (
+                      <AiFillHeart className="text-2xl" />
+                    ) : (
+                      <AiOutlineHeart className="text-2xl" />
+                    )}
+                  </button>
+                </div>
               </div>
-
-              <div className="mt-auto h-[48px] flex items-center justify-center">
-                <h3 className="text-[16px] font-[1000] text-[rgba(0,0,0,0.9)] text-center line-clamp-2 leading-tight">
-                  <Link to="/product-detail" className="link transition-all">
-                    {product.name}
-                  </Link>
-                </h3>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between px-4  w-full ">
-              <Rating
-                name={`rating-${product.id}`}
-                defaultValue={product.rating}
-                size="small"
-                readOnly
-              />
-              <button
-                onClick={() => toggleWishlist(product.id)}
-                className="text-red-500 hover:text-red-600 transition-colors"
-              >
-                {wishlist.includes(product.id) ? (
-                  <AiFillHeart className="text-2xl" />
-                ) : (
-                  <AiOutlineHeart className="text-2xl" />
-                )}
-              </button>
-            </div>
-          </div>
-        </SwiperSlide>
-      ))}
-    </Swiper>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </div>
+    </>
   );
 };
 

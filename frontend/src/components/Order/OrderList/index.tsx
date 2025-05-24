@@ -20,6 +20,12 @@ const OrderList = () => {
     quantity: number;
     price: number;
   }
+  type ReturnRequest = {
+    orderItemIds: number[];
+    reason: string;
+  };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
 
   type DeliveryMethod = 'HOME_DELIVERY' | 'STORE_PICKUP';
 
@@ -50,7 +56,7 @@ const OrderList = () => {
         orderDate: '2025-06-01',
         deliveryMethod: 'HOME_DELIVERY',
         orderStatus: 'DELIVERED',
-        totalAmount: 500000,
+        totalAmount: 700000,
         orderItems: [
           {
             id: 1,
@@ -60,6 +66,15 @@ const OrderList = () => {
             },
             quantity: 1,
             price: 500000,
+          },
+          {
+            id: 8,
+            product: {
+              name: 'Product B',
+              imageUrl: 'https://via.placeholder.com/150',
+            },
+            quantity: 1,
+            price: 200000,
           },
         ],
       },
@@ -173,22 +188,18 @@ const OrderList = () => {
       },
     ],
   });
-  const [returnReason, setReturnReason] = React.useState('');
-  const [returnFormVisible, setReturnFormVisible] = useState(false);
-  const [returnData, setReturnData] = useState<{
-    id: number;
-    quantity: number;
-  } | null>(null);
 
-  const handleReturnClick = (id: number, quantity: number) => {
-    setReturnData({ id, quantity });
+  const [returnFormVisible, setReturnFormVisible] = useState(false);
+  const [returnOrderItems, setReturnOrderItems] = useState<OrderItem[]>([]);
+  const [selectedReturnItems, setSelectedReturnItems] = useState<number[]>([]);
+  const handleReturnOrder = (orderItems: OrderItem[]) => {
+    setReturnOrderItems(orderItems);
+    setSelectedReturnItems([]);
+    setReturnReason('');
     setReturnFormVisible(true);
   };
+  const [returnReason, setReturnReason] = useState('');
 
-  const handleCloseReturnForm = () => {
-    setReturnFormVisible(false);
-    setReturnData(null);
-  };
   const statusMap: Record<number, OrderStatus> = {
     0: 'PENDING',
     1: 'PROCESSING',
@@ -204,7 +215,7 @@ const OrderList = () => {
         (order: Order) => order.orderStatus === currentStatus
       ) || []
     );
-  }, [orders, activeTab]);
+  }, [orders, activeTab, statusMap]);
 
   return (
     <div>
@@ -214,7 +225,6 @@ const OrderList = () => {
             <div className="p-4 md:mb-4 bg-white rounded-lg border border-[#e5e7eb]">
               <h3 className="font-[500] text-[24px] ">My Orders</h3>
             </div>
-
             <nav className="bg-white mb-2 rounded-t-md border-b border-[#e5e7eb]">
               <ul className="container flex w-auto px-0 font-[500] text-[14px] leading-6 text-[#6b7280] overflow-x-auto">
                 <li
@@ -414,19 +424,6 @@ const OrderList = () => {
                                       <h6 className="text-[#090d14] text-xs font-medium leading-[18px] xl:text-sm xl:leading-6 sm:order-2">
                                         {formatCurrencyUSD(item.price)}
                                       </h6>
-                                      {order.orderStatus === 'DELIVERED' && (
-                                        <button
-                                          onClick={() =>
-                                            handleReturnClick(
-                                              item.id,
-                                              item.quantity
-                                            )
-                                          }
-                                          className="ml-3 rounded bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-xs"
-                                        >
-                                          Request Return
-                                        </button>
-                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -454,6 +451,7 @@ const OrderList = () => {
                                 ></path>
                               </svg>
                             </Link>
+
                             <div className="flex flex-col">
                               <div>
                                 <span className="mr-2 text-[14px] leading-5 text-[#6b7280]">
@@ -470,6 +468,18 @@ const OrderList = () => {
                               Need help? Contact us now.
                             </span>
                             <div className="flex items-center gap-2">
+                              {order.orderStatus === 'DELIVERED' && (
+                                <div className="px-4 py-3">
+                                  <button
+                                    onClick={() =>
+                                      handleReturnOrder(order.orderItems)
+                                    }
+                                    className="flex items-center justify-center rounded-full font-medium py-2 px-3 text-base leading-6 text-black relative transition-all duration-300 ease-in-out hover:bg-blue-200 border border-gray-400"
+                                  >
+                                    Request Return
+                                  </button>
+                                </div>
+                              )}
                               <button className="flex items-center justify-center rounded-full font-medium py-2 bg-[#dc2626] hover:bg-[#b91c1c] px-3 text-base leading-6 text-white relative transition-all duration-300 ease-in-out">
                                 <a href="/">Support</a>
                               </button>
@@ -485,75 +495,93 @@ const OrderList = () => {
           </div>
         </div>
       </div>
-      {returnFormVisible && returnData && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
-          <div className="bg-white rounded p-6 max-w-sm w-full">
+      {returnFormVisible && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-[9999]">
+          <div className="bg-white rounded p-6 max-w-xl w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Return Request</h3>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!returnReason.trim()) {
-                  alert('Please enter a return reason');
-                  return;
-                }
-                console.log('Returning:', returnData);
-                console.log('Return reason:', returnReason);
-                alert(
-                  `Return requested for product id ${returnData.id} with quantity ${returnData.quantity}\nReason: ${returnReason}`
-                );
-                setReturnFormVisible(false);
-              }}
+
+            <p className="mb-2 text-sm text-gray-700">
+              Select products you want to return:
+            </p>
+            <div className="space-y-3 mb-4">
+              {returnOrderItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 border p-2 rounded"
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={item.product.imageUrl}
+                      className="w-16 h-16 object-cover rounded border"
+                    />
+                    <div>
+                      <p className="font-semibold">{item.product.name}</p>
+                      <p className="text-sm text-gray-600">
+                        Price: {formatCurrencyUSD(item.price)} | Quantity:{' '}
+                        {item.quantity}
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={selectedReturnItems.includes(item.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedReturnItems((prev) => [...prev, item.id]);
+                      } else {
+                        setSelectedReturnItems((prev) =>
+                          prev.filter((id) => id !== item.id)
+                        );
+                      }
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <label
+              htmlFor="reason"
+              className="block text-sm font-medium text-gray-700 mb-1"
             >
-              <div className="mb-4">
-                <label className="block mb-1 font-medium">Product ID</label>
-                <input
-                  type="text"
-                  readOnly
-                  value={returnData.id}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block mb-1 font-medium">Quantity</label>
-                <input
-                  type="number"
-                  readOnly
-                  value={returnData.quantity}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
+              Reason for Return
+            </label>
+            <textarea
+              id="reason"
+              className="w-full border border-gray-300 rounded p-2 mb-4"
+              rows={3}
+              value={returnReason}
+              onChange={(e) => setReturnReason(e.target.value)}
+              placeholder="Enter your reason for return..."
+            />
 
-              <div className="mb-4">
-                <label htmlFor="reason" className="block mb-1 font-medium">
-                  Return Reason
-                </label>
-                <textarea
-                  id="reason"
-                  rows={3}
-                  value={returnReason}
-                  onChange={(e) => setReturnReason(e.target.value)}
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="Enter return reason..."
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={handleCloseReturnForm}
-                  className="px-4 py-2 rounded border"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded bg-blue-600 text-white"
-                >
-                  Submit Return
-                </button>
-              </div>
-            </form>
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-sm"
+                onClick={() => setReturnFormVisible(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                onClick={() => {
+                  if (
+                    returnReason.trim() !== '' &&
+                    selectedReturnItems.length > 0
+                  ) {
+                    setReturnRequests((prev) => [
+                      ...prev,
+                      {
+                        orderItemIds: selectedReturnItems,
+                        reason: returnReason.trim(),
+                      },
+                    ]);
+                    setReturnFormVisible(false);
+                  }
+                }}
+              >
+                Submit
+              </button>
+            </div>
           </div>
         </div>
       )}

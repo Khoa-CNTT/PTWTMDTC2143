@@ -88,40 +88,48 @@ const BestDeal: React.FC = () => {
 
   return (
     <>
-      <div className="bestDeal mt-5">
-        <div className="grid gap-4 grid-cols-5">
-          {products.map((product) => (
-            <div
-              key={product.id}
-              className="grid grid-cols-2 border-1 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1]  overflow-hidden"
-            >
-              <div className="w-full h-full rounded-[20px] overflow-hidden">
-                <img
-                  className="w-full h-full object-cover"
-                  src={product.image}
-                  alt={product.name}
-                />
-              </div>
-              <div className="p-4 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-[16px] font-[500] text-[rgba(0,0,0,0.9)] -mt-3">
-                    <Link to="/product-detail" className="link transition-all">
-                      {product.name}
-                    </Link>
-                  </h3>
-                </div>
-                <div className="mt-4">
-                  <h3 className="text-primary font-[500]">${product.price}</h3>
-                  <Rating
-                    name="size-small"
-                    value={product.rating}
-                    size="small"
-                    readOnly
+      <div className="bg-red-500 rounded-[20px] shadow-md p-6">
+        <h3 className=" text-[30px] font-[500] text-white">Best Deal</h3>
+        <div className="bestDeal mt-3">
+          <div className="grid gap-4 grid-cols-5">
+            {products.map((product) => (
+              <div
+                key={product.id}
+                className="grid grid-cols-2 border-1 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1]  overflow-hidden"
+              >
+                <div className="w-full h-full rounded-[20px] overflow-hidden">
+                  <img
+                    className="w-full h-full object-cover"
+                    src={product.image}
+                    alt={product.name}
                   />
                 </div>
+                <div className="p-4 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-[16px] font-[500] text-[rgba(0,0,0,0.9)] -mt-3">
+                      <Link
+                        to="/product-detail"
+                        className="link transition-all"
+                      >
+                        {product.name}
+                      </Link>
+                    </h3>
+                  </div>
+                  <div className="mt-4">
+                    <h3 className="text-primary font-[500]">
+                      ${product.price}
+                    </h3>
+                    <Rating
+                      name="size-small"
+                      value={product.rating}
+                      size="small"
+                      readOnly
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </>
