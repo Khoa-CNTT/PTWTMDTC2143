@@ -7,28 +7,41 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { WishlistService } from './wishlist.service';
 import { CreateWishlistItemDTO } from './dto/create-wishlist-item';
+
+interface RequestWithUser extends Request {
+  body: {
+    id: string;
+  };
+}
 
 @Controller('wishlist')
 export class WishlistController {
   constructor(private readonly wishlistService: WishlistService) {}
-  private readonly fakeUserId = 'US001'; // ID user giả định
 
   @Get()
-  async getWishlist() {
-    return this.wishlistService.getWishlist(this.fakeUserId);
+  async getWishlist(@Req() req: RequestWithUser) {
+    return this.wishlistService.getWishlist(req.body.id);
   }
 
   @Post()
-  async addToWishlist(@Body() dto: CreateWishlistItemDTO) {
-    return this.wishlistService.addToWishlist(this.fakeUserId, dto);
+  async addToWishlist(
+    @Req() req: RequestWithUser,
+    @Body() dto: CreateWishlistItemDTO
+  ) {
+    return this.wishlistService.addToWishlist(req.body.id, dto);
   }
 
   @Delete(':variantId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async removeFromWishlist(@Param('variantId') variantId: string) {
-    await this.wishlistService.removeFromWishlist(this.fakeUserId, variantId);
+  async removeFromWishlist(
+    @Req() req: RequestWithUser,
+    @Param('variantId') variantId: string
+  ) {
+    await this.wishlistService.removeFromWishlist(req.body.id, variantId);
   }
 }

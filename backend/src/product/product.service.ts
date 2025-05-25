@@ -9,7 +9,7 @@ import { VariantResponseDTO } from './dto/variant-response.dto';
 import { VariantUpdateDTO } from './dto/variant-update.dto';
 import { ImageService } from 'src/image/image.service';
 import { ProductUpdateDTO } from './dto/product-update.dto';
-import { Image } from '@prisma/client';
+import { Image, Category, Brand } from '@prisma/client';
 
 @Injectable()
 export class ProductService {
@@ -455,13 +455,19 @@ export class ProductService {
       where: { productId: product.id },
     });
 
-    const category = await this.prisma.category.findUnique({
-      where: { id: product.categoryId },
-    });
+    let category: Category | null = null;
+    if (product.categoryId) {
+      category = await this.prisma.category.findUnique({
+        where: { id: product.categoryId },
+      });
+    }
 
-    const brand = await this.prisma.brand.findUnique({
-      where: { id: product.brandId },
-    });
+    let brand: Brand | null = null;
+    if (product.brandId) {
+      brand = await this.prisma.brand.findUnique({
+        where: { id: product.brandId },
+      });
+    }
 
     return {
       id: product.id,
@@ -503,7 +509,7 @@ export class ProductService {
         take: limit,
         skip: skip,
         orderBy: [
-          { id: 'desc' }, // Sắp xếp theo id để đảm bảo thứ tự ổn định
+          { createdAt: 'desc' }, // Sắp xếp theo thời gian tạo mới nhất
         ],
         include: {
           category: true,
@@ -758,5 +764,53 @@ export class ProductService {
       },
     });
     return this.mapProductToResponse(product);
+  }
+
+  async deleteProduct(id: string) {
+    // Xóa tất cả các bản ghi liên quan trước
+    await this.prisma.$transaction([
+      // Xóa variant option values
+      this.prisma.variantOptionValue.deleteMany({
+        where: {
+          variant: {
+            productId: id,
+          },
+        },
+      }),
+      // Xóa variants
+      this.prisma.variant.deleteMany({
+        where: {
+          productId: id,
+        },
+      }),
+      // Xóa option values
+      this.prisma.optionValue.deleteMany({
+        where: {
+          option: {
+            productId: id,
+          },
+        },
+      }),
+      // Xóa options
+      this.prisma.option.deleteMany({
+        where: {
+          productId: id,
+        },
+      }),
+      // Xóa images
+      this.prisma.image.deleteMany({
+        where: {
+          productId: id,
+        },
+      }),
+      // Cuối cùng xóa product
+      this.prisma.product.delete({
+        where: {
+          id: id,
+        },
+      }),
+    ]);
+
+    return { message: 'Product deleted successfully' };
   }
 }

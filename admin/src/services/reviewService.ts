@@ -1,14 +1,16 @@
 import axiosInstance from './axios.config';
 
 export interface Review {
-  id: number;
-  name: string;
-  email: string;
-  avatar: string;
+  id: string;
+  userId: string;
+  productId: string;
   rating: number;
   content: string;
-  date: string;
-  approved: boolean;
+  images: string;
+  parentId: string;
+  isHidden: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ReviewResponse {
@@ -25,17 +27,17 @@ const reviewService = {
     return res.data;
   },
 
-  async getReviewById(id: number): Promise<Review> {
+  async getReviewById(id: string): Promise<Review> {
     const res = await axiosInstance.get(`/reviews/${id}`);
     return res.data;
   },
 
-  async hideReview(id: number, approved: boolean): Promise<Review> {
-    const res = await axiosInstance.patch(`/reviews/${id}/hide`, { approved });
+  async hideReview(id: string, isHidden: boolean): Promise<Review> {
+    const res = await axiosInstance.patch(`/reviews/${id}/hide`, { isHidden });
     return res.data;
   },
 
-  async deleteReview(id: number): Promise<void> {
+  async deleteReview(id: string): Promise<void> {
     await axiosInstance.delete(`/reviews/${id}`);
   },
 };

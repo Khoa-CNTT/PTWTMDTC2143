@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaCloudUploadAlt } from 'react-icons/fa';
-import {
-  productService,
-  ProductCreateDTO,
-} from '../../services/productService';
+import { productService } from '../../services/productService';
 // import { categoryService, Category } from '../../services/categoryService';
 import { categoryService, Category } from '../../services/categoryList';
 import { brandService, Brand } from '../../services/brandService';
@@ -54,13 +51,35 @@ const ProductUpload = () => {
 
   const handleAddVariant = () => {
     if (newAttribute.trim()) {
+      // Kiểm tra xem attribute đã tồn tại chưa
+      const isDuplicate = variants.some(
+        (v) => v.attribute.toLowerCase() === newAttribute.toLowerCase()
+      );
+
+      if (isDuplicate) {
+        alert('This attribute already exists!');
+        return;
+      }
+
       setVariants([...variants, { attribute: newAttribute, values: [] }]);
       setNewAttribute('');
+      // Thêm một ô input trống cho giá trị mới
+      setNewValues([...newValues, '']);
     }
   };
 
   const handleAddValue = (index: number) => {
     if (newValues[index]?.trim()) {
+      // Kiểm tra xem giá trị đã tồn tại trong variant này chưa
+      const isDuplicate = variants[index].values.some(
+        (v) => v.toLowerCase() === newValues[index].toLowerCase()
+      );
+
+      if (isDuplicate) {
+        alert('This value already exists for this attribute!');
+        return;
+      }
+
       const updatedVariants = [...variants];
       updatedVariants[index].values.push(newValues[index]);
       setVariants(updatedVariants);
@@ -70,13 +89,18 @@ const ProductUpload = () => {
       setNewValues(updatedNewValues);
     }
   };
+
   const handleNewValueChange = (index: number, value: string) => {
     const updatedNewValues = [...newValues];
     updatedNewValues[index] = value;
     setNewValues(updatedNewValues);
   };
+
   const handleDeleteVariant = (index: number) => {
     setVariants(variants.filter((_, i) => i !== index));
+    // Xóa giá trị tương ứng trong newValues
+    const updatedNewValues = newValues.filter((_, i) => i !== index);
+    setNewValues(updatedNewValues);
   };
 
   const handleDeleteValue = (variantIndex: number, valueIndex: number) => {
@@ -117,23 +141,35 @@ const ProductUpload = () => {
         return;
       }
 
-      // Format variants to match the expected structure
-      const formattedVariants = variants.map((variant) => ({
+      // Create FormData object
+      const formDataToSend = new FormData();
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('categoryId', formData.categoryId);
+      formDataToSend.append('brandId', formData.brandId);
+
+      // Add images
+      uploadedImages.forEach((image) => {
+        formDataToSend.append('images', image);
+      });
+
+      // Add options
+      const options = variants.map((variant) => ({
         name: variant.attribute,
         values: variant.values.filter((value) => value.trim() !== ''),
       }));
+      formDataToSend.append('options', JSON.stringify(options));
 
-      const productData: ProductCreateDTO = {
+      console.log('Product Data:', {
         title: formData.title,
         description: formData.description,
         categoryId: formData.categoryId,
         brandId: formData.brandId,
-        images: uploadedImages,
-        options: formattedVariants,
-      };
+        options: options,
+        imagesCount: uploadedImages.length,
+      });
 
-      console.log('Product Data:', productData);
-      await productService.createProduct(productData);
+      await productService.createProduct(formDataToSend);
       alert('Product created successfully!');
       setIsModalOpen(false);
       // Reset form
@@ -251,6 +287,12 @@ const ProductUpload = () => {
                     onChange={(e) => setNewAttribute(e.target.value)}
                     placeholder="Attribute name (e.g., Size, Color)"
                     className="input w-full"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddVariant();
+                      }
+                    }}
                   />
                 </div>
                 <div className="flex items-center mt-6 gap-2">
@@ -258,7 +300,7 @@ const ProductUpload = () => {
                     onClick={handleAddVariant}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded"
                   >
-                    Add
+                    Add Attribute
                   </button>
                 </div>
               </div>
@@ -272,9 +314,12 @@ const ProductUpload = () => {
                     <div>
                       <label className="label">Attribute</label>
                       <div className="flex items-center gap-2">
-                        <label className="input w-full">
-                          <option>{variant.attribute}</option>
-                        </label>
+                        <input
+                          type="text"
+                          value={variant.attribute}
+                          disabled
+                          className="input w-full bg-gray-50"
+                        />
                         <button
                           onClick={() => handleDeleteVariant(index)}
                           className="text-red-500 hover:text-red-700"
@@ -311,6 +356,12 @@ const ProductUpload = () => {
                             }
                             placeholder="Add new value"
                             className="input w-full"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddValue(index);
+                              }
+                            }}
                           />
                           <button
                             onClick={() => handleAddValue(index)}

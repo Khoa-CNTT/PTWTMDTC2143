@@ -100,6 +100,19 @@ class InventoryService {
     }
   }
 
+  async deleteInventory(variantId: string, warehouseId: string): Promise<void> {
+    if (!authService.isAuthenticated()) {
+      throw new Error('User is not authenticated');
+    }
+
+    try {
+      await axiosInstance.delete(`/inventory/${variantId}/${warehouseId}`);
+    } catch (error) {
+      console.error('Error deleting inventory item:', error);
+      throw error;
+    }
+  }
+
   async checkStockAvailability(data: CheckStockDTO): Promise<boolean> {
     if (!authService.isAuthenticated()) {
       throw new Error('User is not authenticated');

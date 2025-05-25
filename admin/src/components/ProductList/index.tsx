@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Switch } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { FaUser, FaShoppingCart } from 'react-icons/fa';
-import { IoBagHandleOutline } from 'react-icons/io5';
+
 import Rating from '@mui/material/Rating';
+import {
+  MdOutlineNavigateNext,
+  MdSkipNext,
+  MdOutlineNavigateBefore,
+  MdSkipPrevious,
+} from 'react-icons/md';
 import { productService, Product } from '../../services/productService';
 import { categoryService, Category } from '../../services/categoryList';
 import { brandService, Brand } from '../../services/brandService';
@@ -23,10 +28,8 @@ const ProductList = () => {
   const [, setSelectedVariantProduct] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | undefined>();
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
+  const [total, setTotal] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
 
@@ -40,6 +43,9 @@ const ProductList = () => {
     status: '',
     images: [] as string[],
   });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchProducts();
@@ -56,38 +62,22 @@ const ProductList = () => {
         toast.error('Lỗi khi tải danh mục hoặc thương hiệu');
       }
     })();
-  }, []);
+  }, [currentPage]);
 
-  const fetchProducts = async (cursor?: string) => {
+  const fetchProducts = async () => {
     try {
       setIsLoading(true);
-      const response = await productService.getAllProducts(); // No arguments
-      if (cursor) {
-        setProducts((prev) => [...prev, ...response.products]);
-      } else {
-        setProducts(response.products);
-      }
-      setNextCursor(response.nextCursor || undefined); // Use undefined if null
-      setHasMore(!!response.nextCursor);
+      const response = await productService.getAllProducts(
+        currentPage,
+        itemsPerPage
+      );
+      setProducts(response.products);
+      setTotal(response.total);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Lỗi khi tải danh sách sản phẩm');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const loadMore = async () => {
-    if (!hasMore || isLoadingMore) return;
-
-    try {
-      setIsLoadingMore(true);
-      await fetchProducts(nextCursor);
-    } catch (error) {
-      console.error('Error loading more products:', error);
-      toast.error('Lỗi khi tải thêm sản phẩm');
-    } finally {
-      setIsLoadingMore(false);
     }
   };
 
@@ -126,14 +116,79 @@ const ProductList = () => {
     setSelectedAttributes(updated);
   };
 
-  const handleSave = () => {
-    const variant = {
-      productId,
-      price,
-      attributes: selectedAttributes,
-    };
-    console.log('Saving variant:', variant);
-    setShowVariantForm(false);
+  const handleAddVariantClick = (productId: string) => {
+    setProductId(productId);
+    setSelectedVariantProduct(Number(productId));
+    setShowVariantForm(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      // Validate required fields
+      if (!price) {
+        toast.error('Please enter a price');
+        return;
+      }
+
+      if (selectedAttributes.length === 0) {
+        toast.error('Please select at least one attribute');
+        return;
+      }
+
+      // Validate all selected attributes have values
+      for (const attr of selectedAttributes) {
+        if (!attr.attribute || !attr.value) {
+          toast.error('Please select both attribute and value for all options');
+          return;
+        }
+      }
+
+      const formData = new FormData();
+
+      // Add basic variant information
+      formData.append('productId', productId);
+      formData.append('price', price.toString());
+      formData.append('compareAtPrice', compareAtPrice || price.toString());
+      formData.append('weight', weight || '1');
+      formData.append('weightUnit', 'KILOS');
+      formData.append('dimensions', dimensions || '');
+      formData.append('description', description || '');
+      formData.append('status', 'AVAILABLE');
+
+      // Add option values
+      const optionValues = selectedAttributes.map((attr) => ({
+        optionName: attr.attribute,
+        value: attr.value,
+      }));
+      formData.append('optionValues', JSON.stringify(optionValues));
+
+      // Add images
+      variantImages.forEach((image) => {
+        formData.append('images', image);
+        f;
+      });
+
+      // Call API to create variant
+      await productService.createVariant(formData);
+
+      toast.success('Variant added successfully');
+
+      // Reset form
+      setPrice('');
+      setCompareAtPrice('');
+      setWeight('');
+      setDimensions('');
+      setDescription('');
+      setSelectedAttributes([]);
+      setVariantImages([]);
+      setShowVariantForm(false);
+
+      // Refresh product list
+      fetchProducts();
+    } catch (error) {
+      console.error('Error saving variant:', error);
+      toast.error('Failed to add variant');
+    }
   };
 
   const handleCancel = () => {
@@ -142,20 +197,38 @@ const ProductList = () => {
     setShowVariantForm(false);
   };
 
-  const handleAddVariantClick = (productId: number) => {
-    setProductId(productId.toString());
-    setSelectedVariantProduct(productId);
-    setShowVariantForm(true);
-  };
-
   const handleEditClick = (productId: string) => {
     const product = products.find((p) => p.id === productId);
     if (product) {
+      const formData = new FormData();
+      formData.append('title', product.title);
+      formData.append('description', product.description || '');
+      formData.append('categoryId', product.category?.id || '');
+      formData.append('brandId', product.brand?.id || '');
+      formData.append('rating', product.rating?.toString() || '0');
+
+      if (product.variants?.[0]) {
+        formData.append(
+          'variants[0][price]',
+          product.variants[0].price.toString()
+        );
+        formData.append(
+          'variants[0][status]',
+          product.variants[0].status || ''
+        );
+        if (product.variants[0].compareAtPrice) {
+          formData.append(
+            'variants[0][compareAtPrice]',
+            product.variants[0].compareAtPrice.toString()
+          );
+        }
+      }
+
       setEditData({
         id: product.id,
         name: product.title,
-        category: product.category?.id || '', // Use ID
-        brand: product.brand?.id || '', // Use ID
+        category: product.category?.id || '',
+        brand: product.brand?.id || '',
         price: product.variants?.[0]?.price?.toString() || '',
         rating: product.rating?.toString() || '',
         status: product.variants?.[0]?.status || '',
@@ -167,59 +240,45 @@ const ProductList = () => {
 
   const handleFormSubmit = async () => {
     try {
-      await productService.updateProduct(editData.id, {
-        title: editData.name,
-        category: {
-          id: editData.category,
-          name: categories.find((c) => c.id === editData.category)?.name || '',
-          image:
-            categories.find((c) => c.id === editData.category)?.image || '',
-        },
-        brand: {
-          id: editData.brand,
-          name: brands.find((b) => b.id === editData.brand)?.name || '',
-        },
-        variants: [
-          {
-            id:
-              products.find((p) => p.id === editData.id)?.variants?.[0]?.id ||
-              '',
-            price: Number(editData.price),
-            status: editData.status,
-            images:
-              products.find((p) => p.id === editData.id)?.variants?.[0]
-                ?.images || [],
-          },
-        ],
-        rating: Number(editData.rating),
-      });
+      const formData = new FormData();
+      formData.append('title', editData.name);
+      formData.append('categoryId', editData.category);
+      formData.append('brandId', editData.brand);
+      formData.append('rating', editData.rating);
+
+      if (editData.price) {
+        formData.append('variants[0][price]', editData.price);
+      }
+      if (editData.status) {
+        formData.append('variants[0][status]', editData.status);
+      }
+
+      await productService.updateProduct(editData.id, formData);
+
+      // Update local state
       setProducts((prev) =>
         prev.map((p) =>
           p.id === editData.id
             ? {
                 ...p,
                 title: editData.name,
-                category:
-                  categories.find((c) => c.id === editData.category) ||
-                  p.category,
-                brand: brands.find((b) => b.id === editData.brand) || p.brand,
-                variants: [
-                  {
-                    id: p.variants?.[0]?.id || '',
-                    price: Number(editData.price),
-                    status: editData.status,
-                    images: p.variants?.[0]?.images || [],
-                  },
-                ],
+                category: categories.find((c) => c.id === editData.category),
+                brand: brands.find((b) => b.id === editData.brand),
+                variants: p.variants.map((v, idx) =>
+                  idx === 0
+                    ? {
+                        ...v,
+                        price: Number(editData.price),
+                        status: editData.status,
+                      }
+                    : v
+                ),
                 rating: Number(editData.rating),
-                images: editData.images.map((url, idx) => ({
-                  imageUrl: url,
-                  id: p.images?.[idx]?.id || String(idx),
-                })),
               }
             : p
         )
       );
+
       setShowForm(false);
       toast.success('Cập nhật sản phẩm thành công!');
     } catch (error) {
@@ -329,190 +388,236 @@ const ProductList = () => {
 
   const handleStatusChange = async (productId: string, newStatus: string) => {
     try {
-      await productService.updateProduct(productId, {
-        variants: [
-          {
-            id:
-              products.find((p) => p.id === productId)?.variants?.[0]?.id || '',
-            price:
-              products.find((p) => p.id === productId)?.variants?.[0]?.price ||
-              0,
-            status: newStatus,
-            images:
-              products.find((p) => p.id === productId)?.variants?.[0]?.images ||
-              [],
-          },
-        ],
-      });
+      const formData = new FormData();
+      formData.append('variants[0][status]', newStatus);
+
+      await productService.updateProduct(productId, formData);
       await fetchProducts();
     } catch (error) {
       console.error('Error updating product status:', error);
-      alert('Failed to update product status. Please try again.');
+      toast.error('Không thể cập nhật trạng thái sản phẩm. Vui lòng thử lại!');
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Calculate total pages
+  const totalPages = Math.ceil(total / itemsPerPage);
+
+  const handleDeleteClick = async (productId: string) => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
+      try {
+        await productService.deleteProduct(productId);
+        toast.success('Xóa sản phẩm thành công!');
+        fetchProducts(); // Refresh danh sách sau khi xóa
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        toast.error('Xóa sản phẩm thất bại!');
+      }
     }
   };
 
   return (
     <div className="p-4 bg-gray-100 min-h-screen">
-      <div className="bg-white rounded shadow p-4 mb-4">
-        <h1 className="text-2xl font-semibold">Product List</h1>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {[
-          { color: 'from-green-500 to-green-400', icon: <FaUser /> },
-          { color: 'from-fuchsia-500 to-pink-400', icon: <FaShoppingCart /> },
-          { color: 'from-blue-600 to-blue-400', icon: <IoBagHandleOutline /> },
-        ].map((card, index) => (
-          <div
-            key={index}
-            className={`flex justify-between items-center p-6 rounded-lg bg-gradient-to-r ${card.color} text-white`}
-          >
-            <div>
-              <p className="font-semibold text-sm">Total Users</p>
-              <h2 className="text-3xl font-bold">277</h2>
-            </div>
-            <div className="text-4xl opacity-50">{card.icon}</div>
-          </div>
-        ))}
-      </div>
-
       <div className="bg-white rounded shadow p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-[500px]">
-            <div>
-              <label className="block text-sm font-medium mb-1">SHOW BY</label>
-              <select className="w-full border border-gray-300 rounded px-3 py-2">
-                <option>None</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                CATEGORY BY
-              </label>
-              <select className="w-full border border-gray-300 rounded px-3 py-2">
-                <option>None</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="border border-gray-300 rounded px-3 py-2 w-64"
-            />
-            <button
-              onClick={() => navigate('/product-upload')}
-              className="bg-blue-600 text-white font-semibold px-4 py-2 rounded"
-            >
-              Add
-            </button>
-          </div>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Danh sách sản phẩm</h2>
+          <button
+            onClick={() => navigate('/admin/products/create')}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Thêm sản phẩm
+          </button>
         </div>
 
-        <div className="overflow-auto">
-          <table className="text-left w-full text-sm">
-            <thead>
-              <tr className="text-gray-500 border-b">
-                <th className="py-2 px-2">UID</th>
-                <th className="py-2 px-2">PRODUCT</th>
-                <th className="py-2 px-2">CATEGORY</th>
-                <th className="py-2 px-2">BRAND</th>
-                <th className="py-2 px-2">PRICE</th>
-                <th className="py-2 px-2">RATING</th>
-                <th className="py-2 px-2">STATUS</th>
-                <th className="py-2 px-2">STATUS CONTROL</th>
-                <th className="py-2 px-2">ACTION</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading && !products.length ? (
-                <tr>
-                  <td colSpan={9} className="text-center py-4">
-                    Loading...
-                  </td>
-                </tr>
-              ) : (
-                products.map((product) => (
-                  <tr key={product.id} className="border-b">
-                    <td className="px-4 py-2">{product.id}</td>
-                    <td className="px-4 py-2 flex items-center gap-2">
-                      {product.images?.[0]?.imageUrl && (
-                        <img
-                          src={product.images[0].imageUrl}
-                          alt={product.title}
-                          className="w-10 h-10 object-cover rounded border"
-                        />
-                      )}
-                      <span>{product.title}</span>
-                    </td>
-                    <td className="px-4 py-2">{product.category?.name}</td>
-                    <td className="px-4 py-2">{product.brand?.name}</td>
-                    <td className="px-4 py-2">
-                      {product.variants?.[0]?.price || 'N/A'}
-                    </td>
-                    <td className="px-4 py-2">
-                      <Rating
-                        value={product.rating || 0}
-                        readOnly
-                        size="small"
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <Badge
-                        text={product.variants?.[0]?.status || 'Inactive'}
-                        color={
-                          product.variants?.[0]?.status === 'Active'
-                            ? 'bg-green-100 text-green-600'
-                            : 'bg-gray-200 text-gray-500'
-                        }
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <Switch
-                        checked={product.variants?.[0]?.status === 'Active'}
-                        onChange={() => {
-                          handleStatusChange(
-                            product.id,
-                            product.variants?.[0]?.status === 'Active'
-                              ? 'Inactive'
-                              : 'Active'
-                          );
-                        }}
-                        color="primary"
-                      />
-                    </td>
-                    <td className="px-4 py-2 text-blue-600 font-semibold cursor-pointer flex space-x-2">
-                      <button onClick={() => handleEditClick(product.id)}>
-                        Edit
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleAddVariantClick(Number(product.id))
-                        }
-                        className="text-blue-600 hover:underline"
-                      >
-                        AddVarian
-                      </button>
-                    </td>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white">
+                <thead>
+                  <tr className="text-gray-500 border-b">
+                    <th className="py-2 px-2">UID</th>
+                    <th className="py-2 px-2">PRODUCT</th>
+                    <th className="py-2 px-2">CATEGORY</th>
+                    <th className="py-2 px-2">BRAND</th>
+                    <th className="py-2 px-2">PRICE</th>
+                    <th className="py-2 px-2">RATING</th>
+                    <th className="py-2 px-2">STATUS</th>
+                    <th className="py-2 px-2">STATUS CONTROL</th>
+                    <th className="py-2 px-2">ACTION</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-
-          {hasMore && (
-            <div className="flex justify-center mt-4">
-              <button
-                onClick={loadMore}
-                disabled={isLoadingMore}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 disabled:bg-blue-300 disabled:cursor-not-allowed"
-              >
-                {isLoadingMore ? 'Đang tải...' : 'Tải thêm'}
-              </button>
+                </thead>
+                <tbody>
+                  {products.map((product) => (
+                    <tr key={product.id} className="border-b">
+                      <td className="px-4 py-2">{product.id}</td>
+                      <td className="px-4 py-2 flex items-center gap-2">
+                        {product.images?.[0]?.imageUrl && (
+                          <img
+                            src={product.images[0].imageUrl}
+                            alt={product.title}
+                            className="w-10 h-10 object-cover rounded border"
+                          />
+                        )}
+                        <span>{product.title}</span>
+                      </td>
+                      <td className="px-4 py-2">{product.category?.name}</td>
+                      <td className="px-4 py-2">{product.brand?.name}</td>
+                      <td className="px-4 py-2">
+                        {product.variants?.[0]?.price ? (
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {new Intl.NumberFormat('vi-VN', {
+                                style: 'currency',
+                                currency: 'VND',
+                              }).format(product.variants[0].price)}
+                            </span>
+                            {product.variants[0].compareAtPrice &&
+                              product.variants[0].compareAtPrice >
+                                product.variants[0].price && (
+                                <span className="text-sm text-gray-500 line-through">
+                                  {new Intl.NumberFormat('vi-VN', {
+                                    style: 'currency',
+                                    currency: 'VND',
+                                  }).format(product.variants[0].compareAtPrice)}
+                                </span>
+                              )}
+                            {product.variants[0].compareAtPrice &&
+                              product.variants[0].compareAtPrice >
+                                product.variants[0].price && (
+                                <span className="text-sm text-green-600">
+                                  -
+                                  {Math.round(
+                                    (100 *
+                                      (product.variants[0].compareAtPrice -
+                                        product.variants[0].price)) /
+                                      product.variants[0].compareAtPrice
+                                  )}
+                                  %
+                                </span>
+                              )}
+                          </div>
+                        ) : (
+                          'N/A'
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
+                        <Rating
+                          value={product.rating || 0}
+                          readOnly
+                          size="small"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <Badge
+                          text={product.variants?.[0]?.status || 'Inactive'}
+                          color={
+                            product.variants?.[0]?.status === 'Active'
+                              ? 'bg-green-100 text-green-600'
+                              : 'bg-gray-200 text-gray-500'
+                          }
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <Switch
+                          checked={product.variants?.[0]?.status === 'Active'}
+                          onChange={() => {
+                            handleStatusChange(
+                              product.id,
+                              product.variants?.[0]?.status === 'Active'
+                                ? 'Inactive'
+                                : 'Active'
+                            );
+                          }}
+                          color="primary"
+                        />
+                      </td>
+                      <td className="px-4 py-2 text-blue-600 font-semibold cursor-pointer flex space-x-2">
+                        <button onClick={() => handleEditClick(product.id)}>
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleAddVariantClick(product.id)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          AddVarian
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(product.id)}
+                          className="text-red-600 hover:underline"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
+
+            {/* Pagination */}
+            <div className="flex justify-between items-center mt-4">
+              <div className="text-sm text-gray-600">
+                Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
+                {Math.min(currentPage * itemsPerPage, total)} of {total} entries
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1 || isLoading}
+                  className="text-gray-400 disabled:opacity-30"
+                >
+                  <MdSkipPrevious />
+                </button>
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  }
+                  disabled={currentPage === 1 || isLoading}
+                  className="text-gray-400 disabled:opacity-30"
+                >
+                  <MdOutlineNavigateBefore />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => handlePageChange(i + 1)}
+                    disabled={isLoading}
+                    className={`rounded-full w-8 h-8 flex items-center justify-center ${
+                      currentPage === i + 1
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-600 bg-gray-100'
+                    } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages || isLoading}
+                  className="text-gray-400 disabled:opacity-30"
+                >
+                  <MdOutlineNavigateNext />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages || isLoading}
+                  className="text-gray-400 disabled:opacity-30"
+                >
+                  <MdSkipNext />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {showForm && (

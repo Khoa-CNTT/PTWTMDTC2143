@@ -44,7 +44,7 @@ export class PaypalService {
       ],
       application_context: {
         return_url: 'http://localhost:5175',
-        cancel_url: 'http://localhost:5175/shopping-cart',
+        cancel_url: 'http://localhost:5175/order-success',
         // return_url: process.env.PAYPAL_RETURN_URL, // ví dụ: https://yourdomain.com/paypal/success
         // cancel_url: process.env.PAYPAL_CANCEL_URL, // ví dụ: https://yourdomain.com/paypal/cancel
       },

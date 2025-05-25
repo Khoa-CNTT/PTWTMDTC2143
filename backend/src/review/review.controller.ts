@@ -8,6 +8,7 @@ import {
   UseInterceptors,
   Query,
   Patch,
+  Delete,
 } from '@nestjs/common';
 import { ReviewService } from './review.service';
 import { CreateReviewDto } from './dto/create-review.dto';
@@ -57,5 +58,10 @@ export class ReviewController {
   @Patch(':id/hide')
   hideReview(@Param('id') id: string, @Body() dto: HideReviewDto) {
     return this.reviewService.hideReview(id, dto);
+  }
+
+  @Delete(':id')
+  deleteReview(@Param('id') id: string) {
+    return this.reviewService.deleteReview(id);
   }
 }

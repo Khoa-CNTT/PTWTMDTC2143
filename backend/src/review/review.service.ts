@@ -139,4 +139,21 @@ export class ReviewService {
       data: { isHidden: dto.isHidden },
     });
   }
+
+  async deleteReview(id: string) {
+    const review = await this.prisma.review.findUnique({ where: { id } });
+    if (!review) {
+      throw new NotFoundException('Review not found');
+    }
+
+    // Delete all replies first
+    await this.prisma.review.deleteMany({
+      where: { parentId: id },
+    });
+
+    // Then delete the review
+    return this.prisma.review.delete({
+      where: { id },
+    });
+  }
 }

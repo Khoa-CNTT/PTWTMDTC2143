@@ -12,6 +12,31 @@ export interface ProductCreateDTO {
   }[];
 }
 
+export interface ProductImage {
+  id: string;
+  imageUrl: string;
+  isThumbnail?: boolean;
+}
+export interface Variant {
+  id: string;
+  sku: string;
+  price: number;
+  discountedPrice?: number;
+  compareAtPrice?: number;
+  weight?: number;
+  weightUnit?: string;
+  dimensions?: string;
+  description?: string;
+  status?: string;
+  images?: ProductImage[];
+  optionValues?: {
+    id: string;
+    value: string;
+    optionId: string;
+    optionName: string;
+    optionValueId?: string;
+  }[];
+}
 export interface Product {
   id: string;
   title: string;
@@ -26,12 +51,7 @@ export interface Product {
     name: string;
     logo?: string;
   };
-  variants?: {
-    id: string;
-    price: number;
-    status: string;
-    images?: { id: string; imageUrl: string }[];
-  }[];
+  variants: Variant[];
   images?: { id: string; imageUrl: string }[];
   rating?: number;
 }
@@ -39,8 +59,8 @@ export interface Product {
 export interface ProductListResponse {
   products: Product[];
   total: number;
-  hasMore: boolean;
-  nextCursor: string | null;
+  page: number;
+  totalPages: number;
 }
 
 export interface ProductResponse {
@@ -59,6 +79,19 @@ export interface VariantResponse {
     name: string;
     value: string;
   }[];
+}
+
+export interface VariantCreateDTO {
+  productId: string;
+  price: number;
+  compareAtPrice?: number;
+  weight?: number;
+  weightUnit?: string;
+  dimensions?: string;
+  description?: string;
+  status: string;
+  attributes: { attribute: string; value: string }[];
+  images: string[];
 }
 
 // class ProductService {
@@ -150,31 +183,31 @@ export interface VariantResponse {
 //   }
 // }
 export const productService = {
-  createProduct: async (productData: ProductCreateDTO) => {
-    const formData = new FormData();
+  getAllProducts: async (
+    page = 1,
+    limit = 10
+  ): Promise<ProductListResponse> => {
+    const response = await axiosInstance.get(`/product`, {
+      params: {
+        page,
+        limit,
+        include: 'variants',
+      },
+    });
+    return response.data;
+  },
 
-    // Append basic product data
-    formData.append('title', productData.title);
-    formData.append('description', productData.description);
-    formData.append('categoryId', productData.categoryId);
-    formData.append('brandId', productData.brandId);
+  getProductById: async (id: string): Promise<Product> => {
+    const response = await axiosInstance.get(`/product/${id}`, {
+      params: {
+        include: 'variants',
+      },
+    });
+    return response.data;
+  },
 
-    // Format and append options
-    const formattedOptions = productData.options.map((option) => ({
-      name: option.name,
-      values: Array.isArray(option.values) ? option.values : [],
-    }));
-    console.log(formattedOptions, 'aaaa');
-    formData.append('options', JSON.stringify(formattedOptions));
-
-    // Append images if they exist
-    if (productData.images && productData.images.length > 0) {
-      productData.images.forEach((image) => {
-        formData.append('images', image);
-      });
-    }
-
-    const response = await axiosInstance.post(`/product/create`, formData, {
+  createProduct: async (formData: FormData): Promise<Product> => {
+    const response = await axiosInstance.post('/product/create', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -182,18 +215,61 @@ export const productService = {
     return response.data;
   },
 
-  getAllProducts: async (): Promise<ProductListResponse> => {
-    const response = await axiosInstance.get(`/product`);
+  updateProduct: async (id: string, formData: FormData): Promise<Product> => {
+    const response = await axiosInstance.put(`/product/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 
-  updateProduct: async (id: string, productData: Partial<Product>) => {
-    const response = await axiosInstance.put(`/product/${id}`, productData);
+  deleteProduct: async (id: string): Promise<void> => {
+    await axiosInstance.delete(`/product/${id}`);
+  },
+
+  searchProducts: async (
+    keyword: string,
+    page: number = 1,
+    pageSize: number = 10
+  ): Promise<ProductListResponse> => {
+    const response = await axiosInstance.get('/product/search', {
+      params: {
+        keyword,
+        page,
+        pageSize,
+        include: 'variants',
+      },
+    });
     return response.data;
   },
 
-  deleteProduct: async (id: string) => {
-    const response = await axiosInstance.delete(`/product/${id}`);
+  getProductsByCategory: async (
+    categoryId: string,
+    page: number = 1,
+    pageSize: number = 10
+  ): Promise<ProductListResponse> => {
+    const response = await axiosInstance.get('/product/by-category', {
+      params: {
+        categoryId,
+        page,
+        pageSize,
+        include: 'variants',
+      },
+    });
+    return response.data;
+  },
+
+  createVariant: async (formData: FormData): Promise<VariantResponse> => {
+    const response = await axiosInstance.post(
+      `/product/${formData.get('productId')}/variants`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
     return response.data;
   },
 };

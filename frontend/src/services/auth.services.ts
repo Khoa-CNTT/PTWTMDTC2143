@@ -67,44 +67,14 @@ export const login = async (
 
 export const logout = async (logoutContext: () => void) => {
   try {
-    // Lấy user ID từ localStorage trước khi xóa
-    const userStr = localStorage.getItem('user');
-    let userId: string | null = null;
-
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        userId = user?.id;
-      } catch (e) {
-        console.error('Error parsing user data:', e);
-      }
-    }
-
-    if (!userId) {
-      // Nếu không có userId, vẫn tiếp tục logout ở phía client
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      logoutContext();
-      return;
-    }
-
-    // Gọi API logout với userId
-    const response = await axiosInstance.post(`/auth/logout/${userId}`);
-
-    // Xóa localStorage sau khi gọi API thành công
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const response = await axiosInstance.post(`/auth/logout/${user.id}`);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-
-    // Cập nhật context
     logoutContext();
-
     return response.data;
   } catch (error) {
     console.error('Logout error:', error);
-    // Vẫn xóa localStorage và cập nhật context ngay cả khi API thất bại
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    logoutContext();
     throw error;
   }
 };

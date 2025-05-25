@@ -22,16 +22,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser && storedUser !== 'undefined') {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
+    // Check localStorage on initial load
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
         setIsAuthenticated(true);
+      } catch (e) {
+        setUser(null);
+        setIsAuthenticated(false);
+        localStorage.removeItem('user');
       }
-    } catch (error) {
-      console.error('Error parsing user from localStorage:', error);
-      localStorage.removeItem('user'); // loại bỏ dữ liệu hỏng
     }
   }, []);
 

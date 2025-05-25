@@ -17,13 +17,14 @@ const Home: React.FC = () => {
           <HotSale />
         </div>
         <div className="p-6">
+          <BestDeal />
+        </div>
+        <div className="p-6">
           <TopSelect />
         </div>
+
         <div className="p-6">
           <PopularSearch />
-        </div>
-        <div className="p-6">
-          <BestDeal />
         </div>
         <div className="p-6">
           <RecentlyViewed />

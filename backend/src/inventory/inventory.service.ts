@@ -57,7 +57,8 @@ export class InventoryService {
   }
 
   async updateInventoryQuantity(inventoryUpdateDTO: InventoryUpdateDTO) {
-    const { variantId, warehouseId, quantityChange } = inventoryUpdateDTO;
+    const { variantId, warehouseId, quantity, reserved, status } =
+      inventoryUpdateDTO;
 
     const inventory = await this.prisma.inventory.findUnique({
       where: { variantId_warehouseId: { variantId, warehouseId } },
@@ -67,11 +68,41 @@ export class InventoryService {
       throw new NotFoundException('Sản phẩm không tồn tại trong kho');
     }
 
+    // Kiểm tra nếu reserved lớn hơn quantity
+    if (reserved > quantity) {
+      throw new BadRequestException(
+        'Số lượng đặt trước không thể lớn hơn số lượng tồn kho'
+      );
+    }
+
     return await this.prisma.inventory.update({
       where: { id: inventory.id },
       data: {
-        quantity: inventory.quantity + quantityChange,
+        quantity,
+        reserved,
+        status,
       },
+    });
+  }
+
+  async deleteInventory(variantId: string, warehouseId: string) {
+    const inventory = await this.prisma.inventory.findUnique({
+      where: { variantId_warehouseId: { variantId, warehouseId } },
+    });
+
+    if (!inventory) {
+      throw new NotFoundException('Sản phẩm không tồn tại trong kho');
+    }
+
+    // Kiểm tra nếu có đơn hàng đang giữ hàng
+    if (inventory.reserved > 0) {
+      throw new BadRequestException(
+        'Không thể xóa sản phẩm đang có đơn hàng đặt trước'
+      );
+    }
+
+    return await this.prisma.inventory.delete({
+      where: { id: inventory.id },
     });
   }
 

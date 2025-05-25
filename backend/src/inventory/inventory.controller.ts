@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Delete,
+} from '@nestjs/common';
 import { InventoryCreateDTO } from './dto/inventory-create.dto';
 import { InventoryUpdateDTO } from './dto/inventory-update.dto';
 import { CheckStockDTO } from './dto/check-stock.dto';
@@ -27,6 +35,14 @@ export class InventoryController {
     return await this.inventoryService.updateInventoryQuantity(
       inventoryUpdateDTO
     );
+  }
+
+  @Delete(':variantId/:warehouseId')
+  async deleteInventory(
+    @Param('variantId') variantId: string,
+    @Param('warehouseId') warehouseId: string
+  ) {
+    return await this.inventoryService.deleteInventory(variantId, warehouseId);
   }
 
   @Post('check-stock')

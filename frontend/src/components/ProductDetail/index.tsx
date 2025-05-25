@@ -16,6 +16,14 @@ import {
   BsLink,
 } from 'react-icons/bs';
 import { Variant } from '../../services/productsService';
+import { addToWishlist } from '../../services/wishlistService';
+import { cartService } from '../../services/cartService';
+import {
+  reviewService,
+  Review as APIReview,
+} from '../../services/reviewService';
+import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface OptionValue {
   id: number | string;
@@ -48,56 +56,17 @@ interface Product {
   options?: Option[];
 }
 
-interface Review {
-  id: number;
-  name: string;
-  avatar: string;
-  email: string;
-  content: string;
-  rating: number;
-  replies?: Reply[];
-  images?: string[];
-  createdAt: Date;
-}
-
-interface Reply {
-  id: number;
-  name: string;
-  content: string;
-  avatar: string;
-  createdAt: Date;
-}
-
-const initialReviews: Review[] = [
-  {
-    id: 1,
-    name: 'Rodriguez',
-    avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-    email: 'rod@example.com',
-    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
-    rating: 4,
-    replies: [],
-    createdAt: new Date('2024-05-01T10:30:00'),
-  },
-  {
-    id: 2,
-    name: 'Marissa',
-    avatar: 'https://randomuser.me/api/portraits/women/65.jpg',
-    email: 'marissa@example.com',
-    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
-    rating: 4,
-    createdAt: new Date('2024-05-05T14:45:00'),
-  },
-  {
-    id: 3,
-    name: 'Julianto Mc. Daniel',
-    avatar: 'https://randomuser.me/api/portraits/men/75.jpg',
-    email: 'julianto@example.com',
-    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
-    rating: 3.5,
-    createdAt: new Date('2024-05-10T08:15:00'),
-  },
-];
+// interface Review {
+//   id: number;
+//   name: string;
+//   avatar: string;
+//   email: string;
+//   content: string;
+//   rating: number;
+//   replies?: Reply[];
+//   images?: string[];
+//   createdAt: Date;
+// }
 
 const fallbackProduct: Product = {
   id: 1,
@@ -135,6 +104,7 @@ const fallbackProduct: Product = {
 
 const ProductDetail: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
+  const { user } = useAuth();
   const [product, setProduct] = useState<Product>(fallbackProduct);
   const [variants, setVariants] = useState<Variant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,15 +118,17 @@ const ProductDetail: React.FC = () => {
     fallbackProduct.colors['Blue'][0]
   );
   const [activeTab, setActiveTab] = useState('Description');
-  const [replyingToId, setReplyingToId] = useState<number | null>(null);
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
-  const [reviews, setReviews] = useState<Review[]>(initialReviews);
+  const [reviews, setReviews] = useState<APIReview[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
   const [nickname, setNickname] = useState('');
   const [email, setEmail] = useState('');
   const [content, setContent] = useState('');
   const [rating, setRating] = useState(4);
   const [reviewImages, setReviewImages] = useState<File[]>([]);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [addingToCart, setAddingToCart] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -218,8 +190,26 @@ const ProductDetail: React.FC = () => {
         setLoading(false);
       }
     };
+
+    const fetchReviews = async () => {
+      try {
+        setLoadingReviews(true);
+        const fetchedReviews = await reviewService.getReviewsByProduct(
+          productId!
+        );
+        setReviews(fetchedReviews);
+      } catch (err) {
+        if (loadingReviews) {
+          console.error('Error fetching reviews:', err);
+          toast.error('Không thể tải đánh giá. Vui lòng thử lại!');
+        }
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+
     fetchProduct();
-    // eslint-disable-next-line
+    fetchReviews();
   }, [productId]);
 
   useEffect(() => {
@@ -229,26 +219,37 @@ const ProductDetail: React.FC = () => {
       variants.length === 0
     )
       return;
-    const selectedIds = Object.values(selectedOptionValues);
+    const selectedIds = Object.values(selectedOptionValues).map(String);
+    console.log('variants:', variants);
+    console.log('selectedOptionValues:', selectedOptionValues);
     const found = variants.find((variant) => {
       if (!variant.optionValues) return false;
-      const variantValueIds = variant.optionValues.map(
-        (ov) => ov.optionValueId || ov.optionValue?.id
+      const variantValueIds = variant.optionValues.map((ov) =>
+        String(ov.optionValueId)
       );
-      return selectedIds.every((id) => variantValueIds.includes(id));
+      console.log(
+        'variantValueIds:',
+        variantValueIds,
+        'selectedIds:',
+        selectedIds
+      );
+      // So sánh đủ số lượng và từng id phải khớp
+      return (
+        variantValueIds.length === selectedIds.length &&
+        selectedIds.every((id) => variantValueIds.includes(id))
+      );
     });
     setSelectedVariant(found || null);
     if (found && found.images && found.images.length > 0) {
       setSelectedImage(found.images[0].imageUrl);
-    } else if (product.images && product.images.length > 0) {
-      setSelectedImage(product.images[0].imageUrl);
     } else if (
       product.colors &&
       product.colors[Object.keys(product.colors)[0]]
     ) {
       setSelectedImage(product.colors[Object.keys(product.colors)[0]][0]);
     }
-  }, [selectedOptionValues, product.options, variants, product.images]);
+    console.log('selectedVariant:', found);
+  }, [selectedOptionValues, product.options, variants]);
 
   const displayPrice =
     selectedVariant && selectedVariant.price
@@ -270,7 +271,7 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  const handleReplyClick = (id: number) => {
+  const handleReplyClick = (id: string) => {
     if (replyingToId === id) {
       setReplyingToId(null);
     } else {
@@ -279,50 +280,117 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  const handleReplySubmit = (reviewId: number) => {
-    if (!replyContent.trim()) return;
-    setReviews((prev) =>
-      prev.map((review) =>
-        review.id === reviewId
-          ? {
-              ...review,
-              replies: [
-                ...(review.replies || []),
-                {
-                  id: Date.now(),
-                  name: 'Admin',
-                  content: replyContent.trim(),
-                  avatar: 'https://randomuser.me/api/portraits/lego/2.jpg',
-                  createdAt: new Date(),
-                },
-              ],
-            }
-          : review
-      )
-    );
-    setReplyingToId(null);
-    setReplyContent('');
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (!user?.userId) {
+        toast.error('Vui lòng đăng nhập để gửi đánh giá');
+        return;
+      }
+
+      // Validate rating
+      if (rating < 1 || rating > 5 || !Number.isInteger(rating)) {
+        toast.error('Rating phải là số nguyên từ 1 đến 5');
+        return;
+      }
+
+      const reviewData = {
+        userId: user.userId,
+        productId: productId!,
+        rating: Math.round(rating),
+        content,
+        nickname,
+        email,
+      };
+
+      const newReview = await reviewService.createReview(
+        reviewData,
+        reviewImages
+      );
+      setReviews([newReview, ...reviews]);
+      toast.success('Đánh giá đã được gửi thành công!');
+
+      // Reset form
+      setNickname('');
+      setEmail('');
+      setContent('');
+      setRating(4);
+      setReviewImages([]);
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      toast.error('Không thể gửi đánh giá. Vui lòng thử lại!');
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newReview: Review = {
-      id: Date.now(),
-      name: nickname,
-      avatar: 'https://randomuser.me/api/portraits/lego/1.jpg',
-      email,
-      content,
-      rating,
-      replies: [],
-      images: reviewImages.map((file) => URL.createObjectURL(file)),
-      createdAt: new Date(),
-    };
-    setReviews([newReview, ...reviews]);
-    setNickname('');
-    setEmail('');
-    setContent('');
-    setRating(4);
-    setReviewImages([]);
+  const handleReplySubmit = async (reviewId: string) => {
+    if (!user?.userId) {
+      toast.error('Vui lòng đăng nhập để gửi phản hồi');
+      return;
+    }
+
+    if (!replyContent.trim()) return;
+    try {
+      const reviewData = {
+        userId: user.userId,
+        productId: productId!,
+        rating: 0, // Replies don't need rating
+        content: replyContent.trim(),
+        parentId: reviewId,
+      };
+
+      const newReply = await reviewService.createReview(reviewData);
+      setReviews(
+        reviews.map((review) =>
+          review.id === reviewId
+            ? { ...review, replies: [...(review.replies || []), newReply] }
+            : review
+        )
+      );
+
+      setReplyingToId(null);
+      setReplyContent('');
+      toast.success('Phản hồi đã được gửi thành công!');
+    } catch (error) {
+      console.error('Error submitting reply:', error);
+      toast.error('Không thể gửi phản hồi. Vui lòng thử lại!');
+    }
+  };
+
+  const handleAddToWishlist = async () => {
+    if (!variants[0]) {
+      alert('Không tìm thấy phiên bản sản phẩm để thêm vào wishlist!');
+      return;
+    }
+    try {
+      await addToWishlist(variants[0].id);
+      alert('Đã thêm vào wishlist!');
+    } catch (err) {
+      alert('Thêm vào wishlist thất bại!');
+    }
+  };
+
+  const handleAddToCart = async () => {
+    console.log('selectedVariant:', selectedVariant);
+    if (!selectedVariant) {
+      toast.error('Vui lòng chọn phiên bản sản phẩm!');
+      return;
+    }
+
+    if (selectedVariant.status === 'OUT_OF_STOCK') {
+      toast.error('Sản phẩm đã hết hàng!');
+      return;
+    }
+
+    try {
+      setAddingToCart(true);
+      await cartService.addToCart(selectedVariant.id, quantity);
+      toast.success('Đã thêm vào giỏ hàng!');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Không thể thêm vào giỏ hàng. Vui lòng thử lại!');
+    } finally {
+      setAddingToCart(false);
+    }
   };
 
   if (loading) {
@@ -382,10 +450,13 @@ const ProductDetail: React.FC = () => {
             <span className="text-sm text-gray-400">
               👁 {product.viewed} Viewed
             </span>
-            <IconButton>
+            <IconButton onClick={handleAddToWishlist}>
               <AiOutlineHeart className="text-gray-500" size={20} />
             </IconButton>
-            <span className="text-orange-500 cursor-pointer">
+            <span
+              className="text-orange-500 cursor-pointer"
+              onClick={handleAddToWishlist}
+            >
               Add to wishlist
             </span>
           </div>
@@ -491,12 +562,15 @@ const ProductDetail: React.FC = () => {
               BUY
             </button>
             <button
-              className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded"
+              className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded disabled:bg-gray-400 disabled:cursor-not-allowed"
               disabled={
-                selectedVariant && selectedVariant.status === 'OUT_OF_STOCK'
+                (selectedVariant &&
+                  selectedVariant.status === 'OUT_OF_STOCK') ||
+                addingToCart
               }
+              onClick={handleAddToCart}
             >
-              ADD TO CART
+              {addingToCart ? 'Đang thêm...' : 'ADD TO CART'}
             </button>
             {selectedVariant && selectedVariant.status === 'OUT_OF_STOCK' && (
               <span className="text-red-500 font-semibold ml-2">Hết hàng</span>
@@ -549,300 +623,236 @@ const ProductDetail: React.FC = () => {
           </div>
           <div className="flex-1 p-6">
             <div className="flex border-b">
-              {['Description', `Reviews (${product.reviews})`].map((tab) => (
+              {['Description', `Reviews (${reviews.length})`].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 text-lg font-medium ${activeTab === tab ? 'text-orange-500 border-b-2 border-orange-500' : 'text-gray-600'}`}
+                  className={`px-4 py-2 text-lg font-medium ${
+                    activeTab === tab
+                      ? 'text-orange-500 border-b-2 border-orange-500'
+                      : 'text-gray-600'
+                  }`}
                 >
                   {tab}
                 </button>
               ))}
             </div>
-            <div className="mt-4">
-              {activeTab === 'Description' && (
-                <div className="p-4">
-                  <h2 className="text-2xl font-semibold">
-                    See the best picture no matter where you sit
-                  </h2>
-                  <p className="text-gray-600 mt-2">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed
-                    do eiusmod tempor incididunt ut labore et dolore magna
-                    aliqua. Ut enim ad minim veniam, quis nostrud exercitation
-                    ullamco laboris nisi ut aliquip ex ea commodo consequat.
-                    Duis aute irure dolor in reprehenderit in voluptate velit
-                    esse cillum dolore eu fugiat nulla pariatur. Excepteur sint
-                    occaecat cupidatat non proident, sunt in culpa qui officia
-                    deserunt mollit anim id est laborum.
-                  </p>
-                  <div className="mt-4">
-                    <img
-                      src="https://via.placeholder.com/800x400"
-                      alt="Product Description"
-                      className="w-full rounded-lg"
-                    />
-                  </div>
-                  <h3 className="text-xl font-semibold mt-6">
-                    Powerful intelligence for perfection
-                  </h3>
-                  <p className="text-gray-600 mt-2">
-                    Sed ut perspiciatis unde omnis iste natus error sit
-                    voluptatem accusantium doloremque laudantium, totam rem
-                    aperiam, eaque ipsa quae ab illo inventore veritatis et
-                    quasi architecto beatae vitae dicta sunt explicabo. Nemo
-                    enim ipsam voluptatem quia voluptas sit aspernatur aut odit
-                    aut fugit, sed quia consequuntur magni dolores eos qui
-                    ratione voluptatem sequi nesciunt.
-                  </p>
-                  <h3 className="text-xl font-semibold mt-6">
-                    The power of less
-                  </h3>
-                  <p className="text-gray-600 mt-2">
-                    At vero eos et accusamus et iusto odio dignissimos ducimus
-                    qui blanditiis praesentium voluptatum deleniti atque
-                    corrupti quos dolores et quas molestias excepturi sint
-                    occaecati cupiditate non provident, similique sunt in culpa
-                    qui officia deserunt mollitia animi, id est laborum et
-                    dolorum fuga.
-                  </p>
-                </div>
-              )}
-              {activeTab === `Reviews (${product.reviews})` && (
-                <div className="p-4">
-                  <h2 className="text-xl font-semibold mb-2">
-                    Submit Your Review
-                  </h2>
-                  <p className="text-gray-600 mb-4">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit...
-                  </p>
-                  <form
-                    onSubmit={handleSubmit}
-                    className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"
-                  >
+            {activeTab === 'Description' && (
+              <div className="mt-4">
+                <h3 className="text-xl font-semibold mb-4">
+                  Product Description
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Experience the perfect blend of style and functionality with
+                  our premium LED Monitor. This high-quality display offers
+                  stunning visuals and exceptional performance for both work and
+                  entertainment.
+                </p>
+                <h4 className="text-lg font-semibold mb-2">Key Features:</h4>
+                <ul className="list-disc list-inside text-gray-600 space-y-2">
+                  <li>Direct Full Array backlighting for superior contrast</li>
+                  <li>Quantum Dot Technology for vibrant colors</li>
+                  <li>Ambient Mode for seamless room integration</li>
+                  <li>One Remote Control for easy operation</li>
+                  <li>Multiple size options to fit your space</li>
+                </ul>
+              </div>
+            )}
+            {activeTab === `Reviews (${reviews.length})` && (
+              <div className="mt-4">
+                <form onSubmit={handleSubmitReview} className="mb-8">
+                  <h3 className="text-xl font-semibold mb-4">Write a Review</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <label className="block font-medium">Nickname</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nickname *
+                      </label>
                       <input
                         type="text"
-                        className="w-full mt-1 border  px-4 py-2 rounded focus:outline-orange-500"
-                        placeholder="Type your nickname here"
                         value={nickname}
                         onChange={(e) => setNickname(e.target.value)}
                         required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
                     <div>
-                      <label className="block font-medium">Email Address</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email *
+                      </label>
                       <input
                         type="email"
-                        className="w-full mt-1 border px-4 py-2 rounded focus:outline-orange-500"
-                        placeholder="Type your email address"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
-                    <div>
-                      <label className="block font-medium">Review</label>
-                      <textarea
-                        className="w-full mt-1 border px-4 py-2 rounded h-24 focus:outline-orange-500"
-                        placeholder="Type your review here"
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-medium">Rating</label>
-                      <div className="flex mt-2 space-x-1">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <Star
-                            key={i}
-                            fill={i <= rating ? '#f97316' : 'none'}
-                            stroke="#f97316"
-                            className="w-6 h-6 cursor-pointer"
-                            onClick={() => setRating(i)}
-                          />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Rating *
+                    </label>
+                    <Rating
+                      value={rating}
+                      onChange={(_, newValue) => {
+                        setRating(newValue || 0);
+                      }}
+                      precision={0.5}
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Review *
+                    </label>
+                    <textarea
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      required
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Images (Optional)
+                    </label>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="w-full"
+                    />
+                    {reviewImages.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {reviewImages.map((image, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={URL.createObjectURL(image)}
+                              alt={`Preview ${index + 1}`}
+                              className="w-20 h-20 object-cover rounded"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setReviewImages((prev) =>
+                                  prev.filter((_, i) => i !== index)
+                                )
+                              }
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                            >
+                              ×
+                            </button>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-medium mb-2">
-                        Tải ảnh lên (tùy chọn):
-                      </label>
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
-                                  file:rounded-full file:border-0 file:text-sm file:font-semibold
-                                  file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
-                      />
-                      {reviewImages.length > 0 && (
-                        <div className="flex gap-4 flex-wrap mt-2">
-                          {reviewImages.map((image, idx) => (
-                            <div key={idx} className="relative group">
-                              <img
-                                src={URL.createObjectURL(image)}
-                                alt={`uploaded-${idx}`}
-                                className="w-24 h-24 object-cover rounded border"
-                              />
-                              <button
-                                type="button"
-                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 text-xs hidden group-hover:block"
-                                onClick={() => {
-                                  setReviewImages((prev) =>
-                                    prev.filter((_, i) => i !== idx)
-                                  );
-                                }}
-                              >
-                                ×
-                              </button>
+                    )}
+                  </div>
+                  <button
+                    type="submit"
+                    className="bg-orange-500 text-white px-6 py-2 rounded-md hover:bg-orange-600 transition-colors"
+                  >
+                    Submit Review
+                  </button>
+                </form>
+
+                <div className="space-y-6">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="border-b pb-6">
+                      <div className="flex items-center gap-4 mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">
+                              {review.user?.name || 'Anonymous'}
+                            </span>
+                            <Rating
+                              value={review.rating}
+                              readOnly
+                              size="small"
+                            />
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            {new Date(review.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-gray-700 mb-4">{review.content}</p>
+                      {review.images && review.images.length > 0 && (
+                        <div className="flex gap-2 mb-4">
+                          {review.images.map((image, index) => (
+                            <img
+                              key={index}
+                              src={viewingImage || image}
+                              alt={`Review image ${index + 1}`}
+                              className="w-20 h-20 object-cover rounded cursor-pointer"
+                              onClick={() => setViewingImage(image)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleReplyClick(review.id)}
+                          className="text-orange-500 hover:text-orange-600"
+                        >
+                          Reply
+                        </button>
+                      </div>
+                      {replyingToId === review.id && (
+                        <div className="mt-4">
+                          <textarea
+                            value={replyContent}
+                            onChange={(e) => setReplyContent(e.target.value)}
+                            placeholder="Write your reply..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            rows={3}
+                          />
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              onClick={() => handleReplySubmit(review.id)}
+                              className="bg-orange-500 text-white px-4 py-1 rounded hover:bg-orange-600"
+                            >
+                              Submit Reply
+                            </button>
+                            <button
+                              onClick={() => {
+                                setReplyingToId(null);
+                                setReplyContent('');
+                              }}
+                              className="text-gray-500 hover:text-gray-600"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {review.replies && review.replies.length > 0 && (
+                        <div className="ml-8 mt-4 space-y-4">
+                          {review.replies.map((reply) => (
+                            <div
+                              key={reply.id}
+                              className="border-l-2 border-gray-200 pl-4"
+                            >
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold">
+                                  {reply.user?.name || 'Anonymous'}
+                                </span>
+                                <span className="text-sm text-gray-500">
+                                  {new Date(
+                                    reply.createdAt
+                                  ).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <p className="text-gray-700">{reply.content}</p>
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
-                    <div className="md:col-span-2">
-                      <button
-                        type="submit"
-                        className="bg-orange-500 text-white px-6 py-2 rounded hover:bg-orange-600"
-                      >
-                        SUBMIT
-                      </button>
-                    </div>
-                  </form>
-                  <hr className="my-6" />
-                  <div className="space-y-6">
-                    {reviews.map((review) => (
-                      <div key={review.id} className="flex gap-4 flex-col">
-                        <div className="flex gap-4">
-                          <img
-                            src={review.avatar}
-                            alt={review.name}
-                            className="w-12 h-12 rounded-full object-cover"
-                          />
-                          <div className="flex-1">
-                            <div className="text-xs text-gray-400 mt-1">
-                              {new Date(review.createdAt).toLocaleString()}
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <div className="font-semibold mb-5">
-                                  {review.name}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-orange-500 font-bold text-xl">
-                                  {review.rating.toFixed(1)}
-                                </div>
-                                <div className="flex justify-end">
-                                  {[1, 2, 3, 4, 5].map((i) => (
-                                    <Star
-                                      key={i}
-                                      fill={
-                                        i <= Math.floor(review.rating)
-                                          ? '#f97316'
-                                          : i - review.rating <= 0.5
-                                            ? '#f97316'
-                                            : 'none'
-                                      }
-                                      stroke="#f97316"
-                                      className="w-4 h-4"
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                            <p className="text-gray-600 text-sm">
-                              {review.content}
-                            </p>
-                            {Array.isArray(review.images) &&
-                              review.images.length > 0 && (
-                                <div className="mt-2 flex gap-2 flex-wrap">
-                                  {review.images.map((img, idx) => (
-                                    <img
-                                      key={idx}
-                                      src={img}
-                                      alt={`review-${idx}`}
-                                      className="w-24 h-24 rounded object-cover border cursor-pointer"
-                                      onClick={() => setViewingImage(img)}
-                                    />
-                                  ))}
-                                </div>
-                              )}
-                            {viewingImage && (
-                              <div
-                                className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-70"
-                                onClick={() => setViewingImage(null)}
-                              >
-                                <img
-                                  src={viewingImage}
-                                  alt="Enlarged"
-                                  className="max-w-full max-h-full rounded shadow-lg"
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              </div>
-                            )}
-                            <button
-                              onClick={() => handleReplyClick(review.id)}
-                              className="text-sm text-orange-500 mt-2 hover:underline"
-                            >
-                              {replyingToId === review.id ? 'Cancel' : 'Reply'}
-                            </button>
-                            {replyingToId === review.id && (
-                              <div className="mt-2">
-                                <textarea
-                                  rows={2}
-                                  placeholder="Write a reply..."
-                                  className="w-full border rounded px-3 py-2 mt-2 focus:outline-orange-500"
-                                  value={replyContent}
-                                  onChange={(e) =>
-                                    setReplyContent(e.target.value)
-                                  }
-                                />
-                                <button
-                                  onClick={() => handleReplySubmit(review.id)}
-                                  className="mt-2 px-4 py-1 bg-orange-500 text-white rounded hover:bg-orange-600"
-                                >
-                                  Submit Reply
-                                </button>
-                              </div>
-                            )}
-                            {review.replies && review.replies.length > 0 && (
-                              <div className="mt-4 pl-6 border-l border-orange-200 space-y-2">
-                                {review.replies.map((reply) => (
-                                  <div key={reply.id}>
-                                    <p className="text-xs text-gray-400">
-                                      {new Date(
-                                        reply.createdAt
-                                      ).toLocaleString()}
-                                    </p>
-                                    <div className="flex ">
-                                      <img
-                                        src={reply.avatar}
-                                        alt={reply.name}
-                                        className="w-8 h-8 rounded-full object-cover"
-                                      />
-                                      <p className="text-sm text-gray-800 font-semibold ms-3">
-                                        {reply.name}:
-                                      </p>
-                                      <p className="text-sm text-gray-700 ms-1">
-                                        {reply.content}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import {
   Query,
   UploadedFiles,
   UseInterceptors,
+  Delete,
 } from '@nestjs/common';
 import { ProductCreateDTO } from './dto/product-create.dto';
 import { ProductService } from './product.service';
@@ -39,6 +40,55 @@ export class ProductController {
     return this.productService.getAllProducts(page, limit);
   }
 
+  @Get('variants')
+  async getAllVariants(
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number = 50,
+    @Query('cursor') cursor?: string
+  ) {
+    return this.productService.getAllVariants(limit, cursor);
+  }
+
+  @Get('variants/:variantId')
+  async getProductVariant(
+    @Param('variantId', ParseUUIDPipe) variantId: string
+  ): Promise<VariantResponseDTO> {
+    return this.productService.getProductVariant(variantId);
+  }
+
+  @Get('by-category')
+  async getProductsByCategory(
+    @Query('categoryId') categoryId: string,
+    @Query('limit') limit = 10,
+    @Query('cursor') cursor?: string
+  ) {
+    return this.productService.getProductsByCategory(
+      categoryId,
+      +limit,
+      cursor
+    );
+  }
+
+  @Get('best-deal')
+  async getBestDealProducts(
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number
+  ) {
+    return this.productService.getBestDealProducts(limit);
+  }
+
+  @Get('search-by-name')
+  async searchProducts(
+    @Query('keyword') keyword: string,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('cursor') cursor?: string
+  ) {
+    return this.productService.searchProductsByName(keyword, limit, cursor);
+  }
+
+  @Get(':id')
+  async getProductById(@Param('id', ParseUUIDPipe) id: string) {
+    return this.productService.getProductById(id);
+  }
+
   @Post('create')
   @UseInterceptors(FilesInterceptor('images', 10))
   async createProduct(
@@ -62,6 +112,17 @@ export class ProductController {
     return this.productService.createProduct(productCreateDTO);
   }
 
+  @Post(':productId/variants')
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'images', maxCount: 10 }]))
+  async createVariant(
+    @Param('productId', ParseUUIDPipe) productId: string,
+    @Body() dto: VariantCreateDTO,
+    @UploadedFiles() files: { images?: Express.Multer.File[] }
+  ) {
+    dto.images = files.images || [];
+    return this.productService.createVariant(productId, dto);
+  }
+
   @Put(':productId')
   @UseInterceptors(FileFieldsInterceptor([{ name: 'newImages', maxCount: 10 }]))
   async updateProduct(
@@ -78,17 +139,6 @@ export class ProductController {
     };
 
     return this.productService.updateProduct(productId, dto);
-  }
-
-  @UseInterceptors(FileFieldsInterceptor([{ name: 'images', maxCount: 10 }]))
-  @Post(':productId/variants')
-  async createVariant(
-    @Param('productId', ParseUUIDPipe) productId: string,
-    @Body() dto: VariantCreateDTO,
-    @UploadedFiles() files: { images?: Express.Multer.File[] }
-  ) {
-    dto.images = files.images || [];
-    return this.productService.createVariant(productId, dto);
   }
 
   @Put(':variantId/variants')
@@ -120,50 +170,8 @@ export class ProductController {
     return this.productService.updateVariant(variantId, dto);
   }
 
-  @Get('by-category')
-  async getProductsByCategory(
-    @Query('categoryId') categoryId: string,
-    @Query('limit') limit = 10,
-    @Query('cursor') cursor?: string
-  ) {
-    return this.productService.getProductsByCategory(
-      categoryId,
-      +limit,
-      cursor
-    );
-  }
-  @Get('best-deal')
-  async getBestDealProducts(
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number
-  ) {
-    return this.productService.getBestDealProducts(limit);
-  }
-
-  @Get('variants/:variantId')
-  async getProductVariant(
-    @Param('variantId', ParseUUIDPipe) variantId: string
-  ): Promise<VariantResponseDTO> {
-    return this.productService.getProductVariant(variantId);
-  }
-
-  @Get('search-by-name')
-  async searchProducts(
-    @Query('keyword') keyword: string,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
-    @Query('cursor') cursor?: string
-  ) {
-    return this.productService.searchProductsByName(keyword, limit, cursor);
-  }
-  @Get(':id')
-  async getProductById(@Param('id', ParseUUIDPipe) id: string) {
-    return this.productService.getProductById(id);
-  }
-
-  @Get('variants')
-  async getAllVariants(
-    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number = 50,
-    @Query('cursor') cursor?: string
-  ) {
-    return this.productService.getAllVariants(limit, cursor);
+  @Delete(':id')
+  async deleteProduct(@Param('id', ParseUUIDPipe) id: string) {
+    return this.productService.deleteProduct(id);
   }
 }

@@ -1,121 +1,109 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Pencil, Trash2, Plus } from 'lucide-react';
-import {
-  Discount,
-  promoService,
-  Promotion,
-  Voucher,
-} from '../../services/promoService';
+import { Discount, promoService, Voucher } from '../../services/promoService';
+
+interface CombinedPromotion {
+  id: string;
+  name?: string;
+  code?: string;
+  description?: string;
+  discount: number;
+  startDate: string;
+  endDate: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'EXPIRED';
+  type: 'discount' | 'voucher';
+  minOrderValue?: number;
+  maxDiscountValue?: number;
+  usageLimit?: number;
+  usedCount?: number;
+  applyType?: 'ALL' | 'CATEGORY' | 'PRODUCT';
+  categories?: string[];
+  products?: string[];
+}
 
 const PromoManager: React.FC = () => {
   // const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [search, setSearch] = useState('');
-  const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(
-    null
-  );
-  const [deletingPromotion, setDeletingPromotion] = useState<Promotion | null>(
-    null
-  );
+  const [editingPromotion, setEditingPromotion] =
+    useState<CombinedPromotion | null>(null);
+  const [deletingPromotion, setDeletingPromotion] =
+    useState<CombinedPromotion | null>(null);
   const [typeFilter, setTypeFilter] = useState<'all' | 'discount' | 'voucher'>(
     'all'
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // const [currentPage, setCurrentPage] = useState(1);
-  const currentPage = 1;
-  const [totalPromotions, setTotalPromotions] = useState(0);
+
   const [voucherData, setVoucherData] = useState<Voucher[]>([]);
   const [discountData, setDiscountData] = useState<Discount[]>([]);
-  type Combined = Voucher | Discount;
+  const [combinedData, setCombinedData] = useState<CombinedPromotion[]>([]);
 
-  const [combinedData, setCombinedData] = useState<Combined[]>([]);
-  const fetchPromotions = useCallback(
-    async (page: number) => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        let response;
-        if (typeFilter === 'voucher') {
-          response = await promoService.getAllVouchers();
-          setVoucherData(response.data);
-        } else if (typeFilter === 'discount') {
-          response = await promoService.getAllDiscounts();
-          setDiscountData(response.data);
-        } else {
-          // typeFilter === 'all'
-          const [vouchers, discounts] = await Promise.all([
-            promoService.getAllVouchers(),
-            promoService.getAllDiscounts(),
-          ]);
-          response = {
-            promotions: [...vouchers.data, ...discounts.data],
-            total: (vouchers.total || 0) + (discounts.total || 0),
-            nextCursor: null,
-          };
-        }
+  const fetchPromotions = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-        // Log API response data
-        console.log('API Response:', {
-          promotions: response.promotions,
-          total: response.total,
-          typeFilter,
-          page,
-        });
+      // Fetch vouchers and discounts in parallel
+      const [voucherResponse, discountResponse] = await Promise.all([
+        promoService.getAllVouchers(),
+        promoService.getAllDiscounts(),
+      ]);
 
-        // Log individual promotions for detailed inspection
-        response.promotions.forEach((promo, index) => {
-          console.log(`Promotion ${index + 1}:`, {
-            id: promo.id,
-            name: promo.name,
-            type: promo.type,
-            status: promo.status,
-            discount: promo.discount,
-            startDate: promo.startDate,
-            endDate: promo.endDate,
-            applyType: promo.applyType,
-            categories: promo.categories,
-            products: promo.products,
-            code: promo.code,
-            minOrderValue: promo.minOrderValue,
-            maxDiscountValue: promo.maxDiscountValue,
-            usageLimit: promo.usageLimit,
-            usedCount: promo.usedCount,
-            isPublic: promo.isPublic,
-          });
-        });
-
-        // setPromotions(response.promotions);
-        setTotalPromotions(response.total);
-      } catch (err) {
-        console.error('Error fetching promotions:', err);
-        setError('Failed to fetch promotions');
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [typeFilter]
-  );
-
-  useEffect(() => {
-    if (typeFilter === 'all') {
-      setCombinedData([...voucherData, ...discountData]);
-    } else if (typeFilter === 'voucher') {
-      setCombinedData(voucherData);
-    } else {
-      setCombinedData(discountData);
+      console.log(voucherResponse.data);
+      console.log(voucherResponse.data);
+      setVoucherData(voucherResponse.data);
+      setDiscountData(discountResponse.data);
+      setCombinedData([...voucherResponse.data, ...discountResponse.data]);
+      console.log(combinedData);
+    } catch (err) {
+      console.error('Error fetching promotions:', err);
+      setError('Failed to fetch promotions');
+    } finally {
+      setIsLoading(false);
     }
-  }, [typeFilter, voucherData, discountData]);
+  }, []);
 
+  // Add useEffect to fetch data on mount
   useEffect(() => {
-    fetchPromotions(currentPage);
-    console.log('test:', totalPromotions);
-  }, [currentPage, fetchPromotions, typeFilter]);
+    fetchPromotions();
+  }, [fetchPromotions]);
 
-  const filteredPromotions = combinedData.filter(
-    (p) =>
-      p.name?.toLowerCase().includes(search.toLowerCase()) ||
-      p.code?.toLowerCase().includes(search.toLowerCase())
-  );
+  // Add debug log for data changes
+  useEffect(() => {
+    console.log('Voucher Data:', voucherData);
+    console.log('Discount Data:', discountData);
+    console.log('Combined Data:', combinedData);
+  }, [voucherData, discountData, combinedData]);
+
+  // Add filtered data based on typeFilter
+  const filteredData = useMemo(() => {
+    if (!combinedData) return [];
+
+    // First filter by type
+    let filtered =
+      typeFilter === 'all'
+        ? combinedData
+        : typeFilter === 'voucher'
+          ? voucherData
+          : discountData;
+
+    // Then filter by search term if exists
+    if (search.trim()) {
+      const searchTerm = search.toLowerCase().trim();
+      filtered = filtered.filter((promo) =>
+        promo.code?.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    return filtered;
+  }, [typeFilter, combinedData, voucherData, discountData, search]);
+
+  // Add debug log for search
+  useEffect(() => {
+    console.log('Search term:', search);
+    console.log('Filtered results:', filteredData?.length);
+  }, [search, filteredData]);
 
   const handleAddClick = () => {
     setEditingPromotion({
@@ -137,19 +125,49 @@ const PromoManager: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      // if (editingPromotion.id) {
-      //   const updated = await promoService.updatePromotion(
-      //     editingPromotion.id,
-      //     editingPromotion
-      //   );
-      //   // setPromotions((prev) =>
-      //   //   prev.map((p) => (p.id === updated.id ? updated : p))
-      //   // );
-      // } else {
-      //   const created = await promoService.createPromotion(editingPromotion);
-      //   // setPromotions((prev) => [...prev, created]);
-      // }
+      if (editingPromotion.type === 'voucher') {
+        // Add new voucher
+        const voucherData = {
+          code: editingPromotion.code || '',
+          discount: editingPromotion.discount,
+          startDate: editingPromotion.startDate,
+          endDate: editingPromotion.endDate,
+          status:
+            editingPromotion.status === 'EXPIRED'
+              ? 'INACTIVE'
+              : editingPromotion.status,
+          type: 'PERCENTAGE' as const,
+          minSpend: editingPromotion.minOrderValue || 0,
+          maxDiscountValue: editingPromotion.maxDiscountValue || 0,
+          usageLimit: editingPromotion.usageLimit || 0,
+          applyType: editingPromotion.applyType || 'ALL',
+          categories: editingPromotion.categories || [],
+          products: editingPromotion.products || [],
+        };
+        await promoService.createVoucher(voucherData);
+      } else {
+        // Add new discount
+        const discountData = {
+          name: editingPromotion.name || '',
+          description: editingPromotion.description || '',
+          discount: editingPromotion.discount,
+          startDate: editingPromotion.startDate,
+          endDate: editingPromotion.endDate,
+          status:
+            editingPromotion.status === 'EXPIRED'
+              ? 'INACTIVE'
+              : editingPromotion.status,
+          type: 'PERCENTAGE' as const,
+          minSpend: editingPromotion.minOrderValue || 0,
+          applyType: editingPromotion.applyType || 'ALL',
+          categories: editingPromotion.categories || [],
+          products: editingPromotion.products || [],
+        };
+        await promoService.createDiscount(discountData);
+      }
 
+      // Refresh data after adding
+      await fetchPromotions();
       setEditingPromotion(null);
     } catch (err) {
       console.error('Error saving promotion:', err);
@@ -173,31 +191,6 @@ const PromoManager: React.FC = () => {
       setIsLoading(false);
     }
   };
-
-  // const handleStatusChange = async (
-  //   id: string,
-  //   currentStatus: 'ACTIVE' | 'INACTIVE' | 'EXPIRED',
-  //   type: 'discount' | 'voucher'
-  // ) => {
-  //   try {
-  //     setIsLoading(true);
-  //     setError(null);
-  //     const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-  //     const updated = await promoService.updatePromotionStatus(
-  //       id,
-  //       newStatus,
-  //       type
-  //     );
-  //     setPromotions((prev) =>
-  //       prev.map((p) => (p.id === updated.id ? updated : p))
-  //     );
-  //   } catch (err) {
-  //     console.error('Error updating promotion status:', err);
-  //     setError('Failed to update promotion status');
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('vi-VN', {
@@ -243,9 +236,11 @@ const PromoManager: React.FC = () => {
           />
           <select
             value={typeFilter}
-            onChange={(e) =>
-              setTypeFilter(e.target.value as 'all' | 'discount' | 'voucher')
-            }
+            onChange={(e) => {
+              const newType = e.target.value as 'all' | 'discount' | 'voucher';
+              setTypeFilter(newType);
+              alert(`Selected type: ${newType}`);
+            }}
             className="px-3 py-2 border rounded"
           >
             <option value="all">All Types</option>
@@ -259,8 +254,7 @@ const PromoManager: React.FC = () => {
             <thead className="bg-gray-100">
               <tr>
                 <th className="border px-4 py-2">ID/Code</th>
-                <th className="border px-4 py-2">Name</th>
-                <th className="border px-4 py-2">Description</th>
+
                 <th className="border px-4 py-2">Discount</th>
                 <th className="border px-4 py-2">Start Date</th>
                 <th className="border px-4 py-2">End Date</th>
@@ -271,81 +265,82 @@ const PromoManager: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {combinedData?.map((promo) => (
-                <tr key={promo.id} className="hover:bg-gray-50">
-                  <td className="border px-4 py-2">{promo.code || promo.id}</td>
-                  <td className="border px-4 py-2">{promo.name}</td>
-                  <td className="border px-4 py-2">{promo.description}</td>
-                  <td className="border px-4 py-2 text-center">
-                    {promo.discount}%
-                    {promo.maxDiscountValue && (
-                      <div className="text-xs text-gray-500">
-                        Max: {promo.maxDiscountValue.toLocaleString()}đ
-                      </div>
-                    )}
-                  </td>
-                  <td className="border px-4 py-2 text-center">
-                    {formatDate(promo.startDate)}
-                  </td>
-                  <td className="border px-4 py-2 text-center">
-                    {formatDate(promo.endDate)}
-                  </td>
-                  <td className="border px-4 py-2 text-center capitalize">
-                    {promo.type}
-                  </td>
-                  <td className="border px-4 py-2 text-center">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-semibold ${
-                        promo.status === 'ACTIVE'
-                          ? 'bg-green-100 text-green-700'
-                          : promo.status === 'EXPIRED'
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-gray-200 text-gray-500'
-                      }`}
-                    >
-                      {promo.status}
-                    </span>
-                  </td>
-                  <td className="border px-4 py-2">
-                    {promo.type === 'voucher' ? (
-                      <div className="text-sm">
-                        <div>Min: {promo.minOrderValue?.toLocaleString()}đ</div>
-                        <div>
-                          Used: {promo.usedCount}/{promo.usageLimit}
+              {filteredData &&
+                filteredData.map((promo) => (
+                  <tr key={promo.id} className="hover:bg-gray-50">
+                    <td className="border px-4 py-2">
+                      {promo.code || promo.id}
+                    </td>
+
+                    <td className="border px-4 py-2 text-center">
+                      {promo.discount}%
+                      {promo.maxDiscountValue && (
+                        <div className="text-xs text-gray-500">
+                          Max: {promo.maxDiscountValue.toLocaleString()}đ
                         </div>
-                        {promo.isPublic !== undefined && (
-                          <div>{promo.isPublic ? 'Public' : 'Private'}</div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-sm">
-                        <div>{promo?.applyType}</div>
-                        {promo.categories && promo.categories.length > 0 && (
-                          <div>Categories: {promo.categories.length}</div>
-                        )}
-                        {promo.products && promo.products.length > 0 && (
-                          <div>Products: {promo.products.length}</div>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                  <td className="border px-4 py-2 text-center space-x-2">
-                    <button
-                      className="text-blue-600 hover:text-blue-800"
-                      onClick={() => setEditingPromotion(promo)}
-                    >
-                      <Pencil size={18} />
-                    </button>
-                    <button
-                      className="text-red-600 hover:text-red-800"
-                      onClick={() => setDeletingPromotion(promo)}
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {filteredPromotions.length === 0 && (
+                      )}
+                    </td>
+                    <td className="border px-4 py-2 text-center">
+                      {formatDate(promo.startDate)}
+                    </td>
+                    <td className="border px-4 py-2 text-center">
+                      {formatDate(promo.endDate)}
+                    </td>
+                    <td className="border px-4 py-2 text-center capitalize">
+                      {promo.type}
+                    </td>
+                    <td className="border px-4 py-2 text-center">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-semibold ${
+                          promo.status === 'ACTIVE'
+                            ? 'bg-green-100 text-green-700'
+                            : promo.status === 'INACTIVE'
+                              ? 'bg-gray-200 text-gray-500'
+                              : 'bg-red-100 text-red-700'
+                        }`}
+                      >
+                        {promo.status}
+                      </span>
+                    </td>
+                    <td className="border px-4 py-2">
+                      {promo.type === 'voucher' ? (
+                        <div className="text-sm">
+                          <div>
+                            Min: {promo.minOrderValue?.toLocaleString()}đ
+                          </div>
+                          <div>
+                            Used: {promo.usedCount}/{promo.usageLimit}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm">
+                          <div>{promo.applyType}</div>
+                          {promo.categories && promo.categories.length > 0 && (
+                            <div>Categories: {promo.categories.length}</div>
+                          )}
+                          {promo.products && promo.products.length > 0 && (
+                            <div>Products: {promo.products.length}</div>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="border px-4 py-2 text-center space-x-2">
+                      <button
+                        className="text-blue-600 hover:text-blue-800"
+                        onClick={() => setEditingPromotion(promo)}
+                      >
+                        <Pencil size={18} />
+                      </button>
+                      <button
+                        className="text-red-600 hover:text-red-800"
+                        onClick={() => setDeletingPromotion(promo)}
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              {filteredData.length === 0 && (
                 <tr>
                   <td colSpan={10} className="text-center py-4 text-gray-500">
                     No promotions found.

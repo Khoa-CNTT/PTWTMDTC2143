@@ -1,4 +1,5 @@
-import { IsString, IsInt, Min } from 'class-validator';
+import { IsString, IsInt, Min, IsOptional, IsEnum } from 'class-validator';
+import { InventoryStatus } from '@prisma/client';
 
 export class InventoryUpdateDTO {
   @IsString()
@@ -9,5 +10,13 @@ export class InventoryUpdateDTO {
 
   @IsInt()
   @Min(0)
-  quantityChange: number;
+  quantity: number;
+
+  @IsInt()
+  @Min(0)
+  reserved: number;
+
+  @IsOptional()
+  @IsEnum(InventoryStatus)
+  status?: InventoryStatus;
 }

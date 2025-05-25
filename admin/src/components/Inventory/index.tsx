@@ -1,3 +1,4 @@
+import { AxiosError } from 'axios';
 import React, { useState, useEffect } from 'react';
 import { MoreVertical } from 'lucide-react';
 import {
@@ -23,6 +24,9 @@ const Inventory: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [variants, setVariants] = useState<Variant[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,6 +50,7 @@ const Inventory: React.FC = () => {
       const inventoryData = await inventoryService.getAllInventory();
       setData(inventoryData);
     } catch (err) {
+      console.error('Failed to fetch inventory:', err);
       setError('Failed to fetch inventory data');
       toast.error('Failed to fetch inventory data');
     } finally {
@@ -58,6 +63,7 @@ const Inventory: React.FC = () => {
       const data = await warehouseService.getAllWarehouses();
       setWarehouses(data);
     } catch (err) {
+      console.error('Failed to fetch warehouses:', err);
       toast.error('Failed to fetch warehouses');
     }
   };
@@ -65,11 +71,10 @@ const Inventory: React.FC = () => {
   const fetchVariants = async () => {
     try {
       const res = await variantService.getAllVariants();
-      console.log('variants', res.variants);
-
       setVariants(res.variants);
     } catch (err) {
-      // Xử lý lỗi nếu cần
+      console.error('Failed to fetch variants:', err);
+      toast.error('Failed to fetch variants');
     }
   };
 
@@ -83,7 +88,9 @@ const Inventory: React.FC = () => {
     if (!itemToEdit) return;
 
     try {
-      setLoading(true);
+      setIsUpdating(true);
+      setError(null);
+
       const updated = await inventoryService.updateInventoryQuantity({
         variantId: itemToEdit.variantId,
         warehouseId: itemToEdit.warehouseId,
@@ -100,32 +107,54 @@ const Inventory: React.FC = () => {
             : item
         )
       );
+
       setItemToEdit(null);
       toast.success('Inventory updated successfully');
     } catch (err) {
-      toast.error('Failed to update inventory');
+      console.error('Failed to update inventory:', err);
+
+      let errorMessage = 'Failed to update inventory';
+
+      if (err instanceof AxiosError && err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+
+      toast.error(errorMessage);
+      setError(errorMessage);
     } finally {
-      setLoading(false);
+      setIsUpdating(false);
     }
   };
 
   const handleDelete = async (variantId: string, warehouseId: string) => {
     try {
-      setLoading(true);
-      // Note: You'll need to add a delete endpoint to your API
-      // await inventoryService.deleteInventory(variantId, warehouseId);
+      setIsDeleting(true);
+      setError(null);
+
+      await inventoryService.deleteInventory(variantId, warehouseId);
+
       setData((prev) =>
         prev.filter(
           (item) =>
             !(item.variantId === variantId && item.warehouseId === warehouseId)
         )
       );
+
       setShowMenu(null);
       toast.success('Inventory item deleted successfully');
     } catch (err) {
-      toast.error('Failed to delete inventory item');
+      console.error('Failed to delete inventory item:', err);
+
+      let errorMessage = 'Failed to delete inventory item';
+
+      if (err instanceof AxiosError && err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+
+      toast.error(errorMessage);
+      setError(errorMessage);
     } finally {
-      setLoading(false);
+      setIsDeleting(false);
     }
   };
 
@@ -142,7 +171,9 @@ const Inventory: React.FC = () => {
 
   const handleAddItem = async () => {
     try {
-      setLoading(true);
+      setIsAdding(true);
+      setError(null);
+
       const created = await inventoryService.addProductToWarehouse({
         variantId: newItem.variantId,
         warehouseId: newItem.warehouseId,
@@ -162,11 +193,21 @@ const Inventory: React.FC = () => {
         reserved: 0,
         status: undefined,
       });
+
       toast.success('Inventory item added successfully');
     } catch (err) {
-      toast.error('Failed to add inventory item');
+      console.error('Failed to add inventory item:', err);
+
+      let errorMessage = 'Failed to add inventory item';
+
+      if (err instanceof AxiosError && err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+
+      toast.error(errorMessage);
+      setError(errorMessage);
     } finally {
-      setLoading(false);
+      setIsAdding(false);
     }
   };
 
@@ -183,15 +224,18 @@ const Inventory: React.FC = () => {
 
   return (
     <div className="p-4">
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>
+      )}
       <div className="bg-white rounded-lg shadow p-4">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-semibold mb-4">Inventory List</h1>
           <button
-            className="bg-blue-500 text-white rounded-lg px-4 py-2"
+            className="bg-blue-500 text-white rounded-lg px-4 py-2 disabled:bg-blue-300"
             onClick={() => setShowAddModal(true)}
-            disabled={loading}
+            disabled={loading || isAdding}
           >
-            ADD INVENTORY
+            {isAdding ? 'Adding...' : 'ADD INVENTORY'}
           </button>
         </div>
         <table className="w-full text-left text-sm relative">
@@ -391,8 +435,7 @@ const Inventory: React.FC = () => {
                   <option value="">Select variant</option>
                   {variants.map((variant) => (
                     <option key={variant.id} value={variant.id}>
-                      {variant.id} -{' '}
-                      {variant.attributes.map((a) => a.value).join(', ')}
+                      {variant.id} - {variant.sku || 'No SKU'}
                     </option>
                   ))}
                 </select>
@@ -453,16 +496,16 @@ const Inventory: React.FC = () => {
               <button
                 className="px-4 py-2 rounded bg-gray-200"
                 onClick={() => setItemToEdit(null)}
-                disabled={loading}
+                disabled={isUpdating}
               >
                 Cancel
               </button>
               <button
                 className="px-4 py-2 rounded bg-blue-600 text-white disabled:bg-blue-300"
                 onClick={handleSaveEdit}
-                disabled={loading}
+                disabled={isUpdating}
               >
-                {loading ? 'Saving...' : 'Save'}
+                {isUpdating ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>
@@ -516,7 +559,7 @@ const Inventory: React.FC = () => {
                   <option value="">Select Variant</option>
                   {variants?.map((variant) => (
                     <option key={variant.id} value={variant.id}>
-                      {variants.map((data) => data.sku)}
+                      {variant.id} - {variant.sku || 'No SKU'}
                     </option>
                   ))}
                 </select>
@@ -588,7 +631,7 @@ const Inventory: React.FC = () => {
                     status: undefined,
                   });
                 }}
-                disabled={loading}
+                disabled={isAdding}
               >
                 Cancel
               </button>
@@ -596,7 +639,7 @@ const Inventory: React.FC = () => {
                 className="px-4 py-2 rounded bg-blue-600 text-white disabled:bg-blue-300"
                 onClick={handleAddItem}
                 disabled={
-                  loading ||
+                  isAdding ||
                   !newItem.variantId ||
                   !newItem.warehouseId ||
                   newItem.quantity < 0 ||
@@ -604,7 +647,37 @@ const Inventory: React.FC = () => {
                   !newItem.status
                 }
               >
-                {loading ? 'Saving...' : 'Save'}
+                {isAdding ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMenu !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-96">
+            <h2 className="text-xl font-semibold mb-4">Confirm Action</h2>
+            <p className="mb-4">
+              Are you sure you want to delete this inventory item?
+            </p>
+            <div className="flex justify-end space-x-2">
+              <button
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                onClick={() => setShowMenu(null)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                onClick={() => {
+                  const item = data[showMenu];
+                  handleDelete(item.variantId, item.warehouseId);
+                }}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
