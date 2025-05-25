@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MoreVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MdOutlinePendingActions } from 'react-icons/md';
 import { IoCheckmarkDoneSharp } from 'react-icons/io5';
-import { RiRefundFill } from 'react-icons/ri';
+
 import { CgDanger } from 'react-icons/cg';
 import {
   MdOutlineNavigateNext,
@@ -12,40 +12,13 @@ import {
   MdSkipPrevious,
 } from 'react-icons/md';
 import { TbFileInvoice } from 'react-icons/tb';
-import { FaRegUser } from 'react-icons/fa';
-const allInvoice = [
-  {
-    id: '#6979',
-    date: 'Apr 15, 2023, 10:21',
-    name: 'Cristine Easom',
-    email: 'ceasomw@theguardian.com',
-    blance: 'Paid',
-    total: '$ 1,000',
-    blanceColor: 'bg-green-100 text-green-600',
-    avatar: 'https://i.pravatar.cc/40?img=1',
-  },
-  {
-    id: '#6624',
-    date: 'Apr 17, 2023, 6:43',
-    name: 'Fayre Screech',
-    email: 'fscreechs@army.mil',
-    blance: 'Paid',
-    total: '$ 1,000',
-    blanceColor: 'bg-green-100 text-green-600',
-    avatar: 'https://i.pravatar.cc/40?img=2',
-  },
-  //test du lieu
-  ...Array.from({ length: 28 }, (_, i) => ({
-    id: `#6${700 + i}`,
-    date: `Apr ${10 + i}, 2023`,
-    name: `Customer ${i + 1}`,
-    email: `email${i + 1}@example.com`,
-    blance: i % 3 === 0 ? 'Paid' : `-$ ${(i + 1) * 27.5}`,
-    total: `$ ${(i + 1) * 100}`,
-    blanceColor: i % 3 === 0 ? 'bg-green-100 text-green-600' : '',
-    avatar: `https://i.pravatar.cc/40?img=${i + 3}`,
-  })),
-];
+
+import {
+  getAllInvoices,
+  Invoice,
+  getInvoicesByStatus,
+  deleteInvoice,
+} from '../../services/invoiceService';
 
 const Badge = ({ text, color }: { text: string; color: string }) => (
   <span className={`px-2 py-1 text-xs rounded-full font-medium ${color}`}>
@@ -55,70 +28,142 @@ const Badge = ({ text, color }: { text: string; color: string }) => (
 
 const InvoiceList = () => {
   const navigate = useNavigate();
-  const [invoices, setInvoices] = useState(allInvoice);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState<number | null>(null);
+  const [stats, setStats] = useState({
+    total: 0,
+    paid: 0,
+    pending: 0,
+    cancelled: 0,
+  });
 
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(invoices.length / itemsPerPage);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const paginatedInvoices = invoices.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  useEffect(() => {
+    fetchInvoices();
+  }, [currentPage, itemsPerPage]);
 
-  const handleView = (invoiceId: string) => {
-    navigate(`/invoice-details`);
+  const fetchInvoices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await getAllInvoices(currentPage, itemsPerPage);
+      setInvoices(response.invoices);
+      setTotalPages(response.totalPages);
+
+      // Fetch stats
+      const [paid, pending, cancelled] = await Promise.all([
+        getInvoicesByStatus('PAID', 1, 1),
+        getInvoicesByStatus('PENDING', 1, 1),
+        getInvoicesByStatus('CANCELLED', 1, 1),
+      ]);
+
+      setStats({
+        total: response.total,
+        paid: paid.total,
+        pending: pending.total,
+        cancelled: cancelled.total,
+      });
+    } catch (err) {
+      console.error('Error fetching invoices:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch invoices');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (invoiceId: string) => {
-    const updatedInvoices = invoices.filter(
-      (invoice) => invoice.id !== invoiceId
-    );
-    setInvoices(updatedInvoices);
+  const handleView = (invoiceId: string) => {
+    navigate(`/invoice-details/${invoiceId}`);
+  };
 
-    if (updatedInvoices.length % itemsPerPage === 0 && currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+  const handleDelete = async (invoiceId: string) => {
+    try {
+      await deleteInvoice(invoiceId);
+      fetchInvoices(); // Refresh the list
+      setShowMenu(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete invoice');
     }
-
-    setShowMenu(null);
   };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     setShowMenu(null);
   };
+
   const handleItemsPerPageChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     setItemsPerPage(Number(e.target.value));
     setCurrentPage(1);
   };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'PAID':
+        return 'bg-green-100 text-green-600';
+      case 'PENDING':
+        return 'bg-yellow-100 text-yellow-600';
+      case 'CANCELLED':
+        return 'bg-red-100 text-red-600';
+      default:
+        return 'bg-gray-100 text-gray-600';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+          role="alert"
+        >
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{error}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
         {[
           {
-            name: 'Customers',
-            count: '12',
+            name: 'Total Invoices',
+            count: stats.total.toString(),
             color: 'from-yellow-400 to-yellow-500',
-            icon: <FaRegUser />,
-          },
-          {
-            name: 'Invoices',
-            count: '30',
-            color: 'from-green-500 to-green-400',
             icon: <TbFileInvoice />,
           },
           {
             name: 'Paid',
-            count: '9',
-            color: 'from-fuchsia-500 to-pink-400',
+            count: stats.paid.toString(),
+            color: 'from-green-500 to-green-400',
             icon: <IoCheckmarkDoneSharp />,
           },
           {
-            name: 'Unpaid',
-            count: '1',
+            name: 'Pending',
+            count: stats.pending.toString(),
+            color: 'from-fuchsia-500 to-pink-400',
+            icon: <MdOutlinePendingActions />,
+          },
+          {
+            name: 'Cancelled',
+            count: stats.cancelled.toString(),
             color: 'from-blue-600 to-blue-400',
             icon: <CgDanger />,
           },
@@ -135,6 +180,7 @@ const InvoiceList = () => {
           </div>
         ))}
       </div>
+
       <div className="bg-white rounded-lg shadow p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -151,8 +197,10 @@ const InvoiceList = () => {
           </div>
           <input
             type="text"
-            placeholder="Search Order"
+            placeholder="Search Invoice"
             className="border rounded px-3 py-2 w-64"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
@@ -160,7 +208,7 @@ const InvoiceList = () => {
           <thead>
             <tr className="text-gray-500 border-b">
               <th className="py-2 px-2">#</th>
-              <th className="py-2 px-2">CUSTOMERS</th>
+              <th className="py-2 px-2">INVOICE NUMBER</th>
               <th className="py-2 px-2">TOTAL</th>
               <th className="py-2 px-2">DATE</th>
               <th className="py-2 px-2">STATUS</th>
@@ -168,30 +216,20 @@ const InvoiceList = () => {
             </tr>
           </thead>
           <tbody>
-            {paginatedInvoices.map((invoice, index) => (
-              <tr className="border-b relative" key={index}>
-                <td className="py-2 px-2 text-blue-600">{invoice.id}</td>
-                <td className="py-2 px-2 flex items-center gap-2">
-                  <img
-                    src={invoice.avatar}
-                    className="w-8 h-8 rounded-full"
-                    alt=""
+            {invoices.map((invoice, index) => (
+              <tr className="border-b relative" key={invoice.id}>
+                <td className="py-2 px-2 text-blue-600">{index + 1}</td>
+                <td className="py-2 px-2">{invoice.invoiceNumber}</td>
+                <td className="py-2 px-2">${invoice.totalAmount.toFixed(2)}</td>
+                <td className="py-2 px-2">
+                  {new Date(invoice.createdAt).toLocaleDateString()}
+                </td>
+                <td className="py-2 px-2">
+                  <Badge
+                    text={invoice.status}
+                    color={getStatusColor(invoice.status)}
                   />
-                  <div>
-                    <div className="font-medium">{invoice.name}</div>
-                    <div className="text-xs text-gray-500">{invoice.email}</div>
-                  </div>
                 </td>
-                <td className="py-2 px-2">{invoice.total}</td>
-                <td className="py-2 px-2">{invoice.date}</td>
-                <td className={`py-2 px-2`}>
-                  <span
-                    className={`px-2 py-1 text-xs rounded-full font-medium ${invoice.blanceColor}`}
-                  >
-                    {invoice.blance}
-                  </span>
-                </td>
-
                 <td className="py-2 px-2">
                   <div className="relative inline-block text-left">
                     <button

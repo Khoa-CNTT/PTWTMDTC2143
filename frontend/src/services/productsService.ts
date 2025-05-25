@@ -1,6 +1,27 @@
 import { Brand } from './brandsService';
 import api from './api';
 
+export interface Variant {
+  id: string;
+  sku: string;
+  price: number;
+  discountedPrice?: number;
+  compareAtPrice?: number;
+  weight?: number;
+  weightUnit?: string;
+  dimensions?: string;
+  description?: string;
+  status?: string;
+  images?: ProductImage[];
+  optionValues?: {
+    id: string;
+    value: string;
+    optionId: string;
+    optionName: string;
+    optionValueId?: string;
+  }[];
+}
+
 export interface ProductImage {
   id: string;
   imageUrl: string;
@@ -31,25 +52,7 @@ export interface Products {
       value: string;
     }[];
   }[];
-  variants?: {
-    id: string;
-    sku: string;
-    price: number;
-    discountedPrice?: number;
-    compareAtPrice?: number;
-    weight?: number;
-    weightUnit?: string;
-    dimensions?: string;
-    description?: string;
-    status?: string;
-    images?: ProductImage[];
-    optionValues?: {
-      id: string;
-      value: string;
-      optionId: string;
-      optionName: string;
-    }[];
-  }[];
+  variants?: Variant[];
 }
 
 export interface ProductsResponse {
@@ -59,25 +62,11 @@ export interface ProductsResponse {
   currentPage: number;
 }
 
-interface PaginationParams {
-  page?: number;
-  limit?: number;
-  cursor?: string;
-}
-
-interface CategoryParams extends PaginationParams {
-  categoryId: string;
-}
-
-interface SearchParams extends PaginationParams {
-  keyword: string;
-}
-
 export const getAllProducts = async (
   page = 1,
   limit = 8
 ): Promise<ProductsResponse> => {
-  const params: PaginationParams = { page, limit };
+  const params: { page: number; limit: number } = { page, limit };
   const res = await api.get('/product', { params });
   return res.data;
 };
@@ -87,7 +76,10 @@ export const getProductsByCategory = async (
   limit = 10,
   cursor?: string
 ) => {
-  const params: CategoryParams = { categoryId, limit };
+  const params: { categoryId: string; limit: number; cursor?: string } = {
+    categoryId,
+    limit,
+  };
   if (cursor) params.cursor = cursor;
   const res = await api.get(`/product/by-category`, { params });
   return res.data;
@@ -98,7 +90,10 @@ export const searchProducts = async (
   limit = 10,
   cursor?: string
 ) => {
-  const params: SearchParams = { keyword, limit };
+  const params: { keyword: string; limit: number; cursor?: string } = {
+    keyword,
+    limit,
+  };
   if (cursor) params.cursor = cursor;
   const res = await api.get(`/product/search-by-name`, { params });
   return res.data;
@@ -110,7 +105,7 @@ export const getProductVariant = async (variantId: string) => {
 };
 
 export const getAllVariants = async (limit = 50, cursor?: string) => {
-  const params: PaginationParams = { limit };
+  const params: { limit: number; cursor?: string } = { limit };
   if (cursor) params.cursor = cursor;
   const res = await api.get(`/product/variants`, { params });
   return res.data;
@@ -118,5 +113,10 @@ export const getAllVariants = async (limit = 50, cursor?: string) => {
 
 export const getProductById = async (productId: string): Promise<Products> => {
   const res = await api.get(`/product/${productId}`);
+  return res.data;
+};
+
+export const getBestDealProducts = async (limit = 10) => {
+  const res = await api.get('/product/best-deal', { params: { limit } });
   return res.data;
 };

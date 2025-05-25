@@ -14,9 +14,9 @@ const BestDeal: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await getBestDealProducts(10);
-        console.log('BestDeal API data:', data);
-        setProducts(Array.isArray(data) ? data : data.products || []);
+        const response = await getBestDealProducts(10);
+        console.log('BestDeal API response:', response);
+        setProducts(response.products || []);
       } catch (err) {
         console.error('Error fetching best deal products:', err);
         setError('Không thể tải danh sách sản phẩm. Vui lòng thử lại sau.');

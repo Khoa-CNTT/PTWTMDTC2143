@@ -1,58 +1,34 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { getInvoiceById, Invoice } from '../../services/invoiceService';
 
 const InvoiceDetails = () => {
-  const items = [
-    {
-      id: 'item1',
-      description: 'Wireless Bluetooth Headphones',
-      variant: 'Black',
-      image: '/images/products/headphones.jpg',
-      cost: 89.99,
-      qty: 1,
-      price: 89.99,
-    },
-    {
-      id: 'item2',
-      description: 'USB-C Charging Cable (2m)',
-      variant: 'White',
-      image: '/images/products/cable.jpg',
-      cost: 12.5,
-      qty: 2,
-      price: 25.0,
-    },
-    {
-      id: 'item3',
-      description: 'Ergonomic Office Chair',
-      variant: 'Gray Fabric',
-      image: '/images/products/chair.jpg',
-      cost: 199.0,
-      qty: 1,
-      price: 199.0,
-    },
-    {
-      id: 'item4',
-      description: 'Gaming Mouse Pad XL',
-      variant: 'Red Edge',
-      image: '/images/products/mousepad.jpg',
-      cost: 18.75,
-      qty: 1,
-      price: 18.75,
-    },
-  ];
+  const { id } = useParams<{ id: string }>();
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const subtotal = items.reduce((sum, item) => sum + item.price, 0);
-  const discount = 28;
-  const total = subtotal - discount;
+  useEffect(() => {
+    const fetchInvoice = async () => {
+      if (!id) return;
+      try {
+        const data = await getInvoiceById(id);
+        setInvoice(data);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Failed to fetch invoice'
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const invoice = {
-    id: 'inv001',
-    userId: 'user123',
-    transactionId: 'txn789',
-    invoiceNumber: '86423',
-    totalAmount: total,
-    status: 'PAID',
-    createdAt: '2021-04-25',
-  };
+    fetchInvoice();
+  }, [id]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!invoice) return <div>Invoice not found</div>;
 
   return (
     <div className="p-6">
@@ -68,7 +44,10 @@ const InvoiceDetails = () => {
               Invoice #{invoice.invoiceNumber}
             </h2>
             <p>
-              Date Issued: <strong>{invoice.createdAt}</strong>
+              Date Issued:{' '}
+              <strong>
+                {new Date(invoice.createdAt).toLocaleDateString()}
+              </strong>
             </p>
             <p>
               Status: <strong>{invoice.status}</strong>
@@ -95,7 +74,7 @@ const InvoiceDetails = () => {
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {invoice.items.map((item) => (
                 <tr key={item.id} className="border-t">
                   <td className="px-4 py-2 flex items-center gap-3">
                     <img
@@ -123,11 +102,12 @@ const InvoiceDetails = () => {
           <div className="w-64 space-y-2">
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span className="font-medium">{subtotal.toFixed(2)}$</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Discount:</span>
-              <span className="font-medium">{discount.toFixed(2)}$</span>
+              <span className="font-medium">
+                {invoice.items
+                  .reduce((sum, item) => sum + item.price, 0)
+                  .toFixed(2)}
+                $
+              </span>
             </div>
             <div className="flex justify-between border-t pt-2 text-lg font-semibold">
               <span>Total:</span>
