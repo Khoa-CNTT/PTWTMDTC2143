@@ -39,7 +39,7 @@ const SearchBox: React.FC = () => {
   return (
     <div className="relative w-full">
       <div
-        className="searchBox h-[44px] px-4 py-2 rounded-md flex items-center gap-2 transition-colors duration-300 border-2 border-gray-300 hover:border-gray-400 focus-within:border-gray-400 relative w-full"
+        className="searchBox h-[44px] px-3 py-2 rounded-md flex items-center gap-2 transition-colors duration-300 border-2 border-gray-300 hover:border-gray-400 focus-within:border-gray-400 relative ml-20 mt-2"
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 200)}
         tabIndex={0}

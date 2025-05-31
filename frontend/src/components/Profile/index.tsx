@@ -34,31 +34,29 @@ const Profile: React.FC = () => {
 
     try {
       setIsLoggingOut(true);
-
-      // Thêm delay 1 giây để người dùng thấy trạng thái loading
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      await logout(authLogout);
-
-      // Đóng dialog và thông báo thành công
+      const success = await logout(authLogout);
       setIsLogoutDialogOpen(false);
 
-      // Thêm delay 0.5 giây trước khi hiển thị thông báo thành công
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (success) {
+        toast.update(toastId, {
+          render: 'Đăng xuất thành công',
+          type: 'success',
+          isLoading: false,
+          autoClose: 2000,
+          closeButton: true,
+        });
 
-      toast.update(toastId, {
-        render: 'Đăng xuất thành công',
-        type: 'success',
-        isLoading: false,
-        autoClose: 2000,
-        closeButton: true,
-      });
-
-      // Thêm delay 1 giây trước khi chuyển trang
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Chuyển hướng về trang login
-      navigate('/login', { replace: true });
+        // Chuyển hướng về trang login ngay lập tức
+        navigate('/login', { replace: true });
+      } else {
+        toast.update(toastId, {
+          render: 'Đăng xuất thất bại. Vui lòng thử lại.',
+          type: 'error',
+          isLoading: false,
+          autoClose: 3000,
+          closeButton: true,
+        });
+      }
     } catch (error) {
       console.error('Logout error:', error);
       toast.update(toastId, {

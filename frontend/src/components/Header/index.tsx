@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../../assets/images/MESSIU-logo2.png';
 import SearchBox from '../SearchBox';
@@ -16,10 +16,14 @@ import { BsFullscreen } from 'react-icons/bs';
 import { GiPc } from 'react-icons/gi';
 import { FaTv } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
-import { logout as logoutService } from '../../services/auth.services';
 import { FaHeart } from 'react-icons/fa';
-import { useEffect } from 'react';
-import { categoryService } from '../../services/categoryService'; // adjust path if needed
+import { categoryService } from '../../services/categoryService';
+
+interface Category {
+  id: string;
+  name: string;
+  // Add other category properties as needed
+}
 
 function getCategoryIcon(name: string) {
   const lower = name.toLowerCase();
@@ -28,28 +32,28 @@ function getCategoryIcon(name: string) {
   if (lower.includes('đồng hồ')) return <MdWatch className="text-2xl" />;
   if (lower.includes('camera'))
     return <TbDeviceComputerCamera className="text-2xl" />;
-
   if (lower.includes('pc')) return <GiPc className="text-2xl" />;
   if (lower.includes('màn hình')) return <BsFullscreen className="text-2xl" />;
   if (lower.includes('tivi') || lower.includes('tv'))
     return <FaTv className="text-2xl" />;
   return null;
 }
+
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
-
-  const [categories, setCategories] = useState([]);
+  const { user, isAuthenticated } = useAuth();
+  const [categories, setCategories] = useState<Category[]>([]);
+  // const [isHoveringUser, setIsHoveringUser] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        // Gọi API lấy category cha (parent)
         const res = await categoryService.getRootCategoriesWithProductCount();
-        console.log(res);
         setCategories(res);
       } catch (err) {
-        setCategories([]); // fallback nếu lỗi
+        setCategories([]);
       }
     };
     fetchCategories();
@@ -70,6 +74,7 @@ const Header: React.FC = () => {
       navigate('/login');
     }
   };
+
   const handleWishlistClick = () => {
     if (isAuthenticated) {
       navigate('/wishlist');
@@ -77,6 +82,7 @@ const Header: React.FC = () => {
       navigate('/login');
     }
   };
+
   const StyledBadge = styled(Badge)(({ theme }) => ({
     '& .MuiBadge-badge': {
       right: -3,
@@ -85,13 +91,6 @@ const Header: React.FC = () => {
       padding: '0 4px',
     },
   }));
-  // Replace direct logout with service call to clear context and backend
-  const handleLogout = async () => {
-    await logoutService(logout);
-  };
-  const [isOpen, setIsOpen] = useState(false);
-  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
-  const [isHoveringUser, setIsHoveringUser] = useState(false);
 
   return (
     <header
@@ -1359,49 +1358,51 @@ const Header: React.FC = () => {
               </Button>
             </div> */}
             <ul className="flex items-center justify-end gap-0 lg:gap-3 w-full">
-              <>
-                <li>
-                  <Button
-                    onClick={handleWishlistClick}
-                    className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
-                    startIcon={
-                      <StyledBadge badgeContent={2} color="secondary">
-                        <FaHeart className="text-xl text-pink-500" />
-                      </StyledBadge>
-                    }
-                  >
-                    <div className="info flex flex-col">
-                      <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
-                        Wishlist
-                      </h4>
-                      <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
-                        2 items
-                      </span>
-                    </div>
-                  </Button>
-                </li>
-                <li>
-                  <Button
-                    onClick={handleCartClick}
-                    className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
-                    startIcon={
-                      <StyledBadge badgeContent={4} color="secondary">
-                        <ShoppingCartIcon />
-                      </StyledBadge>
-                    }
-                  >
-                    <div className="info flex flex-col">
-                      <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
-                        Cart
-                      </h4>
-                      <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
-                        $150.000
-                      </span>
-                    </div>
-                  </Button>
-                </li>
-                <div className="h-6 w-[1px] bg-gray-300"></div>
-              </>
+              {isAuthenticated ? (
+                <>
+                  <li>
+                    <Button
+                      onClick={handleWishlistClick}
+                      className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
+                      startIcon={
+                        <StyledBadge badgeContent={2} color="secondary">
+                          <FaHeart className="text-xl text-pink-500" />
+                        </StyledBadge>
+                      }
+                    >
+                      <div className="info flex flex-col">
+                        <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
+                          Wishlist
+                        </h4>
+                        <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
+                          2 items
+                        </span>
+                      </div>
+                    </Button>
+                  </li>
+                  <li>
+                    <Button
+                      onClick={handleCartClick}
+                      className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
+                      startIcon={
+                        <StyledBadge badgeContent={4} color="secondary">
+                          <ShoppingCartIcon />
+                        </StyledBadge>
+                      }
+                    >
+                      <div className="info flex flex-col">
+                        <h4 className="leading-3 text-[14px] text-[rgba(0,0,0,0.6)] font-[500] mb-0 capitalize text-left justify-start">
+                          Cart
+                        </h4>
+                        <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
+                          $150.000
+                        </span>
+                      </div>
+                    </Button>
+                  </li>
+                  <div className="h-6 w-[1px] bg-gray-300"></div>
+                </>
+              ) : null}
 
               <li
                 onMouseEnter={() => setIsHoveringUser(true)}
@@ -1412,17 +1413,8 @@ const Header: React.FC = () => {
                   onClick={handleUserClick}
                   className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
                 >
-                  {isAuthenticated ? user?.name || 'Profile' : 'Đăng nhập'}
+                  {isAuthenticated ? user?.name || 'Profile' : 'Login'}
                 </Button>
-
-                {isAuthenticated && isHoveringUser && (
-                  <div
-                    onClick={handleLogout}
-                    className="absolute top-full left-0 mt-1 bg-white border rounded shadow-lg px-4 py-2 text-sm text-red-500 hover:bg-gray-100 cursor-pointer z-50"
-                  >
-                    Đăng xuất
-                  </div>
-                )}
               </li>
             </ul>
           </div>

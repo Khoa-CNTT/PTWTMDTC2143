@@ -67,14 +67,49 @@ export const login = async (
 
 export const logout = async (logoutContext: () => void) => {
   try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const response = await axiosInstance.post(`/auth/logout/${user.id}`);
+    // Lấy user ID từ localStorage
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      // Nếu không có user, chỉ cần xóa dữ liệu local
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('rememberedEmail');
+      logoutContext();
+      return true;
+    }
+
+    const user = JSON.parse(userStr);
+    if (!user.id) {
+      // Nếu user không hợp lệ, chỉ cần xóa dữ liệu local
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('rememberedEmail');
+      logoutContext();
+      return true;
+    }
+
+    try {
+      // Gọi API logout
+      await axiosInstance.post(`/auth/logout/${user.id}`);
+    } catch (apiError) {
+      console.error('Logout API error:', apiError);
+      // Bỏ qua lỗi API, vẫn tiếp tục xóa dữ liệu local
+    }
+
+    // Xóa dữ liệu local
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('rememberedEmail');
     logoutContext();
-    return response.data;
+
+    return true;
   } catch (error) {
     console.error('Logout error:', error);
-    throw error;
+    // Vẫn xóa dữ liệu local ngay cả khi có lỗi
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('rememberedEmail');
+    logoutContext();
+    return true; // Trả về true vì đã xóa dữ liệu local thành công
   }
 };
