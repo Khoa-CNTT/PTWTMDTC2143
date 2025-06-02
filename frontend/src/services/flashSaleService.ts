@@ -66,6 +66,8 @@ class FlashSaleService {
     }
 
     const response = await api.get(`/flashsale?${params.toString()}`);
+    console.log('API Response:', response);
+    console.log('API Response Data:', response.data);
     return response.data;
   }
 
