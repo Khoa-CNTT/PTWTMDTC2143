@@ -115,11 +115,12 @@ export const getProductsByCategory = async (
   }
 };
 
-export const searchProducts = async (
+// API search product by keyword
+export const searchProductsByKeyword = async (
   keyword: string,
   limit = 10,
   cursor?: string
-): Promise<ProductsResponse> => {
+): Promise<Products[]> => {
   try {
     const params: { keyword: string; limit: number; cursor?: string } = {
       keyword,
@@ -130,10 +131,17 @@ export const searchProducts = async (
       params,
       timeout: 30000,
     });
-    return res.data;
+    // Chuẩn hóa trả về mảng products
+    if (Array.isArray(res.data.products)) {
+      return res.data.products;
+    }
+    if (Array.isArray(res.data.data)) {
+      return res.data.data;
+    }
+    return [];
   } catch (error) {
     console.error('Error searching products:', error);
-    throw error;
+    return [];
   }
 };
 

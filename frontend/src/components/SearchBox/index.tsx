@@ -2,27 +2,13 @@ import React, { useState } from 'react';
 import { IoSearchSharp } from 'react-icons/io5';
 import Button from '@mui/material/Button';
 import './index.css';
+import {
+  searchProductsByKeyword,
+  Products,
+} from '../../services/productsService';
+import { Link } from 'react-router-dom';
+
 const SearchBox: React.FC = () => {
-  const productSuggestions = [
-    {
-      id: 1,
-      name: 'iPhone 15 Pro Max',
-      price: '34.990.000₫',
-      image: '/images/iphone.jpg',
-    },
-    {
-      id: 2,
-      name: 'Samsung Galaxy S24',
-      price: '27.990.000₫',
-      image: '/images/samsung.jpg',
-    },
-    {
-      id: 3,
-      name: 'MacBook Air M3',
-      price: '28.990.000₫',
-      image: '/images/macbook.jpg',
-    },
-  ];
   const popularKeywords = [
     'iPhone 15 Pro',
     'Laptop gaming',
@@ -32,10 +18,25 @@ const SearchBox: React.FC = () => {
   ];
   const [focused, setFocused] = useState(false);
   const [query, setQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Products[]>([]);
+  const [searching, setSearching] = useState(false);
 
-  const filteredProducts = productSuggestions.filter((item) =>
-    item.name.toLowerCase().includes(query.toLowerCase())
-  );
+  const handleSearch = async (q: string) => {
+    setSearching(true);
+    const results = await searchProductsByKeyword(q, 8);
+    setSearchResults(results);
+    setSearching(false);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(e.target.value);
+    if (e.target.value.trim() !== '') {
+      handleSearch(e.target.value);
+    } else {
+      setSearchResults([]);
+    }
+  };
+
   return (
     <div className="relative w-full">
       <div
@@ -47,7 +48,7 @@ const SearchBox: React.FC = () => {
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={handleInputChange}
           placeholder="Search for products..."
           className="w-full h-full bg-transparent outline-none border-none text-sm ml-1"
         />
@@ -57,13 +58,17 @@ const SearchBox: React.FC = () => {
       </div>
 
       {focused && (
-        <div className="absolute top-full left-0 mt-2 w-full bg-white shadow-lg border rounded-md z-50 p-4 max-h-[300px] overflow-auto">
+        <div
+          className="ml-20 absolute top-full left-0 mt-2 bg-white shadow-lg border rounded-md z-50 max-h-[300px] overflow-auto w-full min-w-0"
+          style={{ width: '90%' }}
+        >
+          {/* Đảm bảo dropdown suggestion có cùng width với input */}
           {query.trim() === '' ? (
             <>
-              <div className="mb-2 text-gray-600 text-sm font-medium">
+              <div className="ml-5 mb-2 text-gray-600 text-sm font-medium">
                 Popular Searches
               </div>
-              <ul className="grid grid-cols-2 gap-2">
+              <ul className="ml-10 grid grid-cols-2 gap-2">
                 {popularKeywords.map((kw, i) => (
                   <li
                     key={i}
@@ -79,24 +84,38 @@ const SearchBox: React.FC = () => {
               <div className="mb-2 text-gray-600 text-sm font-medium">
                 Product Suggestions
               </div>
-              {filteredProducts.length > 0 ? (
+              {searching ? (
+                <div className="text-sm text-gray-500 italic">Searching...</div>
+              ) : searchResults.length > 0 ? (
                 <ul className="divide-y">
-                  {filteredProducts.map((item) => (
+                  {searchResults.map((item) => (
                     <li
                       key={item.id}
                       className="py-2 flex items-center gap-3 hover:bg-gray-100 px-2 cursor-pointer"
                     >
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-10 h-10 object-cover rounded"
-                      />
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">
-                          {item.name}
-                        </p>
-                        <p className="text-xs text-gray-500">{item.price}</p>
-                      </div>
+                      <Link
+                        to={`/product/${item.id}`}
+                        className="flex items-center gap-3 w-full"
+                      >
+                        <img
+                          src={
+                            item.images?.[0]?.imageUrl ||
+                            '/placeholder-image.jpg'
+                          }
+                          alt={item.title}
+                          className="w-10 h-10 object-cover rounded"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">
+                            {item.title}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {item.variants?.[0]?.price
+                              ? `${item.variants[0].price.toLocaleString()}₫`
+                              : ''}
+                          </p>
+                        </div>
+                      </Link>
                     </li>
                   ))}
                 </ul>
