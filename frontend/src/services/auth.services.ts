@@ -26,6 +26,7 @@ interface UserLoginData {
 
 interface AuthResponse {
   access_token: string;
+  refresh_token: string;
   user: User;
 }
 
@@ -48,16 +49,17 @@ export const register = async (
 
 export const login = async (
   userData: UserLoginData,
-  loginContext: (user: User) => void
+  loginContext: (user: User, accessToken: string, refreshToken?: string) => void
 ): Promise<AuthResponse> => {
   try {
     const response = await axiosInstance.post('/auth/login', userData);
-    const { access_token, user } = response.data;
+    const { access_token, refresh_token, user } = response.data;
 
     // Store token and user info in localStorage
     localStorage.setItem('token', access_token);
+    localStorage.setItem('refreshToken', refresh_token);
     localStorage.setItem('user', JSON.stringify(user));
-    loginContext(user);
+    loginContext(user, access_token, refresh_token);
     return response.data;
   } catch (error) {
     console.error('Login error:', error);

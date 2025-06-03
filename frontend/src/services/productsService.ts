@@ -1,31 +1,10 @@
 import { Brand } from './brandsService';
 import api from './api';
 
-export interface Variant {
-  id: string;
-  sku: string;
-  price: number;
-  discountedPrice?: number;
-  compareAtPrice?: number;
-  weight?: number;
-  weightUnit?: string;
-  dimensions?: string;
-  description?: string;
-  status?: string;
-  images?: ProductImage[];
-  optionValues?: {
-    id: string;
-    value: string;
-    optionId: string;
-    optionName: string;
-    optionValueId?: string;
-  }[];
-}
-
 export interface ProductImage {
   id: string;
   imageUrl: string;
-  isThumbnail?: boolean;
+  isThumbnail: boolean;
 }
 
 export interface Category {
@@ -35,24 +14,47 @@ export interface Category {
   parentId?: string;
 }
 
+export interface OptionValue {
+  id: string;
+  value: string;
+  optionId: string;
+}
+
+export interface Option {
+  id: string;
+  name: string;
+  values: OptionValue[];
+}
+
+export interface Variant {
+  id: string;
+  sku: string;
+  price: number;
+  compareAtPrice?: number;
+  weight?: number;
+  weightUnit?: 'GRAMS' | 'KILOS' | 'POUNDS' | 'OUNCES';
+  dimensions?: string;
+  description?: string;
+  status: 'AVAILABLE' | 'OUT_OF_STOCK' | 'DISCONTINUED';
+  images: ProductImage[];
+  optionValues: {
+    id: string;
+    value: string;
+    optionId: string;
+    optionName: string;
+  }[];
+}
+
 export interface Products {
   id: string;
   title: string;
-  price: number;
   description?: string;
   rating?: number;
   category?: Category;
   brand?: Brand;
-  images?: ProductImage[];
-  options?: {
-    id: string;
-    name: string;
-    values: {
-      id: string;
-      value: string;
-    }[];
-  }[];
-  variants?: Variant[];
+  images: ProductImage[];
+  options: Option[];
+  variants: Variant[];
 }
 
 export interface ProductsResponse {
@@ -66,57 +68,100 @@ export const getAllProducts = async (
   page = 1,
   limit = 8
 ): Promise<ProductsResponse> => {
-  const params: { page: number; limit: number } = { page, limit };
-  const res = await api.get('/product', { params });
-  return res.data;
+  try {
+    console.log('Fetching products with params:', { page, limit });
+    const params: { page: number; limit: number } = { page, limit };
+    const res = await api.get('/product', {
+      params,
+      timeout: 30000, // 30 seconds timeout
+    });
+    console.log('API Response:', res.data);
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    throw error;
+  }
 };
 
 export const getProductsByCategory = async (
   categoryId: string,
   limit = 10,
   cursor?: string
-) => {
-  const params: { categoryId: string; limit: number; cursor?: string } = {
-    categoryId,
-    limit,
-  };
-  if (cursor) params.cursor = cursor;
-  const res = await api.get(`/product/by-category`, { params });
-  return res.data;
+): Promise<ProductsResponse> => {
+  try {
+    const params: { categoryId: string; limit: number; cursor?: string } = {
+      categoryId,
+      limit,
+    };
+    if (cursor) params.cursor = cursor;
+    const res = await api.get(`/product/by-category`, {
+      params,
+      timeout: 30000,
+    });
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching products by category:', error);
+    throw error;
+  }
 };
 
 export const searchProducts = async (
   keyword: string,
   limit = 10,
   cursor?: string
-) => {
-  const params: { keyword: string; limit: number; cursor?: string } = {
-    keyword,
-    limit,
-  };
-  if (cursor) params.cursor = cursor;
-  const res = await api.get(`/product/search-by-name`, { params });
-  return res.data;
-};
-
-export const getProductVariant = async (variantId: string) => {
-  const res = await api.get(`/product/variants/${variantId}`);
-  return res.data;
-};
-
-export const getAllVariants = async (limit = 50, cursor?: string) => {
-  const params: { limit: number; cursor?: string } = { limit };
-  if (cursor) params.cursor = cursor;
-  const res = await api.get(`/product/variants`, { params });
-  return res.data;
+): Promise<ProductsResponse> => {
+  try {
+    const params: { keyword: string; limit: number; cursor?: string } = {
+      keyword,
+      limit,
+    };
+    if (cursor) params.cursor = cursor;
+    const res = await api.get(`/product/search-by-name`, {
+      params,
+      timeout: 30000,
+    });
+    return res.data;
+  } catch (error) {
+    console.error('Error searching products:', error);
+    throw error;
+  }
 };
 
 export const getProductById = async (productId: string): Promise<Products> => {
-  const res = await api.get(`/product/${productId}`);
-  return res.data;
+  try {
+    const res = await api.get(`/product/${productId}`, {
+      timeout: 30000,
+    });
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching product by ID:', error);
+    throw error;
+  }
 };
 
-export const getBestDealProducts = async (limit = 10) => {
-  const res = await api.get('/product/best-deal', { params: { limit } });
-  return res.data;
+export const getVariantById = async (variantId: string): Promise<Variant> => {
+  try {
+    const res = await api.get(`/product/variants/${variantId}`, {
+      timeout: 30000,
+    });
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching variant by ID:', error);
+    throw error;
+  }
 };
+
+export async function getBestDealProducts(
+  limit = 10
+): Promise<ProductsResponse> {
+  try {
+    const res = await api.get(`/product/best-deal`, {
+      params: { limit },
+      timeout: 30000,
+    });
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching best deal products:', error);
+    throw error;
+  }
+}

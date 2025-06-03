@@ -3,18 +3,22 @@ import {
   getAllProducts,
   Products,
   ProductsResponse,
+  Variant,
 } from '../../services/productsService';
 import { Grid, Typography, Pagination } from '@mui/material';
 import ProductCard from './ProductCard';
 import { Link } from 'react-router-dom';
 
+interface VariantWithProduct extends Variant {
+  product: Products;
+}
+
 const ProductList: React.FC = () => {
-  const [products, setProducts] = useState<Products[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [variantItems, setVariantItems] = useState<VariantWithProduct[]>([]);
   const ITEMS_PER_PAGE = 8;
 
   const fetchProducts = async (page: number) => {
@@ -41,10 +45,17 @@ const ProductList: React.FC = () => {
       console.log('Current page:', page);
       console.log('=====================');
 
-      setProducts(response.products);
-      setTotal(response.total);
-      const calculatedTotalPages = Math.ceil(response.total / ITEMS_PER_PAGE);
-      setTotalPages(calculatedTotalPages);
+      setTotalPages(Math.ceil(response.total / ITEMS_PER_PAGE));
+
+      // Flatten variants
+      const variants: VariantWithProduct[] = response.products.flatMap(
+        (product) =>
+          (product.variants || []).map((variant) => ({
+            ...variant,
+            product,
+          }))
+      );
+      setVariantItems(variants);
     } catch (err) {
       setError('Failed to fetch products');
       console.error('Error fetching products:', err);
@@ -73,20 +84,21 @@ const ProductList: React.FC = () => {
   return (
     <div>
       <Typography variant="h5" gutterBottom>
-        Products ({total})
+        Products ({variantItems.length})
       </Typography>
 
       <Grid container spacing={3}>
-        {products.map((product) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+        {variantItems.map((item) => (
+          <Grid item xs={12} sm={6} md={4} lg={3} key={item.id}>
             <Link
-              to={`/product/${product.id}`}
+              to={`/product/variant/${item.id}`}
               style={{ textDecoration: 'none' }}
             >
               <ProductCard
-                product={product}
+                product={item.product}
+                variant={item}
                 onAddToCart={() => {
-                  console.log('Add to cart:', product.id);
+                  console.log('Add to cart:', item.id);
                 }}
               />
             </Link>

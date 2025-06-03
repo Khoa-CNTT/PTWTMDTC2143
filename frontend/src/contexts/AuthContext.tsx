@@ -10,7 +10,7 @@ export interface User {
 export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (userData: User, accessToken: string) => void;
+  login: (userData: User, accessToken: string, refreshToken?: string) => void;
   logout: () => void;
 }
 
@@ -41,11 +41,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  const login = (userData: User, accessToken: string) => {
+  const login = (
+    userData: User,
+    accessToken: string,
+    refreshToken?: string
+  ) => {
+    // Xóa toàn bộ localStorage trước khi login mới
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('rememberedEmail');
     setUser(userData);
     setIsAuthenticated(true);
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('token', accessToken);
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
     api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
   };
 
@@ -54,7 +66,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsAuthenticated(false);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('rememberedEmail');
+    // Xóa toàn bộ localStorage nếu muốn: localStorage.clear();
     delete api.defaults.headers.common['Authorization'];
   };
 
