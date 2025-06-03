@@ -15,6 +15,20 @@ class CategoryService {
 
     return response.data.data;
   }
+
+  async getSubCategories(parentId: string): Promise<Category[]> {
+    const response = await api.get(`/category/subcategories/${parentId}`);
+    // Nếu API trả về mảng trực tiếp thì dùng response.data
+    // Nếu trả về { data: [...] } thì dùng response.data.data
+    // Để an toàn, kiểm tra cả hai trường hợp:
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    if (Array.isArray(response.data.data)) {
+      return response.data.data;
+    }
+    return [];
+  }
 }
 
 export const categoryService = new CategoryService();

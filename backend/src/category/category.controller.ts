@@ -76,4 +76,11 @@ export class CategoryController {
   ): Promise<CategoryResponseDto> {
     return this.categoryService.findParentCategory(id);
   }
+
+  @Get('subcategories/:parentId')
+  async getSubCategories(@Param('parentId') parentId: string) {
+    const subCategories =
+      await this.categoryService.findSubCategories(parentId);
+    return { data: subCategories };
+  }
 }

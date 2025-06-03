@@ -8,11 +8,14 @@ import {
   MenuItem,
   Pagination,
 } from '@mui/material';
+import { useLocation } from 'react-router-dom';
 
 import {
   getAllProducts,
   Products,
   ProductsResponse,
+  Variant,
+  getProductsByCategory,
 } from '../../services/productsService';
 import { getAllBrands } from '../../services/brandsService';
 import { Brand } from '../../services/brandsService';
@@ -23,6 +26,7 @@ type FilterType = {
 };
 
 const Product: React.FC = () => {
+  const location = useLocation();
   const [products, setProducts] = useState<Products[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [selectedBrand, setSelectedBrand] = useState('');
@@ -42,6 +46,9 @@ const Product: React.FC = () => {
     blue: false,
     red: false,
   });
+  const [productVariants, setProductVariants] = useState<
+    Record<string, Variant>
+  >({});
 
   const fetchProducts = async (page: number) => {
     try {
@@ -67,8 +74,61 @@ const Product: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchProducts(currentPage);
-  }, [currentPage]);
+    // Lấy categoryId từ query string nếu có
+    const params = new URLSearchParams(location.search);
+    const categoryId = params.get('categoryId');
+    if (categoryId) {
+      // Nếu có categoryId, fetch sản phẩm theo category
+      const fetchByCategory = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const response = await getProductsByCategory(
+            categoryId,
+            ITEMS_PER_PAGE,
+            undefined // cursor
+          );
+          console.log('API raw response:', response);
+          // Nếu response là object có .products
+          if (response && Array.isArray(response.products)) {
+            setProducts(response.products);
+            const total =
+              typeof response.total === 'number'
+                ? response.total
+                : response.totalPages
+                  ? response.totalPages * ITEMS_PER_PAGE
+                  : 0;
+            const calculatedTotalPages = Math.ceil(total / ITEMS_PER_PAGE) || 1;
+            setTotalPages(calculatedTotalPages);
+            console.log(
+              'Fetched products by categoryId',
+              categoryId,
+              response.products
+            );
+            return;
+          }
+          // Nếu response là mảng trực tiếp
+          if (Array.isArray(response)) {
+            setProducts(response);
+            setTotalPages(1);
+            return;
+          }
+          // Nếu không khớp gì, set rỗng
+          setProducts([]);
+          setTotalPages(1);
+        } catch (err) {
+          setError('Failed to fetch products by category');
+          setProducts([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchByCategory();
+    } else {
+      fetchProducts(currentPage);
+    }
+    // eslint-disable-next-line
+  }, [location.search, currentPage]);
 
   useEffect(() => {
     const fetchBrands = async () => {
@@ -77,6 +137,30 @@ const Product: React.FC = () => {
     };
     fetchBrands();
   }, []);
+
+  useEffect(() => {
+    if (products && products.length > 0) {
+      // Lấy variant đầu tiên cho mỗi product
+      const fetchVariants = async () => {
+        const variantsMap: Record<string, Variant> = {};
+        await Promise.all(
+          products.map(async (product) => {
+            if (product.variants && product.variants.length > 0) {
+              // Nếu đã có variant trong product
+              variantsMap[product.id] = product.variants[0];
+            } else {
+              // Nếu chưa có, thử fetch từ API (nếu cần)
+              // Bỏ qua nếu không có variantId
+            }
+          })
+        );
+        setProductVariants(variantsMap);
+      };
+      fetchVariants();
+    } else {
+      setProductVariants({});
+    }
+  }, [products]);
 
   const handlePageChange = (
     event: React.ChangeEvent<unknown>,
@@ -216,6 +300,7 @@ const Product: React.FC = () => {
                     <ProductCard
                       key={product.id}
                       product={product}
+                      variant={productVariants[product.id]}
                       onAddToCart={() => {
                         console.log('Add to cart:', product.id);
                       }}

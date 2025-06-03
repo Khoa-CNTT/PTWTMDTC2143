@@ -98,6 +98,16 @@ export const getProductsByCategory = async (
       params,
       timeout: 30000,
     });
+    // Nếu backend trả về {data: [...], nextCursor: ...} thì chuẩn hóa về ProductsResponse
+    if (Array.isArray(res.data.data)) {
+      return {
+        products: res.data.data,
+        total: res.data.data.length,
+        totalPages: 1,
+        currentPage: 1,
+      };
+    }
+    // Nếu backend trả về {products: [...], ...} thì trả về như cũ
     return res.data;
   } catch (error) {
     console.error('Error fetching products by category:', error);
