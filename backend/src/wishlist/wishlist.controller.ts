@@ -14,7 +14,7 @@ import { WishlistService } from './wishlist.service';
 import { CreateWishlistItemDTO } from './dto/create-wishlist-item';
 
 interface RequestWithUser extends Request {
-  body: {
+  user: {
     id: string;
   };
 }
@@ -25,7 +25,7 @@ export class WishlistController {
 
   @Get()
   async getWishlist(@Req() req: RequestWithUser) {
-    return this.wishlistService.getWishlist(req.body.id);
+    return this.wishlistService.getWishlist(req.user.id);
   }
 
   @Post()
@@ -33,7 +33,7 @@ export class WishlistController {
     @Req() req: RequestWithUser,
     @Body() dto: CreateWishlistItemDTO
   ) {
-    return this.wishlistService.addToWishlist(req.body.id, dto);
+    return this.wishlistService.addToWishlist(req.user.id, dto);
   }
 
   @Delete(':variantId')
@@ -42,6 +42,6 @@ export class WishlistController {
     @Req() req: RequestWithUser,
     @Param('variantId') variantId: string
   ) {
-    await this.wishlistService.removeFromWishlist(req.body.id, variantId);
+    await this.wishlistService.removeFromWishlist(req.user.id, variantId);
   }
 }

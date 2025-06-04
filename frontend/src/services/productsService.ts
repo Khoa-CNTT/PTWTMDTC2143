@@ -169,17 +169,7 @@ export const getVariantById = async (variantId: string): Promise<Variant> => {
   }
 };
 
-export async function getBestDealProducts(
-  limit = 10
-): Promise<ProductsResponse> {
-  try {
-    const res = await api.get(`/product/best-deal`, {
-      params: { limit },
-      timeout: 30000,
-    });
-    return res.data;
-  } catch (error) {
-    console.error('Error fetching best deal products:', error);
-    throw error;
-  }
-}
+export const getBestDealProducts = async (limit = 10) => {
+  const res = await api.get('/product/best-deal', { params: { limit } });
+  return res.data;
+};

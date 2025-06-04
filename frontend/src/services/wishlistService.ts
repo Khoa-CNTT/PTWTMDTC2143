@@ -1,5 +1,5 @@
 import api from './api';
-import { Variant } from '../services/productService';
+import { Variant } from './productsService';
 export interface WishlistItem {
   id: string;
   variant: Variant; // Bạn có thể định nghĩa type Variant chi tiết hơn nếu muốn
@@ -12,16 +12,22 @@ export interface Wishlist {
 }
 
 export const getWishlist = async (): Promise<Wishlist> => {
-  const res = await api.get('/wishlist');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (!user.id) throw new Error('Bạn cần đăng nhập để sử dụng wishlist');
+  const res = await api.get(`/wishlist?userId=${user.id}`);
   return res.data;
 };
 
 export const addToWishlist = async (variantId: string) => {
-  const res = await api.post('/wishlist', { variantId });
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (!user.id) throw new Error('Bạn cần đăng nhập để sử dụng wishlist');
+  const res = await api.post('/wishlist', { variantId, userId: user.id });
   return res.data;
 };
 
 export const removeFromWishlist = async (variantId: string) => {
-  const res = await api.delete(`/wishlist/${variantId}`);
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (!user.id) throw new Error('Bạn cần đăng nhập để sử dụng wishlist');
+  const res = await api.delete(`/wishlist/${variantId}?userId=${user.id}`);
   return res.data;
 };

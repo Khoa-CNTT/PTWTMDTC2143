@@ -29,6 +29,13 @@ export class AuthService {
     refresh_token: string;
     access_token_expires_in: number;
     refresh_token_expires_in: number;
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      phone: string;
+      roles: { name: string }[];
+    };
   }> {
     const {
       accessToken,
@@ -44,6 +51,13 @@ export class AuthService {
       refresh_token: refreshToken,
       access_token_expires_in: accessTokenExpiresIn,
       refresh_token_expires_in: refreshTokenExpiresIn,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        roles: user.roles,
+      },
     };
   }
 

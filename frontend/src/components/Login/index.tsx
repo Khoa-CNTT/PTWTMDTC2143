@@ -30,11 +30,20 @@ const Login: React.FC = () => {
     setIsLoading(true);
     try {
       const response = await loginService(formData, authLogin);
-      if (response.access_token) {
+      console.log('Login response:', response);
+
+      if (response.access_token && response.user) {
+        // Lưu thông tin đăng nhập
+        authLogin(response.user, response.access_token, response.refresh_token);
+
         if (rememberMe) {
           localStorage.setItem('rememberedEmail', formData.email);
         }
+
+        console.log('Login successful, redirecting...');
         navigate('/');
+      } else {
+        throw new Error('Invalid response from server');
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -42,12 +51,12 @@ const Login: React.FC = () => {
         if (err.response?.data?.message) {
           setError(err.response.data.message);
         } else if (err.code === 'ERR_NETWORK') {
-          setError('Network error. Please check your connection.');
+          setError('Lỗi kết nối. Vui lòng kiểm tra lại kết nối mạng.');
         } else {
-          setError('Invalid email or password. Please try again.');
+          setError('Email hoặc mật khẩu không đúng. Vui lòng thử lại.');
         }
       } else {
-        setError('An unexpected error occurred. Please try again.');
+        setError('Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
       }
     } finally {
       setIsLoading(false);
@@ -57,7 +66,7 @@ const Login: React.FC = () => {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
       <div className="w-full max-w-[600px] bg-white p-12 rounded-lg shadow-lg flex flex-col">
-        <h2 className="text-3xl font-semibold mb-4 text-center">Login</h2>
+        <h2 className="text-3xl font-semibold mb-4 text-center">Đăng nhập</h2>
         {error && (
           <div className="mb-4 p-2 text-red-500 text-center bg-red-100 rounded">
             {error}
@@ -72,20 +81,20 @@ const Login: React.FC = () => {
               value={formData.email}
               onChange={handleChange}
               className="mt-2 w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Enter your email"
+              placeholder="Nhập email của bạn"
               required
             />
           </div>
 
           <div>
-            <label className="font-semibold mt-2">Password</label>
+            <label className="font-semibold mt-2">Mật khẩu</label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
               className="mt-2 w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Enter your password"
+              placeholder="Nhập mật khẩu của bạn"
               required
             />
           </div>
@@ -98,13 +107,13 @@ const Login: React.FC = () => {
                   onChange={() => setRememberMe(!rememberMe)}
                 />
               }
-              label="Remember Me"
+              label="Ghi nhớ đăng nhập"
             />
             <a
               href="/forgotpassword"
               className="text-orange-500 hover:underline font-semibold"
             >
-              Forgot Password
+              Quên mật khẩu?
             </a>
           </div>
 
@@ -123,16 +132,16 @@ const Login: React.FC = () => {
                 },
               }}
             >
-              {isLoading ? 'Signing in...' : 'SIGN IN'}
+              {isLoading ? 'Đang đăng nhập...' : 'ĐĂNG NHẬP'}
             </Button>
           </div>
           <div className="text-center mt-4">
-            <label className="me-2">Don&apos;t have an Account?</label>
+            <label className="me-2">Chưa có tài khoản?</label>
             <a
               href="/register"
               className="text-orange-500 hover:underline font-semibold"
             >
-              Sign up now
+              Đăng ký ngay
             </a>
           </div>
         </form>

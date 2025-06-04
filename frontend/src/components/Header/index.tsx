@@ -18,6 +18,7 @@ import { FaTv } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { FaHeart } from 'react-icons/fa';
 import { categoryService } from '../../services/categoryService';
+import { useWishlist } from '../../contexts/WishlistContext';
 
 interface Category {
   id: string;
@@ -41,7 +42,8 @@ function getCategoryIcon(name: string) {
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const { count: wishlistCount } = useWishlist();
   const [categories, setCategories] = useState<Category[]>([]);
   // const [isHoveringUser, setIsHoveringUser] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -261,7 +263,10 @@ const Header: React.FC = () => {
                       onClick={handleWishlistClick}
                       className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
                       startIcon={
-                        <StyledBadge badgeContent={2} color="secondary">
+                        <StyledBadge
+                          badgeContent={wishlistCount}
+                          color="secondary"
+                        >
                           <FaHeart className="text-xl text-pink-500" />
                         </StyledBadge>
                       }
@@ -271,7 +276,7 @@ const Header: React.FC = () => {
                           Wishlist
                         </h4>
                         <span className="text-[13px] text-[rgba(0,0,0,0.6)]  font-[400] capitalize text-left justify-start">
-                          2 items
+                          {wishlistCount} item{wishlistCount !== 1 ? 's' : ''}
                         </span>
                       </div>
                     </Button>
@@ -305,7 +310,7 @@ const Header: React.FC = () => {
                   onClick={handleUserClick}
                   className="!text-[#000] myAccountWrap flex items-center gap-3 cursor-pointer"
                 >
-                  {isAuthenticated ? user?.name || 'Profile' : 'Login'}
+                  {isAuthenticated ? 'Profile' : 'Login'}
                 </Button>
               </li>
             </ul>

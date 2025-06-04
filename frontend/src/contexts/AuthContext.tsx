@@ -58,8 +58,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (refreshToken) {
       localStorage.setItem('refreshToken', refreshToken);
     }
+    // Lưu userId riêng biệt để các service khác (wishlist, v.v.) dễ lấy
+    if (userData && userData.id) {
+      localStorage.setItem('userId', userData.id);
+    }
     api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
   };
+
+  // Khi app khởi động lại, nếu user tồn tại thì đảm bảo userId cũng có trong localStorage
+  useEffect(() => {
+    if (user && user.id) {
+      localStorage.setItem('userId', user.id);
+    } else {
+      localStorage.removeItem('userId');
+    }
+  }, [user]);
 
   const handleLogout = () => {
     setUser(null);

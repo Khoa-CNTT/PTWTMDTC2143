@@ -8,6 +8,8 @@ import {
   getProductById,
 } from '../../services/productsService';
 import { AiOutlineHeart, AiFillHeart } from 'react-icons/ai';
+import { addToWishlist } from '../../services/wishlistService';
+import { useWishlist } from '../../contexts/WishlistContext';
 
 interface ProductCardProps {
   product: Products;
@@ -20,10 +22,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
   variant,
   onAddToCart,
 }) => {
-  const [wishlist, setWishlist] = useState<string[]>([]);
   const [firstVariantPrice, setFirstVariantPrice] = useState<number | null>(
     null
   );
+  const [isAnimating, setIsAnimating] = useState(false);
+  const { optimisticAdd, forceSync, wishlistIds } = useWishlist();
 
   useEffect(() => {
     // Nếu không truyền variant, tự fetch product detail để lấy giá variant đầu tiên
@@ -53,12 +56,33 @@ const ProductCard: React.FC<ProductCardProps> = ({
   // Ưu tiên rating từ product (vì variant thường không có rating riêng)
   const rating = product.rating || 0;
 
-  const toggleWishlist = (id: string) => {
-    setWishlist((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
   const variantId = variant?.id || product.id;
+
+  const isWishlisted = wishlistIds?.includes(variantId);
+
+  const handleAddToWishlist = async () => {
+    alert('Đang thêm vào wishlist...');
+    try {
+      if (!variant && product.variants && product.variants.length > 0) {
+        await addToWishlist(product.variants[0].id);
+      } else if (variant) {
+        await addToWishlist(variant.id);
+      }
+      optimisticAdd(variantId);
+      await forceSync(); // Sync with API after add
+      setIsAnimating(true);
+      setTimeout(() => setIsAnimating(false), 800); // Kết thúc hiệu ứng sau 0.8s
+    } catch (e) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = e as Error & { message?: string };
+      if (error.message?.includes('đăng nhập')) {
+        window.location.href = '/login';
+      } else {
+        alert(error.message || 'Có lỗi xảy ra khi thêm vào wishlist');
+      }
+    }
+  };
+
   return (
     <div className="productItem border-2 border-[rgba(0,0,0,0.1)] rounded-[20px] bg-[#f1f1f1] shadow-lg flex flex-col items-center">
       <div className="imgWrapper w-full h-[270px] overflow-hidden rounded-[20px] flex items-center justify-center">
@@ -99,10 +123,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
             readOnly
           />
           <button
-            onClick={() => toggleWishlist(variantId)}
-            className="text-red-500 hover:text-red-600 transition-colors"
+            onClick={handleAddToWishlist}
+            className={`text-red-500 hover:text-red-600 transition-colors relative ${isAnimating ? 'wishlist-fly' : ''}`}
           >
-            {wishlist.includes(variantId) ? (
+            {isWishlisted ? (
               <AiFillHeart className="text-2xl" />
             ) : (
               <AiOutlineHeart className="text-2xl" />
@@ -135,3 +159,25 @@ const ProductCard: React.FC<ProductCardProps> = ({
 };
 
 export default ProductCard;
+
+// Thêm CSS hiệu ứng bay lên wishlist
+// Thêm vào file ProductCard.module.css hoặc index.css nếu dùng global
+/*
+.wishlist-fly {
+  animation: flyToWishlist 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes flyToWishlist {
+  0% {
+    transform: scale(1) translateY(0) translateX(0);
+    opacity: 1;
+  }
+  60% {
+    transform: scale(1.5) translateY(-40px) translateX(40px);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(0.5) translateY(-80px) translateX(120px);
+    opacity: 0;
+  }
+}
+*/

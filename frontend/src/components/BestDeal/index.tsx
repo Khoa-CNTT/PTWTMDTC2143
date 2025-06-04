@@ -1,11 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import Rating from '@mui/material/Rating';
-import { getBestDealProducts, Products } from '../../services/productsService';
+import { Link, useLocation } from 'react-router-dom';
+import { getBestDealProducts } from '../../services/productsService';
 import { CircularProgress, Typography } from '@mui/material';
 
+// Define the type matching backend response
+interface BestDealProduct {
+  id: string;
+  title: string;
+  price: number;
+  compareAtPrice: number;
+  discount: number;
+  images: { id: string; imageUrl: string }[];
+  brand?: unknown;
+  category?: unknown;
+  variantId: string;
+  variantSku: string;
+  variantImages: { id: string; imageUrl: string }[];
+}
+
 const BestDeal: React.FC = () => {
-  const [products, setProducts] = useState<Products[]>([]);
+  const location = useLocation();
+  const [products, setProducts] = useState<BestDealProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,9 +29,8 @@ const BestDeal: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await getBestDealProducts(10);
-        console.log('BestDeal API response:', response);
-        setProducts(response.products || []);
+        const data = await getBestDealProducts(10);
+        setProducts(data);
       } catch (err) {
         console.error('Error fetching best deal products:', err);
         setError('Không thể tải danh sách sản phẩm. Vui lòng thử lại sau.');
@@ -26,7 +40,7 @@ const BestDeal: React.FC = () => {
     };
 
     fetchProducts();
-  }, []);
+  }, [location]);
 
   if (loading) {
     return (
@@ -60,7 +74,7 @@ const BestDeal: React.FC = () => {
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {products.map((product) => (
           <div
-            key={product.id}
+            key={product.variantId}
             className="grid grid-cols-2 border border-gray-200 rounded-[20px] bg-white hover:shadow-lg transition-shadow duration-300 overflow-hidden"
           >
             <div className="w-full h-full rounded-[20px] overflow-hidden">
@@ -89,20 +103,18 @@ const BestDeal: React.FC = () => {
                   <h3 className="text-primary font-medium">
                     ${product.price?.toFixed(2)}
                   </h3>
-                  {product.variants?.[0]?.compareAtPrice && (
+                  {product.compareAtPrice && (
                     <span className="text-gray-500 line-through text-sm">
-                      ${product.variants[0].compareAtPrice.toFixed(2)}
+                      ${product.compareAtPrice.toFixed(2)}
+                    </span>
+                  )}
+                  {product.discount > 0 && (
+                    <span className="ml-2 text-red-500 font-semibold">
+                      -{product.discount}%
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-1 mt-1">
-                  <Rating
-                    name="size-small"
-                    value={product.rating || 0}
-                    size="small"
-                    readOnly
-                  />
-                </div>
+                {/* Optionally add rating if available */}
               </div>
             </div>
           </div>

@@ -6,6 +6,8 @@ import {
   ProductImage,
   Variant,
 } from '../../services/productsService';
+import { Button, IconButton, Typography } from '@mui/material';
+import { FaHeart, FaRegHeart } from 'react-icons/fa';
 
 const ProductDetail: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
@@ -13,6 +15,8 @@ const ProductDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [isWishlist, setIsWishlist] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -34,6 +38,26 @@ const ProductDetail: React.FC = () => {
     };
     fetchProduct();
   }, [productId]);
+
+  const handleWishlistClick = () => {
+    setIsWishlist(!isWishlist);
+  };
+
+  const handleAddToCart = () => {
+    console.log('Add to cart:', {
+      productId: product?.id,
+      variantId: selectedVariant?.id,
+      quantity: quantity,
+    });
+  };
+
+  const handleQuantityChange = (delta: number) => {
+    const newQuantity = quantity + delta;
+    if (newQuantity >= 1 && newQuantity <= 10) {
+      // Giới hạn cứng là 10
+      setQuantity(newQuantity);
+    }
+  };
 
   if (loading) {
     return (
@@ -86,10 +110,21 @@ const ProductDetail: React.FC = () => {
         </div>
       </div>
       <div className="flex-1">
-        <span className="text-gray-500 text-sm">ID: {product.id}</span>
-        <h2 className="text-2xl font-bold mt-2">{product.title}</h2>
-        <div className="mb-2 text-gray-500">
-          {product.category?.name} | {product.brand?.name}
+        <div className="flex justify-between items-start">
+          <div>
+            <span className="text-gray-500 text-sm">ID: {product.id}</span>
+            <h2 className="text-2xl font-bold mt-2">{product.title}</h2>
+            <div className="mb-2 text-gray-500">
+              {product.category?.name} | {product.brand?.name}
+            </div>
+          </div>
+          <IconButton onClick={handleWishlistClick} className="text-2xl">
+            {isWishlist ? (
+              <FaHeart className="text-red-500" />
+            ) : (
+              <FaRegHeart className="text-gray-600" />
+            )}
+          </IconButton>
         </div>
         {selectedVariant && (
           <div className="flex items-center mt-3 gap-3">
@@ -162,6 +197,70 @@ const ProductDetail: React.FC = () => {
             </div>
           </div>
         )}
+        <div className="mt-6 flex flex-col items-start gap-3">
+          {/* Quantity controls */}
+          <div className="flex items-center justify-center mb-2">
+            <Button
+              onClick={() => handleQuantityChange(-1)}
+              className="min-w-0 px-4 py-2"
+              style={{ color: '#3b82f6', fontWeight: 700, fontSize: 20 }}
+              disabled={quantity <= 1}
+            >
+              -
+            </Button>
+            <Typography
+              className="px-6"
+              style={{ minWidth: 24, textAlign: 'center', fontWeight: 600 }}
+            >
+              {quantity}
+            </Typography>
+            <Button
+              onClick={() => handleQuantityChange(1)}
+              className="min-w-0 px-4 py-2"
+              style={{ color: '#3b82f6', fontWeight: 700, fontSize: 20 }}
+              disabled={quantity >= 10}
+            >
+              +
+            </Button>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-row gap-2 w-full justify-start">
+            <Button
+              variant="outlined"
+              size="large"
+              style={{
+                borderColor: '#fb923c',
+                color: '#fb923c',
+                background: '#fff',
+                borderRadius: 8,
+                fontWeight: 600,
+                minWidth: 100,
+                height: 44,
+              }}
+              onClick={() => alert('Buy now!')}
+            >
+              BUY
+            </Button>
+            <Button
+              variant="contained"
+              size="large"
+              style={{
+                background: '#fb923c',
+                color: '#fff',
+                borderRadius: 8,
+                fontWeight: 600,
+                minWidth: 140,
+                height: 44,
+                boxShadow: 'none',
+              }}
+              onClick={handleAddToCart}
+              disabled={!selectedVariant}
+            >
+              ADD TO CART
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
